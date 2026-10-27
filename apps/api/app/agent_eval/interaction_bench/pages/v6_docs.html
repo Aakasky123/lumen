@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Quill Docs</title>
+<link rel="stylesheet" href="v4_style.css">
+<link rel="stylesheet" href="v6_style.css">
+<style>
+  .doctabs{display:flex;gap:2px;padding:6px 10px 0;background:#eef1f5;border-bottom:1px solid #d8dde3}
+  .doctabs button{border-radius:6px 6px 0 0;border-bottom:0;background:#e3e8ee;font-size:13px;padding:5px 12px}
+  .doctabs button[aria-selected=true]{background:#fff;font-weight:600}
+  .dochead{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid #e3e6ea}
+  .dochead .grow{flex:1}
+  .dochead button{font-size:13px;padding:4px 12px}
+  section.app .toolbar{padding:6px 14px;border-bottom:1px solid #e3e6ea}
+  .findbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:6px 14px;background:#f6f8fa;border-bottom:1px solid #e3e6ea;font-size:13px}
+  .findbar[hidden]{display:none}
+  .findbar input[type=text]{width:140px;padding:3px 6px}
+  .findbar .k-select{min-width:140px}
+  .doc{flex:1;min-width:0;padding:12px 20px}
+  .side{width:340px;flex:none;font-size:13px}
+  .blk{padding:3px 6px;margin:2px 0;border-radius:4px;outline:none;cursor:text}
+  .blk:focus,.blk.on{box-shadow:0 0 0 2px #c9dcf2}
+  .blk.p{font-family:Georgia,"Times New Roman",serif;font-size:15px}
+  .blk.hd{font-weight:700;margin-top:8px}
+  .blk.l1{font-size:22px}.blk.l2{font-size:18px}.blk.l3{font-size:15px;color:#334}
+  .blk textarea{width:100%;box-sizing:border-box;min-height:64px;font:15px Georgia,"Times New Roman",serif}
+  .blk .row{margin:4px 0}
+  .sent.sel{background:#cfe3fb;border-radius:3px}
+  .hit{background:#fff1a8}.hit.cur{background:#f6c343;outline:1px solid #c9952a}
+  .cmt{background:#fde9b6;border-bottom:2px solid #e8b13c;cursor:pointer}
+  .sug{position:relative;cursor:pointer;outline:none}
+  .sug.ins{color:#11703a;text-decoration:underline}
+  .sug.del{color:#b42318;text-decoration:line-through}
+  .sug-tools{display:none;position:absolute;left:0;top:100%;z-index:20;gap:6px;align-items:center;white-space:nowrap;background:#fff;
+    border:1px solid #b9c2cc;border-radius:6px;padding:4px 6px;box-shadow:0 6px 16px rgba(0,0,0,.14);font:12px system-ui,sans-serif;color:#1a1a1a}
+  .sug:hover .sug-tools,.sug:focus-within .sug-tools{display:flex}
+  .sug-tools button{font-size:12px;padding:1px 8px}
+  sup.fn{color:#2b6cb0;font-size:11px;margin-left:1px}
+  .notes{border-top:1px solid #dde3ea;margin-top:14px;padding-top:4px;font-size:13px}
+  .notes ol{margin:4px 0;padding-left:22px}
+  .notes input{padding:3px 6px;width:220px}
+  table.deftable{width:auto;margin:4px 0}
+  button.link{background:none;border:0;color:#2b6cb0;padding:0 4px;font-size:12px}
+  .sidetabs{display:flex;gap:4px;margin-bottom:8px}
+  .sidetabs button{font-size:12px;padding:3px 8px}
+  .sidetabs button[aria-selected=true]{background:#d7e6f7;border-color:#7aa7d9}
+  .olist{position:relative;user-select:none;-webkit-user-select:none}
+  .orow{display:flex;align-items:center;gap:4px;padding:2px 4px;border-radius:5px;touch-action:none}
+  .orow:hover{background:#f3f6fa}
+  .orow.dragging{opacity:.45}
+  .orow .grip{cursor:grab;color:#889;padding:0 2px}
+  .orow .go{flex:1;text-align:left;background:none;border:0;padding:3px 4px;font-size:13px}
+  .orow .k-select{min-width:0;padding:1px 6px;font-size:12px}
+  .orow .more{padding:1px 8px;font-size:12px}
+  .drop-line{position:absolute;left:0;right:0;height:2px;background:#2b6cb0;pointer-events:none}
+  .scard,.thread{border:1px solid #dde3ea;border-radius:8px;padding:6px 8px;margin:0 0 6px}
+  .scard .row,.thread .row{margin:4px 0 0}
+  .scard button,.thread button{font-size:12px;padding:2px 10px}
+  .thread.flash{box-shadow:0 0 0 2px #e8b13c}
+  .thread .q{color:#667;font-style:italic}
+  .thread .c{margin:2px 0}
+  .thread .c.reply{margin-left:12px}
+  .thread .who{font-weight:600}
+</style>
+</head>
+<body data-page="v6_docs">
+<h1>Quill Docs</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+<p class="intro">Five independent tasks, one document each. Make the change, then press <em>Save document</em> — every
+  save is checked.</p>
+
+<div class="tasks">
+  <section class="ch">
+    <h2>1. Review suggestions <span class="mark" data-step-mark="review_suggestions"></span></h2>
+    <p>In <strong>Vendor agreement</strong>, accept every suggestion by <span class="val" id="t1-accept"></span>, reject
+       every suggestion by the <span class="val" id="t1-reject"></span> bot, and leave all other suggestions open.</p>
+    <p class="msg" data-msg="sug"></p>
+  </section>
+  <section class="ch">
+    <h2>2. Resolve threads <span class="mark" data-step-mark="resolve_threads"></span></h2>
+    <p>In <strong>Launch brief</strong> (owner: <span class="val t2-owner"></span>), resolve every comment thread that
+       <span class="val t2-owner"></span> has replied to. Leave the other threads open.</p>
+    <p class="msg" data-msg="threads"></p>
+  </section>
+  <section class="ch">
+    <h2>3. Scoped replace <span class="mark" data-step-mark="scoped_replace"></span></h2>
+    <p>In <strong>Services contract</strong>, replace the whole word “Contractor” (exact case) with “Supplier” in body
+       paragraphs only — not in headings or the Definitions table. Other forms (“Subcontractor”, “Contractors”) stay.</p>
+    <p class="msg" data-msg="replace"></p>
+  </section>
+  <section class="ch">
+    <h2>4. Reorder the outline <span class="mark" data-step-mark="outline_reorder"></span></h2>
+    <p>In <strong>Policy handbook</strong>, move the <span class="val" id="t4-section"></span> section (heading and its
+       paragraphs) so it sits directly above <span class="val" id="t4-above"></span>, and make its heading level H2.
+       Keep the other sections in their order.</p>
+    <p class="msg" data-msg="outline"></p>
+  </section>
+  <section class="ch">
+    <h2>5. Add a footnote <span class="mark" data-step-mark="footnote"></span></h2>
+    <p>In <strong>SLA summary</strong>, add the footnote <span class="val" id="t5-text"></span> to the one sentence about
+       <span class="val" id="t5-topic"></span> (click the sentence, then <em>Insert footnote</em>).</p>
+    <p class="msg" data-msg="footnote"></p>
+  </section>
+</div>
+
+<section class="app" aria-label="Document editor">
+  <div class="app-head"><h2>Quill Docs</h2><span class="muted">you@harborco.example</span></div>
+  <div class="doctabs" id="doctabs" role="tablist" aria-label="Documents"></div>
+  <div class="dochead">
+    <strong id="doc-title"></strong><span class="muted" id="doc-meta"></span><span class="grow"></span>
+    <span class="muted" id="save-state"></span>
+    <button id="restore">Restore original</button>
+    <button id="save" class="primary">Save document</button>
+  </div>
+  <div class="toolbar" role="toolbar" aria-label="Editing tools">
+    <button id="t-edit">Edit block</button>
+    <button id="t-find" aria-expanded="false">Find &amp; replace</button>
+    <button id="t-footnote">Insert footnote</button>
+    <span class="muted" id="sel-info"></span>
+  </div>
+  <div class="findbar" id="findbar" hidden>
+    <label>Find <input type="text" id="f-find" autocomplete="off" data-enter="f-next"></label>
+    <label>Replace with <input type="text" id="f-rep" autocomplete="off"></label>
+    <label><input type="checkbox" id="f-case"> Match case</label>
+    <label><input type="checkbox" id="f-word"> Whole word</label>
+    <span>Scope</span><button id="f-scope" aria-label="Scope"></button>
+    <button id="f-next">Find next</button><button id="f-one">Replace</button><button id="f-all">Replace all</button>
+    <span class="muted" id="f-count" aria-live="polite"></span>
+  </div>
+  <div class="panes">
+    <div class="pane doc" id="doc" aria-label="Document"></div>
+    <div class="pane side">
+      <div class="sidetabs" id="sidetabs" role="tablist" aria-label="Side panel"></div>
+      <div id="side"></div>
+    </div>
+  </div>
+</section>
+
+<script src="v3_common.js"></script>
+<script src="v6_kit.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+const { h } = K;
+const clone = (x) => JSON.parse(JSON.stringify(x));
+let pub = null, cur = null, scope = null;
+const original = {}, docs = {}, dirty = {}, saved = {};
+let sel = null;           // {block, s}: the selected block and sentence (s is null for a whole block)
+let editing = null;       // block id whose in-place editor is open
+let noteEditing = null;   // footnote id whose text box is open
+let side = "outline", flashThread = null, showResolved = false, findCur = -1, drag = null, suppressClick = false, noteSeq = 0;
+const expanded = new Set();
+
+const D = () => docs[cur];
+const blockById = (id) => D().blocks.find((b) => b.id === id);
+const sugById = (id) => D().suggestions.find((s) => s.id === id);
+const plural = (n, one, many) => n + " " + (n === 1 ? one : many);
+function notify(text) {  // one toast at a time, so quick repeats never pile up
+  document.querySelectorAll(".k-toast").forEach((t) => t.remove());
+  K.toast(text);
+}
+
+/** [start, end) of each sentence of a paragraph; the harness splits sentences the same way. */
+function sentenceRanges(text) {
+  const out = [], re = /(?<=[.!?])\s+/g;
+  let start = 0, m;
+  while ((m = re.exec(text))) { out.push([start, m.index]); start = m.index + m[0].length; }
+  out.push([start, text.length]);
+  return out;
+}
+
+/** Text from a to z, cut where highlights start and end. */
+function pieces(text, a, z, marks) {
+  const cuts = new Set([a, z]);
+  for (const m of marks) if (m.end > a && m.start < z) { cuts.add(Math.max(a, m.start)); cuts.add(Math.min(z, m.end)); }
+  const pts = [...cuts].sort((x, y) => x - y), out = [];
+  for (let k = 0; k + 1 < pts.length; k++) {
+    const p = pts[k], q = pts[k + 1], on = marks.filter((m) => m.start <= p && m.end >= q);
+    if (!on.length) { out.push(text.slice(p, q)); continue; }
+    const el = h("span", { class: on.map((m) => m.cls).join(" "), text: text.slice(p, q) });
+    const thread = on.find((m) => m.thread);
+    if (thread) el.dataset.thread = thread.thread;
+    out.push(el);
+  }
+  return out;
+}
+
+// --- find & replace --------------------------------------------------------------------------------
+const findOpen = () => !$("#findbar").hidden;
+function units() {  // the text the search covers, in reading order
+  const out = [], all = scope.value === "all";
+  const unit = (key, get, set) => out.push({ key, get, set });
+  for (const b of D().blocks) {
+    if (b.kind === "p" && b.segments) b.segments.forEach((sg, i) => { if (!sg.sug) unit(b.id + ":" + i, () => sg.text, (v) => { sg.text = v; }); });
+    else if (b.kind === "p" || (b.kind === "h" && all)) unit(b.id, () => b.text, (v) => { b.text = v; });
+    else if (b.kind === "table" && all) b.rows.forEach((row, r) => row.forEach((_, c) => unit(`${b.id}:${r}:${c}`, () => row[c], (v) => { row[c] = v; })));
+  }
+  return out;
+}
+function pattern() {
+  const q = $("#f-find").value;
+  if (!q) return null;
+  const esc = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp($("#f-word").checked ? `(?<![A-Za-z0-9_])${esc}(?![A-Za-z0-9_])` : esc, $("#f-case").checked ? "g" : "gi");
+}
+function matches() {
+  const re = findOpen() && cur ? pattern() : null, out = [];
+  if (!re) return out;
+  for (const u of units()) {
+    const text = u.get();
+    re.lastIndex = 0;
+    for (let m; (m = re.exec(text));) out.push({ unit: u, key: u.key, start: m.index, end: m.index + m[0].length });
+  }
+  return out;
+}
+function drawFindCount() {
+  const n = matches().length;
+  $("#f-count").textContent = !$("#f-find").value ? "" : !n ? "No matches" : findCur >= 0 && findCur < n ? `Match ${findCur + 1} of ${n}` : plural(n, "match", "matches");
+}
+function findNext() {
+  const ms = matches();
+  findCur = ms.length ? (findCur + 1) % ms.length : -1;
+  drawDoc(); drawFindCount();
+  const hit = $("#doc .hit.cur");
+  if (hit) hit.scrollIntoView({ block: "nearest" });
+}
+function findChanged() { findCur = -1; drawDoc(); drawFindCount(); }
+
+// --- the document ----------------------------------------------------------------------------------
+function sortedNotes() {
+  const order = new Map(D().blocks.map((b, i) => [b.id, i]));
+  return D().footnotes.slice().sort((x, y) => (order.get(x.block) - order.get(y.block)) || (x.sentence - y.sentence));
+}
+function drawDoc() {
+  const hits = new Map();
+  matches().forEach((m, i) => {
+    if (!hits.has(m.key)) hits.set(m.key, []);
+    hits.get(m.key).push({ start: m.start, end: m.end, cls: i === findCur ? "hit cur" : "hit" });
+  });
+  const notes = sortedNotes();
+  const box = $("#doc");
+  box.innerHTML = "";
+  for (const b of D().blocks) box.append(b.id === editing ? drawEditor(b) : drawBlock(b, hits, notes));
+  if (notes.length) {
+    const list = h("ol");
+    for (const n of notes) {
+      if (n.id === noteEditing) {
+        list.append(h("li", {}, h("input", { id: "fn-text", "aria-label": "Footnote text", autocomplete: "off", "data-enter": "fn-done", value: n.text }), " ",
+          h("button", { type: "button", id: "fn-done", class: "primary", text: "Done", onclick: () => noteDone(n) }), " ",
+          h("button", { type: "button", text: "Remove", onclick: () => removeNote(n) })));
+      } else {
+        const num = notes.indexOf(n) + 1;
+        list.append(h("li", {}, n.text, " ", h("button", { type: "button", class: "link", text: "Edit", "aria-label": "Edit footnote " + num, onclick: () => { noteEditing = n.id; drawDoc(); $("#fn-text").focus(); } }),
+          h("button", { type: "button", class: "link", text: "Remove", "aria-label": "Remove footnote " + num, onclick: () => removeNote(n) })));
+      }
+    }
+    box.append(h("div", { class: "notes" }, h("div", { class: "muted", text: "Footnotes" }), list));
+  }
+}
+function drawBlock(b, hits, notes) {
+  const on = sel && sel.block === b.id;
+  const attrs = { tabindex: "0", dataset: { id: b.id } };
+  if (b.kind === "table") {
+    return h("div", Object.assign({ class: "blk tbl" + (on ? " on" : "") }, attrs), h("table", { class: "grid deftable" },
+      h("tr", {}, b.head.map((c) => h("th", { text: c }))),
+      b.rows.map((row, r) => h("tr", {}, row.map((c, ci) => h("td", {}, pieces(c, 0, c.length, hits.get(`${b.id}:${r}:${ci}`) || [])))))));
+  }
+  if (b.kind === "h") {
+    return h("div", Object.assign({ class: `blk hd l${b.level}` + (on ? " on" : ""), role: "heading", "aria-level": String(b.level) }, attrs),
+      pieces(b.text, 0, b.text.length, hits.get(b.id) || []));
+  }
+  const el = h("div", Object.assign({ class: "blk p" + (on ? " on" : "") }, attrs));
+  if (b.segments) {
+    b.segments.forEach((sg, i) => el.append(...(sg.sug ? [drawSug(sugById(sg.sug))] : pieces(sg.text, 0, sg.text.length, hits.get(b.id + ":" + i) || []))));
+    return el;
+  }
+  const marks = (hits.get(b.id) || []).slice();
+  for (const t of D().threads) {
+    const at = t.block === b.id && !t.resolved ? b.text.indexOf(t.quote) : -1;
+    if (at >= 0) marks.push({ start: at, end: at + t.quote.length, cls: "cmt", thread: t.id });
+  }
+  sentenceRanges(b.text).forEach(([a, z], s) => {
+    if (s) el.append(" ");
+    const span = h("span", { class: "sent" + (on && sel.s === s ? " sel" : ""), dataset: { s: String(s) } }, pieces(b.text, a, z, marks));
+    for (const n of notes) if (n.block === b.id && n.sentence === s) span.append(h("sup", { class: "fn", text: String(notes.indexOf(n) + 1) }));
+    el.append(span);
+  });
+  return el;
+}
+function sugLabel(s) { return (s.type === "ins" ? "Insert" : "Delete") + ` “${s.text.trim()}”`; }
+function drawSug(s) {
+  const who = s.author + (s.bot ? " (bot)" : "");
+  return h("span", { class: "sug " + s.type, tabindex: "0", title: `${who}: ${sugLabel(s)}`, dataset: { sug: s.id } }, s.text,
+    h("span", { class: "sug-tools" }, h("span", { text: who }),
+      h("button", { type: "button", text: "Accept", "aria-label": "Accept: " + sugLabel(s), onclick: () => decide(s.id, "accepted") }),
+      h("button", { type: "button", text: "Reject", "aria-label": "Reject: " + sugLabel(s), onclick: () => decide(s.id, "rejected") })));
+}
+function drawEditor(b) {
+  const ta = h("textarea", { class: "ed", "aria-label": b.kind === "h" ? "Edit heading" : "Edit paragraph" });
+  ta.value = b.text;
+  ta.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") { e.preventDefault(); cancelEdit(); }
+    else if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); saveEdit(); }
+  });
+  return h("div", { class: "blk editing", dataset: { id: b.id } }, ta, h("div", { class: "row" },
+    h("button", { type: "button", class: "primary ed-save", text: "Save", onclick: saveEdit }),
+    h("button", { type: "button", class: "ed-cancel", text: "Cancel", onclick: cancelEdit })));
+}
+/** Select a block (and a sentence in it) by repainting classes in place: the document's elements stay the same. */
+function select(next) {
+  sel = next;
+  document.querySelectorAll("#doc .blk.on, #doc .sent.sel").forEach((el) => el.classList.remove("on", "sel"));
+  const el = sel && $(`#doc .blk[data-id="${sel.block}"]`);
+  if (el) {
+    el.classList.add("on");
+    const sent = sel.s !== null && el.querySelector(`.sent[data-s="${sel.s}"]`);
+    if (sent) sent.classList.add("sel");
+    el.focus({ preventScroll: true });
+  }
+  drawSel();
+}
+function drawSel() {
+  let text = "Click a sentence to select it; double-click to edit.";
+  const b = sel && blockById(sel.block);
+  if (b && b.kind === "p" && !b.segments && sel.s !== null) {
+    const [a, z] = sentenceRanges(b.text)[sel.s] || [0, 0], s = b.text.slice(a, z);
+    text = "Selected: “" + (s.length > 48 ? s.slice(0, 46) + "…" : s) + "”";
+  } else if (b) text = "Selected: " + (b.kind === "h" ? "heading" : b.kind === "table" ? "table" : "paragraph");
+  $("#sel-info").textContent = text;
+}
+
+// --- editing ---------------------------------------------------------------------------------------
+function changed() { dirty[cur] = true; drawAll(); }
+function startEdit(id) {
+  const b = blockById(id);
+  if (!b) return;
+  if (b.kind === "table") return notify("Tables can't be edited in this editor.");
+  if (b.segments && b.segments.some((sg) => sg.sug)) return notify("Accept or reject this paragraph's suggestions before editing it.");
+  if (b.segments) { b.text = b.segments.map((sg) => sg.text).join(""); delete b.segments; }  // every suggestion settled: plain text again
+  editing = id;
+  drawDoc();
+  $("#doc textarea.ed").focus();
+}
+function saveEdit() {
+  const ta = $("#doc textarea.ed"), b = editing && blockById(editing);
+  if (!ta || !b) return;
+  b.text = ta.value.replace(/\s+/g, " ").trim();
+  const last = sentenceRanges(b.text).length - 1;
+  for (const n of D().footnotes) if (n.block === b.id) n.sentence = Math.min(n.sentence, last);
+  editing = null;
+  changed();
+}
+function cancelEdit() { editing = null; drawDoc(); }
+function decide(id, status) {
+  const s = sugById(id);
+  if (!s || s.status !== "open") return;
+  const b = blockById(s.block), keep = (status === "accepted") === (s.type === "ins"), segs = [];
+  for (const sg of b.segments) {
+    const piece = sg.sug === id ? (keep ? { text: s.text } : null) : sg;
+    if (!piece) continue;
+    const last = segs[segs.length - 1];
+    if (!piece.sug && last && !last.sug) last.text += piece.text;
+    else segs.push(Object.assign({}, piece));
+  }
+  b.segments = segs;
+  s.status = status;
+  changed();
+}
+function insertFootnote() {
+  const b = sel && blockById(sel.block);
+  if (!b || b.kind !== "p" || b.segments || sel.s === null) return notify("Click a sentence in a paragraph first.");
+  const n = { id: "n" + (++noteSeq), block: b.id, sentence: sel.s, text: "" };
+  D().footnotes.push(n);
+  noteEditing = n.id;
+  changed();
+  $("#fn-text").focus();
+}
+function noteDone(n) {
+  const text = $("#fn-text").value.trim();
+  if (!text) return notify("Type the footnote text first.");
+  n.text = text;
+  noteEditing = null;
+  changed();
+}
+function removeNote(n) {
+  D().footnotes.splice(D().footnotes.indexOf(n), 1);
+  if (noteEditing === n.id) noteEditing = null;
+  changed();
+}
+function commitEditors() {  // saving or switching documents keeps what is typed in an open box
+  if (editing) saveEdit();
+  const n = noteEditing && D().footnotes.find((x) => x.id === noteEditing), input = $("#fn-text");
+  if (n && input) n.text = input.value.trim();
+  noteEditing = null;
+}
+
+$("#doc").addEventListener("click", (e) => {
+  if (e.target.closest("button, textarea, input, .sug-tools")) return;
+  const el = e.target.closest(".blk");
+  if (!el || el.dataset.id === editing) return;
+  const sent = e.target.closest(".sent"), mark = e.target.closest("[data-thread]");
+  if (mark) { side = "comments"; flashThread = mark.dataset.thread; drawSide(); }
+  select({ block: el.dataset.id, s: sent ? Number(sent.dataset.s) : null });
+});
+$("#doc").addEventListener("dblclick", (e) => {
+  const el = e.target.closest(".blk");
+  if (el && !e.target.closest("button, textarea, input")) startEdit(el.dataset.id);
+});
+$("#doc").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && e.target.classList.contains("blk") && !e.target.classList.contains("editing")) { e.preventDefault(); startEdit(e.target.dataset.id); }
+});
+
+// --- side panel: outline, suggestions, comments ----------------------------------------------------
+function drawSide() {
+  const d = D();
+  const openS = d.suggestions.filter((s) => s.status === "open").length, openT = d.threads.filter((t) => !t.resolved).length;
+  const tabs = $("#sidetabs");
+  tabs.innerHTML = "";
+  for (const [key, label] of [["outline", "Outline"], ["suggestions", `Suggestions (${openS})`], ["comments", `Comments (${openT})`]]) {
+    tabs.append(h("button", { type: "button", role: "tab", "aria-selected": side === key ? "true" : "false", text: label, onclick: () => { side = key; drawSide(); } }));
+  }
+  const box = $("#side");
+  box.innerHTML = "";
+  ({ outline: drawOutline, suggestions: drawSuggestions, comments: drawComments })[side](box);
+}
+
+function sections() {  // the blocks before the first heading, then each heading with the paragraphs under it
+  const out = [{ head: null, blocks: [] }];
+  for (const b of D().blocks) {
+    if (b.kind === "h") out.push({ head: b, blocks: [b] });
+    else out[out.length - 1].blocks.push(b);
+  }
+  return out;
+}
+function moveSection(id, beforeId) {
+  const secs = sections(), from = secs.findIndex((s) => s.head && s.head.id === id);
+  if (from < 0 || beforeId === id) return false;
+  const [moving] = secs.splice(from, 1);
+  const to = beforeId ? secs.findIndex((s) => s.head && s.head.id === beforeId) : secs.length;
+  secs.splice(to, 0, moving);
+  const next = secs.flatMap((s) => s.blocks);
+  if (next.every((b, i) => b === D().blocks[i])) return false;  // dropped where it already was
+  D().blocks = next;
+  changed();
+  return true;
+}
+function moveStep(id, dir) {
+  const secs = sections(), i = secs.findIndex((s) => s.head && s.head.id === id);
+  if (dir === "up" && secs[i - 1] && secs[i - 1].head) moveSection(id, secs[i - 1].head.id);
+  if (dir === "down" && secs[i + 1]) moveSection(id, secs[i + 2] ? secs[i + 2].head.id : null);
+  const more = $(`#olist .orow[data-id="${id}"] .more`);
+  if (more) more.focus();
+}
+function drawOutline(box) {
+  const heads = D().blocks.filter((b) => b.kind === "h");
+  box.append(h("p", { class: "muted", text: "Drag a heading to move its section, or use ⋯." }));
+  const list = h("div", { class: "olist", id: "olist" });
+  heads.forEach((b, i) => {
+    const lvl = h("button", { class: "lvl", "aria-label": "Heading level: " + b.text });
+    const more = h("button", { type: "button", class: "more", text: "⋯", "aria-label": "Section actions: " + b.text, "aria-haspopup": "listbox" });
+    K.select(lvl, { options: [1, 2, 3].map((n) => ({ value: n, label: "H" + n })), value: b.level, onChange: (v) => {
+      b.level = v;
+      changed();
+      const again = $(`#olist .orow[data-id="${b.id}"] .lvl`);
+      if (again) again.focus();
+    } });
+    more.addEventListener("click", () => K.menu(more, [{ label: "Move up", value: "up", disabled: i === 0 }, { label: "Move down", value: "down", disabled: i === heads.length - 1 }], (v) => moveStep(b.id, v)));
+    const row = h("div", { class: "orow", dataset: { id: b.id }, style: { paddingLeft: 4 + (b.level - 1) * 14 + "px" } },
+      h("span", { class: "grip", "aria-hidden": "true", text: "⠿" }), h("button", { type: "button", class: "go", text: b.text, onclick: () => goTo(b.id) }), lvl, more);
+    row.addEventListener("pointerdown", (e) => {
+      if (e.button === 0 && !e.target.closest(".lvl, .more")) drag = { id: b.id, y: e.clientY, active: false, before: null };
+    });
+    list.append(row);
+  });
+  if (!heads.length) list.append(h("p", { class: "muted", text: "No headings." }));
+  box.append(list);
+}
+function goTo(id) {
+  select({ block: id, s: null });
+  const el = $(`#doc .blk[data-id="${id}"]`);
+  if (el) el.scrollIntoView({ block: "nearest" });
+}
+// Dragging a heading in the outline moves its section; the line shows where it will land.
+document.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  if (!drag.active) {
+    if (Math.abs(e.clientY - drag.y) < 5) return;
+    drag.active = true;
+    const row = $(`#olist .orow[data-id="${drag.id}"]`);
+    if (row) row.classList.add("dragging");
+  }
+  const list = $("#olist"), rows = [...list.querySelectorAll(".orow")];
+  const next = rows.find((r) => { const box = r.getBoundingClientRect(); return e.clientY < box.top + box.height / 2; });
+  drag.before = next ? next.dataset.id : null;
+  const top = list.getBoundingClientRect().top;
+  let line = list.querySelector(".drop-line");
+  if (!line) list.append(line = h("div", { class: "drop-line" }));
+  line.style.top = Math.round((next ? next.getBoundingClientRect().top : rows[rows.length - 1].getBoundingClientRect().bottom) - top - 1) + "px";
+});
+document.addEventListener("pointerup", () => {
+  if (!drag) return;
+  const done = drag;
+  drag = null;
+  if (!done.active) return;
+  suppressClick = true;
+  setTimeout(() => { suppressClick = false; }, 0);
+  if (!moveSection(done.id, done.before)) drawSide();
+});
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && drag) { drag = null; drawSide(); } });
+$("#side").addEventListener("click", (e) => { if (suppressClick) { e.stopPropagation(); e.preventDefault(); } }, true);
+
+function drawSuggestions(box) {
+  const all = D().suggestions, open = all.filter((s) => s.status === "open");
+  if (!all.length) return box.append(h("p", { class: "muted", text: "This document has no suggestions." }));
+  for (const s of open) {
+    box.append(h("div", { class: "scard", dataset: { id: s.id } },
+      h("div", {}, h("strong", { class: "who", text: s.author }), s.bot ? h("span", { class: "chip", text: "bot" }) : ""),
+      h("div", { text: sugLabel(s) }),
+      h("div", { class: "row" }, h("button", { type: "button", text: "Accept", "aria-label": "Accept: " + sugLabel(s), onclick: () => decide(s.id, "accepted") }),
+        h("button", { type: "button", text: "Reject", "aria-label": "Reject: " + sugLabel(s), onclick: () => decide(s.id, "rejected") }))));
+  }
+  box.append(h("p", { class: "muted", text: open.length ? `${all.length - open.length} resolved` : "Every suggestion is resolved." }));
+}
+
+function drawComments(box) {
+  const all = D().threads, open = all.filter((t) => !t.resolved), done = all.filter((t) => t.resolved);
+  if (!all.length) return box.append(h("p", { class: "muted", text: "No comments in this document." }));
+  for (const t of open) {
+    const hidden = expanded.has(t.id) ? 0 : Math.max(0, t.comments.length - 2);  // long threads collapse their later replies
+    box.append(h("div", { class: "thread" + (t.id === flashThread ? " flash" : ""), dataset: { id: t.id }, title: "On “" + t.quote + "”" },
+      t.comments.slice(0, t.comments.length - hidden).map((c, i) => h("div", { class: i ? "c reply" : "c" }, h("span", { class: "who", text: c.author }), ": " + c.text)),
+      hidden ? h("button", { type: "button", class: "link more-replies", text: "Show " + plural(hidden, "more reply", "more replies"), onclick: () => { expanded.add(t.id); drawSide(); } }) : "",
+      h("div", { class: "row" }, h("button", { type: "button", text: "Resolve", "aria-label": `Resolve thread on “${t.quote}”`, onclick: () => { t.resolved = true; changed(); } }))));
+  }
+  if (!open.length) box.append(h("p", { class: "muted", text: "No open threads." }));
+  if (done.length) {
+    box.append(h("button", { type: "button", class: "link", text: (showResolved ? "Hide" : "Show") + ` resolved (${done.length})`, onclick: () => { showResolved = !showResolved; drawSide(); } }));
+    if (showResolved) {
+      for (const t of done) {
+        box.append(h("div", { class: "thread", dataset: { id: t.id } }, h("span", { class: "q", text: "“" + t.quote + "” " }),
+          h("button", { type: "button", class: "link", text: "Reopen", "aria-label": `Reopen thread on “${t.quote}”`, onclick: () => { t.resolved = false; changed(); } })));
+      }
+    }
+  }
+}
+
+// --- documents, saving -----------------------------------------------------------------------------
+function drawTabs() {
+  const box = $("#doctabs");
+  box.innerHTML = "";
+  for (const d of pub.docs) {
+    box.append(h("button", { type: "button", role: "tab", "aria-selected": d.id === cur ? "true" : "false", text: d.title + (dirty[d.id] ? " •" : ""), onclick: () => openDoc(d.id) }));
+  }
+}
+function drawHead() {
+  $("#doc-title").textContent = D().title;
+  $("#doc-meta").textContent = "Owner: " + D().owner;
+  $("#save-state").textContent = dirty[cur] ? "Unsaved changes" : saved[cur] || "";
+}
+function drawAll() { drawTabs(); drawHead(); drawDoc(); drawSide(); drawSel(); drawFindCount(); }
+function openDoc(id) {
+  commitEditors();
+  cur = id; sel = null; editing = null; findCur = -1; flashThread = null;
+  drawAll();
+}
+
+$("#save").addEventListener("click", async () => {
+  commitEditors();
+  const d = D(), id = cur;
+  drawAll();
+  const res = await V3.act("save", {
+    doc: id, blocks: d.blocks,
+    suggestions: d.suggestions.map((s) => ({ id: s.id, status: s.status })),
+    threads: d.threads.map((t) => ({ id: t.id, resolved: !!t.resolved })),
+    footnotes: d.footnotes.map((n) => ({ id: n.id, block: n.block, sentence: n.sentence, text: n.text })),
+  });
+  dirty[id] = false;
+  saved[id] = res.ok ? "Saved ✓" : "Saved — see the task card";  // the verdict itself appears on the task card
+  drawTabs(); drawHead();
+});
+$("#restore").addEventListener("click", () => K.modal({
+  title: "Restore original?", body: h("p", { text: `Every change to “${D().title}” is discarded and the document returns to its original version.` }),
+  actions: [{ label: "Cancel" }, { label: "Restore original", danger: true, onClick: () => {
+    docs[cur] = clone(original[cur]);
+    sel = null; editing = null; noteEditing = null; findCur = -1; flashThread = null;
+    expanded.clear();
+    dirty[cur] = false;
+    drawAll();
+  } }],
+}));
+$("#t-edit").addEventListener("click", () => (sel ? startEdit(sel.block) : notify("Click a paragraph or heading first.")));
+$("#t-footnote").addEventListener("click", insertFootnote);
+$("#t-find").addEventListener("click", () => {
+  $("#findbar").hidden = !$("#findbar").hidden;
+  $("#t-find").setAttribute("aria-expanded", String(findOpen()));
+  findChanged();
+  if (findOpen()) $("#f-find").focus();
+});
+$("#f-find").addEventListener("input", findChanged);
+$("#f-case").addEventListener("change", findChanged);
+$("#f-word").addEventListener("change", findChanged);
+$("#f-next").addEventListener("click", findNext);
+$("#f-one").addEventListener("click", () => {
+  const ms = matches();
+  if (findCur < 0 || findCur >= ms.length) return findNext();  // nothing selected yet: select the next match first
+  const m = ms[findCur], text = m.unit.get();
+  m.unit.set(text.slice(0, m.start) + $("#f-rep").value + text.slice(m.end));
+  const left = matches().length;
+  findCur = left ? findCur % left : -1;
+  changed();
+});
+$("#f-all").addEventListener("click", () => {
+  const re = pattern();
+  if (!re) return notify("Type something to find.");
+  const rep = $("#f-rep").value;
+  let n = 0;
+  for (const u of units()) {
+    const text = u.get(), out = text.replace(re, () => { n += 1; return rep; });
+    if (out !== text) u.set(out);
+  }
+  findCur = -1;
+  notify(n ? `Replaced ${plural(n, "occurrence", "occurrences")}.` : "No matches.");
+  if (n) changed();
+});
+
+V3.onState((st) => {
+  if (pub) return;
+  pub = st.public;
+  for (const d of pub.docs) { original[d.id] = d; docs[d.id] = clone(d); }
+  const t = pub.tasks;
+  $("#t1-accept").textContent = t.review_suggestions.accept;
+  $("#t1-reject").textContent = t.review_suggestions.reject;
+  document.querySelectorAll(".t2-owner").forEach((el) => { el.textContent = t.resolve_threads.owner; });
+  $("#t4-section").textContent = "“" + t.outline_reorder.section + "”";
+  $("#t4-above").textContent = "“" + t.outline_reorder.above + "”";
+  $("#t5-text").textContent = "“" + t.footnote.text + "”";
+  $("#t5-topic").textContent = t.footnote.topic;
+  scope = K.select($("#f-scope"), { options: [{ value: "all", label: "Whole document" }, { value: "body", label: "Body text only" }], value: "all", onChange: findChanged });
+  cur = st.focus && docs[st.focus] ? st.focus : pub.docs[0].id;  // a focus run opens its own document
+  drawAll();
+});
+</script>
+</body>
+</html>

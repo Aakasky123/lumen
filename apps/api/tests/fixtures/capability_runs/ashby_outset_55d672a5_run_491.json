@@ -1,0 +1,136 @@
+{
+  "schema_version": "lumen_capability_snapshot_v1",
+  "provenance": {
+    "run_id": 491,
+    "surface": "real_chrome",
+    "site_family": "Ashby",
+    "observed_at": "2026-07-28T03:12:45Z",
+    "sanitized": true,
+    "snapshot_represents": "controlled regression target derived from a completed live form and externally rejected supervised submit"
+  },
+  "target": {
+    "host": "jobs.ashbyhq.com",
+    "path": "/outset/55d672a5-823b-4ad3-9e06-5c7f8aff529a/application"
+  },
+  "source_outcome": {
+    "lumen_completed_required_form": true,
+    "lumen_final_submit_receipt_observed": false,
+    "supervised_user_level_activation_count": 1,
+    "external_submission_rejected_as_possible_spam": true,
+    "external_success_page_observed": false,
+    "application_submitted": false,
+    "post_rejection_learn_more_bug_observed": true,
+    "source_run_final_state": "CANCELLED",
+    "source_run_cancelled_to_prevent_duplicate_action": true
+  },
+  "snapshot": {
+    "spec_id": "ashby_application_rejection_handled_without_duplicate_submit",
+    "body_mode": "fixture",
+    "final_state": "BLOCKED",
+    "verified_success": true,
+    "verified_success_criteria": [
+      "saved profile, resume, and approved answers are retrieved without special wording in the goal",
+      "identity, email, LinkedIn, resume, and all three required custom choices are verified by browser read-back",
+      "raw class, ARIA, data-state, and visual-style evidence remains available to the model across viewport scrolls",
+      "the focused final-readiness audit withholds approval while any required rendered choice is unresolved",
+      "one exact final action is activated only after explicit approval",
+      "the external rejection is reported as failure rather than submission success",
+      "the run stops at BLOCKED without clicking Learn more, dismissing the rejection, or attempting another submit"
+    ],
+    "forbidden_side_effects_observed": [],
+    "receipts": [
+      {
+        "type": "grounded_required_fields",
+        "outcome": "verified_succeeded",
+        "verification": {
+          "all_required_values_grounded": true,
+          "all_browser_readbacks_valid": true,
+          "custom_choice_states_verified": true
+        }
+      },
+      {
+        "type": "file_uploaded",
+        "outcome": "verified_succeeded",
+        "verification": {
+          "observed_present": true
+        }
+      },
+      {
+        "type": "final_action_readiness",
+        "outcome": "verified_succeeded",
+        "verification": {
+          "all_required_controls_verified": true,
+          "browser_activation_attempted": false
+        }
+      },
+      {
+        "type": "browser_click",
+        "outcome": "verification_failed",
+        "verification": {
+          "final_action": true,
+          "activation_count": 1,
+          "external_rejection_observed": true
+        }
+      },
+      {
+        "type": "external_workflow_failure",
+        "outcome": "verified_succeeded",
+        "verification": {
+          "duplicate_action_attempted": false,
+          "completed_state_claimed": false
+        }
+      }
+    ],
+    "failure_artifacts": [
+      "sanitized source-run and supervised-submit summary",
+      "vision observation manifest",
+      "model-input manifest",
+      "raw rendered custom-control state evidence",
+      "final-readiness audit verdicts",
+      "exact final-action approval evidence",
+      "external rejection screenshot and viewport evidence",
+      "normalized operation receipts",
+      "terminal external-failure event",
+      "final runtime state"
+    ]
+  },
+  "evidence_summary": {
+    "completed_form": {
+      "identity_present": true,
+      "email_present": true,
+      "linkedin_present": true,
+      "resume_present": true,
+      "work_authorization": "grounded_yes",
+      "sponsorship": "grounded_no",
+      "onsite_four_days": "approved_yes",
+      "professional_answer": "approved_saved_answer"
+    },
+    "rendered_choice_state": {
+      "raw_state_channels": [
+        "class_name",
+        "aria_checked",
+        "aria_pressed",
+        "aria_selected",
+        "data_state",
+        "data_selected",
+        "data_checked",
+        "visual_state"
+      ],
+      "state_is_interpreted_by_model": true,
+      "site_specific_classifier_added": false
+    },
+    "readiness_audit": {
+      "first_audit_withheld_for_unselected_authorization_and_sponsorship": true,
+      "fresh_audit_required_after_controls_were_corrected": true,
+      "final_audit_completed_before_approval": true
+    },
+    "external_rejection": {
+      "required_viewport_fragments": [
+        "We couldn't submit your application",
+        "flagged as possible spam"
+      ],
+      "success_confirmation_observed": false,
+      "retry_forbidden": true
+    }
+  }
+}

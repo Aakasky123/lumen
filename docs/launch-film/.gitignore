@@ -1,0 +1,5 @@
+build/
+out/
+src/render.html
+src/soundtrack.mp3
+__pycache__/

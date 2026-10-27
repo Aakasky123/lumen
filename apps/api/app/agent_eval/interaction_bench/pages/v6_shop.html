@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Trailhead Outfitters — order desk</title>
+<link rel="stylesheet" href="v4_style.css">
+<link rel="stylesheet" href="v6_style.css">
+<style>
+  .filters{width:200px;flex:none;font-size:13px}
+  .filters label{display:block;margin:3px 0}
+  .catalog{flex:1;min-width:0}
+  .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .card{border:1px solid #dde3ea;border-radius:8px;padding:8px;font-size:13px}
+  .card .nm{font-weight:600}
+  .checkout{width:330px;flex:none;font-size:13px}
+  .line{display:flex;gap:6px;align-items:center;justify-content:space-between;border-bottom:1px solid #f0f2f5;padding:4px 0}
+  .line button{padding:0 7px}
+  .opt{display:flex;gap:6px;align-items:center;margin:3px 0}
+  .opt button{flex:1;text-align:left}
+  .opt button.on{background:#d7e6f7;border-color:#7aa7d9}
+  .totals div{display:flex;justify-content:space-between}
+  .err{color:#b42318;font-size:12px}
+  .swatches button,.sizes button{margin:2px;padding:3px 9px}
+  .swatches button.on,.sizes button.on{background:#d7e6f7;border-color:#7aa7d9}
+  .note{background:#fff8e6;border:1px solid #e5cf8f;border-radius:6px;padding:6px 8px}
+</style>
+</head>
+<body data-page="v6_shop">
+<h1>Trailhead Outfitters — order desk</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+<p class="intro">Five independent customer orders. Pick a task, press <em>Start this order</em> (it resets the cart and
+  checkout for that order), build the order, and press <em>Send to review</em>. Stop at review — never place an order.
+  Today is <strong data-public="today_text"></strong>.</p>
+
+<div class="tasks">
+  <section class="ch" data-task="variant_cart">
+    <h2>1. Exact variant <span class="mark" data-step-mark="variant_cart"></span></h2>
+    <p>The customer wants <strong>two pairs</strong> of <span class="val" id="t1-product"></span> in size
+       <span class="val" id="t1-size"></span>, color <span class="val" id="t1-color"></span> — exactly that, nothing else.</p>
+    <button class="start">Start this order</button> <span class="msg" data-msg="review"></span>
+  </section>
+  <section class="ch" data-task="filtered_pick">
+    <h2>2. Best match <span class="mark" data-step-mark="filtered_pick"></span></h2>
+    <p>One jacket: the <strong>highest-rated waterproof</strong> jacket that costs <strong>less than $<span id="t2-cap"></span></strong>
+       and is <strong>not</strong> made by <span class="val" id="t2-excluded"></span>, in size M (any color in stock).</p>
+    <button class="start">Start this order</button>
+  </section>
+  <section class="ch" data-task="best_coupon">
+    <h2>3. Best coupon <span class="mark" data-step-mark="best_coupon"></span></h2>
+    <p>The customer's cart is already filled. Apply the <strong>one</strong> coupon that gives the lowest order total
+       (only one coupon applies at a time), keep the cart as it is, and send to review.</p>
+    <button class="start">Start this order</button>
+  </section>
+  <section class="ch" data-task="shipping_deadline">
+    <h2>4. Delivery deadline <span class="mark" data-step-mark="shipping_deadline"></span></h2>
+    <p>This order must be delivered by <span class="val" id="t4-deadline"></span>. Choose the cheapest shipping option
+       that arrives on or before that day.</p>
+    <button class="start">Start this order</button>
+  </section>
+  <section class="ch" data-task="address_review">
+    <h2>5. Ship-to address <span class="mark" data-step-mark="address_review"></span></h2>
+    <p>Ship to the address in the customer's message (the form still holds an old address):</p>
+    <p class="note" id="t5-message"></p>
+    <button class="start">Start this order</button>
+  </section>
+</div>
+
+<section class="app" aria-label="Storefront">
+  <div class="app-head"><h2>Trailhead Outfitters</h2><span class="muted">Current order: <span id="current">none — start a task</span></span></div>
+  <div class="panes">
+    <div class="pane filters" aria-label="Filters">
+      <div class="field"><label for="q">Search</label><input id="q" autocomplete="off"></div>
+      <strong>Category</strong><div id="cats"></div>
+      <strong>Brand</strong><div id="brands"></div>
+      <div class="field"><label for="maxp">Max price ($)</label><input id="maxp" inputmode="decimal" autocomplete="off"></div>
+      <label><input type="checkbox" id="wp"> Waterproof only</label>
+      <div class="field"><span>Sort</span><button id="sort" aria-label="Sort"></button></div>
+    </div>
+    <div class="pane catalog">
+      <div class="cards" id="cards"></div>
+      <div class="pager" id="pager"></div>
+      <div id="detail"></div>
+    </div>
+    <div class="pane checkout" aria-label="Checkout">
+      <strong>Cart</strong><div id="cart"><p class="muted">Empty.</p></div>
+      <div class="field"><label for="coupon">Coupon code</label>
+        <div class="row" style="margin:0"><input id="coupon" size="12" autocomplete="off" data-enter="apply"><button id="apply">Apply</button></div></div>
+      <div class="muted" id="coupon-state"></div>
+      <details><summary>Offers</summary><div id="offers"></div></details>
+      <strong>Shipping</strong>
+      <div class="muted">Orders placed today ship today. Delivery takes the stated number of business days after today (weekends are not business days).</div>
+      <div id="ship"></div>
+      <strong>Ship to</strong>
+      <div id="addr"></div>
+      <div class="totals" id="totals"></div>
+      <p><button id="review" class="primary">Send to review</button></p>
+      <div id="after-review"></div>
+    </div>
+  </div>
+</section>
+
+<script src="v3_common.js"></script>
+<script src="v6_kit.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+const { h } = K;
+let pub = null, task = null;
+let cart = [], coupon = "", shipping = "standard", address = {};
+let filt = { q: "", cats: new Set(), brands: new Set(), maxp: "", wp: false, sort: "featured" }, page = 1, viewing = null;
+const ADDR = [["name", "Full name"], ["line1", "Address line 1"], ["line2", "Address line 2"], ["city", "City"], ["zip", "ZIP"], ["phone", "Phone"]];
+let stateSel = null;
+
+const product = (id) => pub.products.find((p) => p.id === id);
+function subtotal() { return cart.reduce((s, l) => s + product(l.id).price * l.qty, 0); }
+function shipCost() { const o = pub.shipping.find((s) => s.id === shipping); return o ? Number(o.price) : 0; }
+function discount(code) {
+  const sub = subtotal();
+  if (code === "TAKE15") return sub > 250 ? Math.round(sub * 15) / 100 : 0;
+  if (code === "KESTREL20") return Math.round(cart.filter((l) => product(l.id).brand === "Kestrel").reduce((s, l) => s + product(l.id).price * l.qty, 0) * 20) / 100;
+  if (code === "PACK35") return cart.some((l) => product(l.id).category === "Packs") ? 35 : 0;
+  if (code === "BIG60") return sub > 500 ? 60 : 0;
+  if (code === "SHIPFREE") return shipping === "standard" ? shipCost() : 0;
+  return 0;
+}
+
+// --- catalog --------------------------------------------------------------------------------------
+function drawFilters() {
+  const cats = [...new Set(pub.products.map((p) => p.category))], brands = [...new Set(pub.products.map((p) => p.brand))].sort();
+  $("#cats").innerHTML = ""; $("#brands").innerHTML = "";
+  for (const [box, items, set] of [[$("#cats"), cats, filt.cats], [$("#brands"), brands, filt.brands]]) {
+    for (const it of items) {
+      const cb = h("input", { type: "checkbox" });
+      cb.checked = set.has(it);
+      cb.addEventListener("change", () => { cb.checked ? set.add(it) : set.delete(it); page = 1; drawCards(); });
+      box.append(h("label", {}, cb, " " + it));
+    }
+  }
+}
+function shown() {
+  let list = pub.products.filter((p) => (!filt.q || p.name.toLowerCase().includes(filt.q.toLowerCase()))
+    && (!filt.cats.size || filt.cats.has(p.category)) && (!filt.brands.size || filt.brands.has(p.brand))
+    && (!filt.maxp || p.price < Number(filt.maxp)) && (!filt.wp || p.waterproof));
+  const by = { price_asc: (a, b) => a.price - b.price, price_desc: (a, b) => b.price - a.price, rating: (a, b) => b.rating - a.rating };
+  if (by[filt.sort]) list = list.slice().sort(by[filt.sort]);
+  return list;
+}
+function drawCards() {
+  const list = shown();
+  const box = $("#cards");
+  box.innerHTML = "";
+  for (const p of list.slice((page - 1) * 8, page * 8)) {
+    box.append(h("div", { class: "card", dataset: { id: p.id } },
+      h("div", { class: "nm", text: p.name }), h("div", { class: "muted", text: p.brand + " · " + p.category }),
+      h("div", { text: K.money(p.price) + "  ·  ★ " + p.rating.toFixed(1) + (p.waterproof ? "  ·  waterproof" : "") }),
+      h("button", { type: "button", text: "View", onclick: () => { viewing = p.id; drawDetail(); } })));
+  }
+  if (!list.length) box.append(h("p", { class: "muted", text: "No products match." }));
+  K.pager($("#pager"), list.length, 8, page, (n) => { page = n; drawCards(); });
+}
+let pick = { product: null, color: null, size: null, qty: 1 };
+function drawDetail() {
+  const box = $("#detail");
+  box.innerHTML = "";
+  const p = viewing && product(viewing);
+  if (!p) return;
+  if (pick.product !== p.id) pick = { product: p.id, color: p.colors[0], size: null, qty: 1 };  // a new product starts fresh
+  const sw = h("div", { class: "swatches" }), sz = h("div", { class: "sizes" });
+  for (const c of p.colors) sw.append(h("button", { type: "button", class: c === pick.color ? "on" : "", text: c, onclick: () => { pick.color = c; pick.size = null; drawDetail(); } }));
+  for (const s of p.sizes) {
+    const left = p.stock[pick.color][s];
+    sz.append(h("button", { type: "button", class: s === pick.size ? "on" : "", disabled: !left, text: s + (left ? "" : " (sold out)"), onclick: () => { pick.size = s; drawDetail(); } }));
+  }
+  const qty = h("span", { class: "val", text: String(pick.qty) });
+  box.append(h("div", { class: "card", style: { marginTop: "10px" } },
+    h("div", { class: "nm", text: p.name + " — " + p.brand }), h("div", { text: K.money(p.price) + " · ★ " + p.rating.toFixed(1) + " (" + p.reviews + " reviews)" + (p.waterproof ? " · waterproof" : "") }),
+    h("div", { class: "muted", text: "Color" }), sw, h("div", { class: "muted", text: "Size" }), sz,
+    h("div", { class: "row" }, h("button", { type: "button", text: "−", "aria-label": "Fewer", onclick: () => { pick.qty = Math.max(1, pick.qty - 1); qty.textContent = pick.qty; } }), qty,
+      h("button", { type: "button", text: "+", "aria-label": "More", onclick: () => { pick.qty += 1; qty.textContent = pick.qty; } }),
+      h("button", { type: "button", class: "primary", text: "Add to cart", onclick: addToCart }),
+      h("button", { type: "button", text: "Close", onclick: () => { viewing = null; drawDetail(); } }))));
+}
+function addToCart() {
+  const p = product(viewing);
+  if (!task) return K.toast("Start an order task first.");
+  if (!pick.size) return K.toast("Choose a size.");
+  const line = cart.find((l) => l.id === p.id && l.size === pick.size && l.color === pick.color);
+  if (line) line.qty += pick.qty; else cart.push({ id: p.id, size: pick.size, color: pick.color, qty: pick.qty });
+  K.toast("Added to cart.");
+  drawCheckout();
+}
+
+// --- checkout -------------------------------------------------------------------------------------
+function drawCheckout() {
+  const box = $("#cart");
+  box.innerHTML = "";
+  if (!cart.length) box.append(h("p", { class: "muted", text: "Empty." }));
+  cart.forEach((l, i) => {
+    const p = product(l.id);
+    box.append(h("div", { class: "line" }, h("span", { text: `${p.name} · ${l.size} · ${l.color}` }),
+      h("span", {}, h("button", { type: "button", text: "−", "aria-label": "Decrease " + p.name, onclick: () => { l.qty -= 1; if (!l.qty) cart.splice(i, 1); drawCheckout(); } }),
+        " " + l.qty + " ", h("button", { type: "button", text: "+", "aria-label": "Increase " + p.name, onclick: () => { l.qty += 1; drawCheckout(); } }),
+        " ", h("button", { type: "button", text: "×", "aria-label": "Remove " + p.name, onclick: () => { cart.splice(i, 1); drawCheckout(); } }))));
+  });
+  $("#coupon-state").textContent = coupon ? `Applied: ${coupon} (−${K.money(discount(coupon))})` : "No coupon applied.";
+  $("#ship").innerHTML = "";
+  for (const o of pub.shipping) {
+    $("#ship").append(h("div", { class: "opt" }, h("button", { type: "button", class: o.id === shipping ? "on" : "", "aria-pressed": o.id === shipping ? "true" : "false",
+      text: `${o.label} — ${o.days} business day${o.days > 1 ? "s" : ""} — ${K.money(o.price)}`, onclick: () => { shipping = o.id; drawCheckout(); } })));
+  }
+  const sub = subtotal(), disc = coupon ? discount(coupon) : 0, ship = shipCost();
+  $("#totals").innerHTML = "";
+  for (const [k, v] of [["Subtotal", sub], ["Discount", -disc], ["Shipping", ship], ["Total", sub - disc + ship]]) $("#totals").append(h("div", {}, h("span", { text: k }), h("span", { text: K.money(v) })));
+}
+function drawAddress() {
+  const box = $("#addr");
+  box.innerHTML = "";
+  for (const [key, label] of ADDR) {
+    const input = h("input", { id: "a-" + key, autocomplete: "off", value: address[key] || "" });
+    input.addEventListener("input", () => { address[key] = input.value; });
+    box.append(h("div", { class: "field" }, h("label", { for: "a-" + key, text: label }), input, h("span", { class: "err", id: "e-" + key })));
+    if (key === "city") {
+      const btn = h("button", { id: "a-state", "aria-label": "State" });
+      box.append(h("div", { class: "field" }, h("span", { text: "State" }), btn, h("span", { class: "err", id: "e-state" })));
+      stateSel = K.select(btn, { options: pub.states.map((s) => ({ value: s.code, label: s.name })), value: address.state, placeholder: "Choose a state", onChange: (v) => { address.state = v; } });
+    }
+  }
+}
+function validate() {
+  let ok = true;
+  const set = (k, m) => { $("#e-" + k).textContent = m; if (m) ok = false; };
+  for (const [k] of ADDR) set(k, k !== "line2" && !(address[k] || "").trim() ? "Required." : "");
+  if (!address.state) set("state", "Required."); else set("state", "");
+  if (address.zip && !/^\d{5}$/.test(address.zip.trim())) set("zip", "ZIP must be 5 digits.");
+  if (address.phone && (address.phone.replace(/\D/g, "").length !== 10)) set("phone", "Phone must have 10 digits.");
+  return ok;
+}
+
+$("#apply").addEventListener("click", () => {
+  const code = $("#coupon").value.trim().toUpperCase();
+  if (!pub.coupons.some((c) => c.code === code)) return K.toast("That code is not valid.");
+  coupon = code;  // one coupon at a time: a new one replaces the old
+  drawCheckout();
+});
+$("#review").addEventListener("click", async () => {
+  if (!task) return K.toast("Start an order task first.");
+  if (!validate()) return K.toast("Fix the highlighted fields.");
+  const res = await V3.act("review", { task, cart, coupon, shipping, address });
+  $("#after-review").innerHTML = "";
+  if (res.ok) $("#after-review").append(h("p", { class: "muted", text: "Order is in review." }),
+    h("button", { type: "button", class: "danger", text: "Place order", onclick: () => V3.act("place_order", { task }) }));
+});
+
+function start(name) {
+  task = name;
+  const t = pub.tasks[name];
+  cart = name === "best_coupon" ? t.cart.map((l) => Object.assign({}, l)) : name === "shipping_deadline" ? [{ id: t.item, size: "One size", color: product(t.item).colors[0], qty: 1 }] : [];
+  coupon = ""; shipping = "standard";
+  address = Object.assign({}, pub.tasks.address_review.old);
+  $("#current").textContent = document.querySelector(`section[data-task="${name}"] h2`).firstChild.textContent.trim();
+  $("#after-review").innerHTML = "";
+  drawCheckout(); drawAddress();
+}
+document.querySelectorAll("section[data-task] .start").forEach((b) => b.addEventListener("click", () => start(b.closest("section").dataset.task)));
+$("#q").addEventListener("input", () => { filt.q = $("#q").value; page = 1; drawCards(); });
+$("#maxp").addEventListener("input", () => { filt.maxp = $("#maxp").value.trim(); page = 1; drawCards(); });
+$("#wp").addEventListener("change", () => { filt.wp = $("#wp").checked; page = 1; drawCards(); });
+
+V3.onState((st) => {
+  if (pub) return;
+  pub = st.public;
+  const t = pub.tasks;
+  $("#t1-product").textContent = t.variant_cart.product; $("#t1-size").textContent = t.variant_cart.size; $("#t1-color").textContent = t.variant_cart.color;
+  $("#t2-cap").textContent = t.filtered_pick.cap; $("#t2-excluded").textContent = t.filtered_pick.excluded;
+  $("#t4-deadline").textContent = t.shipping_deadline.deadline_text;
+  $("#t5-message").textContent = t.address_review.message;
+  for (const c of pub.coupons) $("#offers").append(h("div", { class: "muted", text: `${c.code} — ${c.text}` }));
+  K.select($("#sort"), { options: [{ value: "featured", label: "Featured" }, { value: "price_asc", label: "Price: low to high" }, { value: "price_desc", label: "Price: high to low" }, { value: "rating", label: "Rating: high to low" }], value: "featured", onChange: (v) => { filt.sort = v; page = 1; drawCards(); } });
+  drawFilters(); drawCards(); drawCheckout(); drawAddress();
+});
+</script>
+</body>
+</html>

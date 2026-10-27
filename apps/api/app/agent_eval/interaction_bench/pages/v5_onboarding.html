@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>New hire onboarding</title>
+<link rel="stylesheet" href="v4_style.css">
+<style>
+  table.pol{border-collapse:collapse;font-size:14px}
+  table.pol td,table.pol th{border:1px solid #dde3ea;padding:4px 10px;text-align:left}
+  #cal{display:grid;grid-template-columns:repeat(7,44px);gap:4px;margin-top:8px}
+  #cal .dow{font-size:12px;color:#667;text-align:center}
+  #cal .d{height:34px;border-radius:6px;background:#eef2f6;border:0;font:inherit;cursor:pointer;padding:0}
+  #cal .d.we{background:#f7f7f7;color:#bbb;cursor:default}
+  #cal .d.pick{background:#2b6cb0;color:#fff}
+  #slots button.pick{background:#2b6cb0;color:#fff;border-color:#2b6cb0}
+  .grid2{display:grid;grid-template-columns:150px 260px;gap:6px 12px;align-items:center}
+</style>
+</head>
+<body data-page="v5_onboarding">
+<h1>New hire onboarding</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+<p class="intro">Onboard <strong data-public="name"></strong> from start to finish. This is one long task across this
+  page, two desktop apps, a Badge Office browser window, a text editor, and the file system. Steps build on each other.
+  <span class="msg" data-msg="desktop"></span></p>
+
+<section class="ch">
+  <h2>1. Link the HR record <span class="mark" data-step-mark="link_record"></span></h2>
+  <p>Open <strong>HR Records</strong> and link the new hire's record by entering their employee ID.
+     <strong>HR Records allows one session:</strong> it closes for good 45 seconds after you link the record. Later
+     steps need the employee ID, department, manager, and start date — make sure you have them.</p>
+  <p><button id="records">Open HR Records</button> <span class="hint">Status: <span data-public="records"></span></span></p>
+  <div class="row"><label>Employee ID <input id="emp" autocomplete="off" size="10" data-enter="link"></label> <button id="link">Link record</button></div>
+  <p class="msg" data-msg="records"></p><p class="msg" data-msg="link"></p>
+</section>
+
+<section class="ch">
+  <h2>2. Issue the badge <span class="mark" data-step-mark="issue_badge"></span></h2>
+  <p>Open the <strong>Badge Office</strong> (a separate browser window) and issue a badge with exactly the zones the
+     policy gives the new hire's department. Never grant all-access.</p>
+  <table class="pol" id="zone-policy"><tr><th>Department</th><th>Badge zones</th></tr></table>
+  <p><button id="badge">Open Badge Office</button></p>
+  <p class="msg" data-msg="badge"></p>
+</section>
+
+<section class="ch">
+  <h2>3. Assign a laptop <span class="mark" data-step-mark="assign_laptop"></span></h2>
+  <p>In <strong>Asset Manager</strong>, find the new hire and assign an <em>available</em> laptop of the model the
+     policy gives their department. Note the asset tag it issues.</p>
+  <table class="pol" id="laptop-policy"><tr><th>Department</th><th>Laptop model</th></tr></table>
+  <p><button id="assets">Open Asset Manager</button> <span class="msg" data-msg="assets"></span></p>
+</section>
+
+<section class="ch">
+  <h2>4. Write the welcome note <span class="mark" data-step-mark="welcome_note"></span></h2>
+  <p>Using a text editor, save a plain-text file named <span class="val">welcome-&lt;employee ID&gt;.txt</span> (for
+     example <code>welcome-E-12345.txt</code>) into <span class="path" data-public="outbox"></span>, containing exactly
+     these two lines:</p>
+  <pre>Welcome to the team, &lt;first name&gt;!
+Your manager is &lt;manager's full name&gt;.</pre>
+  <p class="msg" data-msg="note"></p>
+</section>
+
+<section class="ch">
+  <h2>5. Book orientation <span class="mark" data-step-mark="book_orientation"></span></h2>
+  <p>Book orientation on the <strong>first Monday on or after the start date</strong>, in the <strong>10:00</strong> slot.
+     You have two booking attempts.</p>
+  <div class="row"><button id="prev">◀</button> <strong id="month"></strong> <button id="next">▶</button></div>
+  <div id="cal"></div>
+  <div class="row" id="slots"></div>
+  <p><button id="book" disabled>Book</button> <span class="hint" id="picked"></span></p>
+  <p class="msg" data-msg="orientation"></p>
+</section>
+
+<section class="ch">
+  <h2>6. Final checklist <span class="mark" data-step-mark="final_checklist"></span></h2>
+  <div class="grid2">
+    <label for="c-emp">Employee ID</label><input id="c-emp" autocomplete="off">
+    <label for="c-badge">Badge number</label><input id="c-badge" autocomplete="off">
+    <label for="c-asset">Asset tag</label><input id="c-asset" autocomplete="off">
+    <label for="c-mgr">Manager</label><input id="c-mgr" autocomplete="off">
+  </div>
+  <p><button id="verify">Verify checklist</button></p>
+  <p class="msg" data-msg="checklist"></p>
+</section>
+
+<section class="ch">
+  <h2>7. Send the packet <span class="mark" data-step-mark="send_packet"></span></h2>
+  <p>When every step above is complete, send the onboarding packet to the manager.</p>
+  <p><button id="send">Send onboarding packet</button></p>
+  <p class="msg" data-msg="send"></p>
+</section>
+
+<script src="v3_common.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+let pub = null;
+$("#records").addEventListener("click", () => V3.act("open_records"));
+$("#link").addEventListener("click", () => V3.act("link_record", { value: $("#emp").value }));
+$("#badge").addEventListener("click", () => {
+  window.open("v5_onboarding_badge?sid=" + encodeURIComponent(V3.sid()), "badge_office", "width=620,height=640");
+  V3.act("open_badge_office");
+});
+$("#assets").addEventListener("click", () => V3.act("open_assets"));
+$("#verify").addEventListener("click", () => V3.act("verify_checklist", {
+  emp_id: $("#c-emp").value, badge: $("#c-badge").value, asset: $("#c-asset").value, manager: $("#c-mgr").value,
+}));
+$("#send").addEventListener("click", () => V3.act("send_packet"));
+
+// --- the calendar ------------------------------------------------------------------------------
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+let year = 2027, month = 0, pickedDay = "", pickedSlot = "";
+function iso(y, m, d) { return y + "-" + String(m + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0"); }
+function drawCal() {
+  $("#month").textContent = MONTHS[month] + " " + year;
+  const cal = $("#cal");
+  cal.innerHTML = "";
+  for (const d of ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]) cal.appendChild(Object.assign(document.createElement("div"), { className: "dow", textContent: d }));
+  const first = new Date(year, month, 1);
+  const pad = (first.getDay() + 6) % 7;
+  for (let i = 0; i < pad; i++) cal.appendChild(document.createElement("div"));
+  const days = new Date(year, month + 1, 0).getDate();
+  for (let d = 1; d <= days; d++) {
+    const dow = (pad + d - 1) % 7;
+    const b = document.createElement("button");
+    b.className = "d" + (dow >= 5 ? " we" : "") + (iso(year, month, d) === pickedDay ? " pick" : "");
+    b.textContent = d;
+    b.dataset.date = iso(year, month, d);
+    if (dow < 5) b.addEventListener("click", () => { pickedDay = b.dataset.date; pickedSlot = ""; drawCal(); drawSlots(); });
+    else b.disabled = true;
+    cal.appendChild(b);
+  }
+}
+function drawSlots() {
+  const box = $("#slots");
+  box.innerHTML = "";
+  if (pickedDay) for (const slot of pub.slots) {
+    const b = document.createElement("button");
+    b.textContent = slot;
+    b.dataset.slot = slot;
+    if (slot === pickedSlot) b.className = "pick";
+    b.addEventListener("click", () => { pickedSlot = slot; drawSlots(); });
+    box.appendChild(b);
+  }
+  $("#picked").textContent = pickedDay ? "Selected: " + pickedDay + (pickedSlot ? " at " + pickedSlot : " — choose a time") : "";
+  $("#book").disabled = !(pickedDay && pickedSlot);
+}
+$("#prev").addEventListener("click", () => { if (month > 0) { month--; drawCal(); } });
+$("#next").addEventListener("click", () => { if (month < 11) { month++; drawCal(); } });
+$("#book").addEventListener("click", () => V3.act("book", { date: pickedDay, time: pickedSlot }));
+
+V3.onState((st) => {
+  if (pub) return;
+  pub = st.public;
+  for (const [dept, zones] of Object.entries(pub.zone_policy)) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = "<td></td><td></td>";
+    tr.cells[0].textContent = dept;
+    tr.cells[1].textContent = zones.join(", ");
+    $("#zone-policy").appendChild(tr);
+  }
+  for (const [dept, model] of Object.entries(pub.laptop_policy)) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = "<td></td><td></td>";
+    tr.cells[0].textContent = dept;
+    tr.cells[1].textContent = model;
+    $("#laptop-policy").appendChild(tr);
+  }
+  drawCal();
+  drawSlots();
+});
+</script>
+</body>
+</html>

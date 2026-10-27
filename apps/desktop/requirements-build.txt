@@ -1,0 +1,10 @@
+pyinstaller==6.21.0
+Pillow==11.1.0
+pywin32==311; sys_platform == "win32"
+pywinauto==0.6.9; sys_platform == "win32"
+pyobjc-core==12.2.2; sys_platform == "darwin"
+pyobjc-framework-Quartz==12.2.2; sys_platform == "darwin"
+pyobjc-framework-ApplicationServices==12.2.2; sys_platform == "darwin"
+pyobjc-framework-Cocoa==12.2.2; sys_platform == "darwin"
+pyobjc-framework-Vision==12.2.2; sys_platform == "darwin"
+pyobjc-framework-ScreenCaptureKit==12.2.2; sys_platform == "darwin"

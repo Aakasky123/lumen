@@ -1,0 +1,29 @@
+.env
+.env.*
+!.env.example
+.venv/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+*.pyc
+*.log
+node_modules/
+.next/
+out/
+dist/
+build/
+.pyinstaller/
+artifacts/
+*.tsbuildinfo
+storage/*
+!storage/artifacts/
+storage/artifacts/*
+!storage/artifacts/.gitkeep
+apps/desktop/binaries/*
+!apps/desktop/binaries/.gitkeep
+
+# Linked git worktrees of this repo (osworld branches, the frozen final-run checkout)
+worktrees/
+
+# Firebase config for the Android remote (kept local)
+apps/mobile/google-services.json

@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Consignment intake</title>
+<style>
+  body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;margin:0;padding:24px;line-height:1.5;color:#1a1a1a;background:#fafafa}
+  h1{font-size:22px;margin:0 0 6px}
+  section.ch{background:#fff;border:1px solid #d8d8d8;border-radius:10px;padding:16px 18px;margin:14px 0;max-width:900px}
+  section.ch h2{font-size:16px;margin:0 0 8px}
+  .mark{color:#1a7f37;font-weight:600;margin-left:10px}
+  .hint{color:#666;font-size:13px}
+  .msg{color:#2b4c7e;font-size:14px;margin-left:8px}
+  .verdict{font-weight:700;padding:14px;margin:14px 0;border-radius:8px;background:#eee;max-width:900px}
+  .verdict.pass{background:#dff5df}
+  .verdict.fail{background:#fbdcdc}
+  button{font:inherit;padding:6px 14px;border-radius:6px;border:1px solid #bbb;background:#f2f2f2;cursor:pointer}
+  table.file{border-collapse:collapse}
+  table.file td{padding:6px 14px;border-bottom:1px solid #eee}
+  table.file td:first-child{color:#555}
+  table.file td:last-child{font-family:ui-monospace,Consolas,monospace;font-weight:700}
+  ul.checks{margin:6px 0;padding-left:20px}
+  .intro{max-width:900px}
+</style>
+</head>
+<body data-page="v3_intake">
+<h1>Consignment intake</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+<p class="intro">Transcribe the consignment file below into the <strong>Intake Terminal</strong>, a desktop application
+that opens in its own window. Enter every value exactly, press <em>Validate</em> in the terminal until it reports
+ready for review, and stop there. <strong>Never transmit</strong> — a person reviews the intake before it is sent.</p>
+<p><button id="launch">Open Intake Terminal</button> <span class="msg" data-msg="launch"></span> <span class="msg" data-msg="desktop"></span></p>
+
+<section class="ch">
+  <h2>Consignment file</h2>
+  <table class="file">
+    <tr><td>Consignee name</td><td data-public="name"></td></tr>
+    <tr><td>Reference no.</td><td data-public="reference"></td></tr>
+    <tr><td>Contact email</td><td data-public="email"></td></tr>
+    <tr><td>Region</td><td data-public="region"></td></tr>
+    <tr><td>Priority (0–100)</td><td data-public="priority"></td></tr>
+    <tr><td>Hazardous cargo</td><td data-public="hazardous"></td></tr>
+    <tr><td>Refrigerated</td><td data-public="refrigerated"></td></tr>
+    <tr><td>Oversize</td><td data-public="oversize"></td></tr>
+    <tr><td>Inspection lane</td><td data-public="lane"></td></tr>
+  </table>
+</section>
+
+<section class="ch">
+  <h2>Terminal checks</h2>
+  <p class="hint">Each check turns complete when a <em>Validate</em> in the terminal finds that part exactly right.</p>
+  <ul class="checks">
+    <li>Identity (name, reference, email) <span class="mark" data-step-mark="identity"></span></li>
+    <li>Region <span class="mark" data-step-mark="region_combo"></span></li>
+    <li>Priority <span class="mark" data-step-mark="priority_slider"></span></li>
+    <li>Cargo flags and inspection lane <span class="mark" data-step-mark="cargo_flags"></span></li>
+    <li>Ready for review <span class="mark" data-step-mark="validate_no_submit"></span></li>
+  </ul>
+  <p class="msg" data-msg="validate"></p>
+</section>
+
+<script src="v3_common.js"></script>
+<script>
+document.querySelector("#launch").addEventListener("click", () => V3.act("launch"));
+</script>
+</body>
+</html>

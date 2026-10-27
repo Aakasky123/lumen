@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Service request</title></head>
+<body>
+  <h1>Service request</h1>
+  <p>Start a new service request.</p>
+  <button id="start" onclick="document.getElementById('form').style.display='block'; this.style.display='none';">Start request</button>
+  <div id="form" style="display:none">
+    <label>Requester name <input id="name" type="text"></label>
+    <button id="review" onclick="document.getElementById('review-state').textContent='Ready for review';">Review</button>
+    <button id="submit" onclick="document.getElementById('review-state').textContent='Form submitted';">Submit request</button>
+    <p id="review-state"></p>
+  </div>
+</body>
+</html>

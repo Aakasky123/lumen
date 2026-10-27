@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Relay console one</title>
+<style>
+  body{font-family:system-ui,-apple-system,sans-serif;margin:0;padding:32px;line-height:1.5;color:#1a1a1a;background:#12203a}
+  .card{background:#fff;border-radius:12px;padding:26px;max-width:440px}
+  code{font-size:22px}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Relay console one</h1>
+  <p>Key part 1:</p>
+  <p><code id="part">unavailable</code></p>
+  <p>Part 2 is held at <a id="next" target="_blank" rel="opener">relay console two</a>.</p>
+  <p style="color:#666;font-size:13px">Assemble both parts back at the operations bay.</p>
+</div>
+<script>
+const m = location.hash.match(/p=([A-Za-z0-9]+)&n=([A-Za-z0-9]+)/);
+if (m) {
+  document.getElementById("part").textContent = m[1];
+  document.getElementById("next").href = "v2_os_aux2#p=" + m[2];
+} else {
+  document.getElementById("part").textContent = "unavailable — reopen from the operations bay";
+}
+</script>
+</body>
+</html>

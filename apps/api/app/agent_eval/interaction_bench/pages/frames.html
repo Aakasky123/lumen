@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Vendor catalog portal</title>
+<style>
+  body{font-family:system-ui,-apple-system,sans-serif;margin:0;padding:24px;line-height:1.5;color:#1a1a1a;background:#fafafa}
+  h1{font-size:22px}
+  section.ch{background:#fff;border:1px solid #d8d8d8;border-radius:10px;padding:18px;margin:18px 0;max-width:860px}
+  section.ch.locked{opacity:.4;pointer-events:none}
+  section.ch h2{font-size:16px;margin:0 0 10px}
+  .mark{color:#1a7f37;font-weight:600;margin-left:10px}
+  .hint{color:#666;font-size:13px}
+  .verdict{font-weight:700;padding:14px;margin:18px 0;border-radius:8px;background:#eee;max-width:860px}
+  .verdict.pass{background:#dff5df}
+  .verdict.fail{background:#fbdcdc}
+  button{font:inherit;padding:6px 14px;border-radius:6px;border:1px solid #bbb;background:#f2f2f2;cursor:pointer}
+  input{font:inherit;padding:6px 8px;border:1px solid #bbb;border-radius:6px}
+  #view{border:1px dashed #bbb;border-radius:8px;padding:14px;min-height:120px}
+  .items a{display:inline-block;margin:4px 8px 4px 0}
+  iframe{border:1px solid #999;border-radius:6px}
+</style>
+</head>
+<body>
+<h1>Vendor catalog portal</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+
+<section class="ch" id="s-spa">
+  <h2>1. Catalog app
+    <span class="mark" data-step-mark="spa"></span>
+    <span class="mark" data-step-mark="back"></span>
+    <span class="mark" data-step-mark="recall"></span>
+  </h2>
+  <p>Task: open the <strong>Specs</strong> tab of item 5 and note its spec code. Then return to the
+     catalog using the browser <strong>Back</strong> button (not the in-page links), open item 2, and
+     enter item 5's spec code there.</p>
+  <div id="view"></div>
+</section>
+
+<section class="ch locked" id="s-iframe">
+  <h2>2. Embedded supplier form <span class="mark" data-step-mark="iframe"></span></h2>
+  <p>The supplier form below is embedded in a frame. Your frame passcode is <strong id="frame-pass"></strong>.</p>
+  <iframe id="supplier-frame" width="420" height="130" title="Supplier form"></iframe>
+</section>
+
+<section class="ch locked" id="s-shadow">
+  <h2>3. Shadow widget <span class="mark" data-step-mark="shadow"></span></h2>
+  <p>The widget below renders in a shadow root. Enter the word <strong id="shadow-word"></strong> and unlock it.</p>
+  <div id="shadow-host"></div>
+</section>
+
+<script>
+window.Bench = (function () {
+  const PAGE = "frames";
+  const TOKEN = "BENCH_PASS frames-b27c3d";
+  const STEPS = ["spa", "back", "recall", "iframe", "shadow"];
+  const done = new Set();
+  let failed = sessionStorage.getItem("bench-fail-" + PAGE) || null;
+  let futile = 0;
+  function render() {
+    const v = document.getElementById("bench-verdict");
+    const p = document.getElementById("bench-progress");
+    if (p) p.textContent = "Challenges complete: " + done.size + " / " + STEPS.length + " | Ineffective interactions: " + futile;
+    if (!v) return;
+    if (failed) { v.textContent = "BENCH_FAIL " + PAGE + ": " + failed; v.className = "verdict fail"; }
+    else if (done.size === STEPS.length) { v.textContent = TOKEN + " — all challenges complete"; v.className = "verdict pass"; }
+  }
+  function complete(step) {
+    if (failed || done.has(step)) return;
+    done.add(step);
+    const m = document.querySelector('[data-step-mark="' + step + '"]');
+    if (m) m.textContent = "✓ " + step;
+    render();
+    if (window.benchOnComplete) window.benchOnComplete(step);
+  }
+  function fail(reason) {
+    if (failed) return;
+    failed = reason;
+    sessionStorage.setItem("bench-fail-" + PAGE, reason);
+    render();
+  }
+  window.__benchReport = () => ({ page: PAGE, done: [...done], failed, futile, total: STEPS.length });
+  document.addEventListener("DOMContentLoaded", render);
+  return { complete, fail, has: (s) => done.has(s), futile: () => { futile += 1; render(); }, isFailed: () => !!failed };
+})();
+
+const $ = (sel) => document.querySelector(sel);
+const rand4 = () => Array.from({ length: 4 }, () => "ABCDEFGHJKMNPQRSTUVWXYZ"[Math.floor(Math.random() * 23)]).join("");
+const debug = {
+  specCode: rand4(),
+  framePass: "relay-" + rand4().toLowerCase(),
+  shadowWord: ["juniper", "basalt", "meridian", "cobalt"][Math.floor(Math.random() * 4)],
+};
+window.__benchDebug = debug;
+
+// --- hash-routed SPA ----------------------------------------------------------------------------
+let item5SpecsSeen = false;
+let linkNav = false;
+let prevHash = "";
+function markLinkNav() { linkNav = true; setTimeout(() => { linkNav = false; }, 0); }
+
+function renderView() {
+  const hash = location.hash || "#/home";
+  const view = $("#view");
+  if (hash === "#/home") {
+    view.innerHTML = '<p>Welcome to the vendor portal.</p><a href="#/catalog" data-nav>Open catalog</a>';
+  } else if (hash === "#/catalog") {
+    let links = "";
+    for (let i = 1; i <= 8; i++) links += '<a href="#/item/' + i + '" data-nav>Item ' + i + "</a>";
+    view.innerHTML = '<p>Catalog (8 items):</p><div class="items">' + links + "</div>";
+  } else if (hash.startsWith("#/item/")) {
+    const n = parseInt(hash.split("/")[2], 10);
+    let extra = "";
+    if (n === 2) {
+      extra =
+        '<p><label>Spec code from item 5 <input id="recall-input"></label> <button id="recall-go">Verify code</button> <span class="hint" id="recall-msg"></span></p>';
+    }
+    view.innerHTML =
+      "<h3>Item " + n + " — Industrial fastener</h3>" +
+      '<button data-subtab="overview">Overview</button> <button data-subtab="specs">Specs</button>' +
+      '<div id="subview"><p>General-purpose fastener, model IF-' + n + '00.</p></div>' + extra +
+      '<p><a href="#/catalog" data-nav>Back to catalog (link)</a></p>';
+    view.querySelectorAll("[data-subtab]").forEach((b) =>
+      b.addEventListener("click", () => {
+        if (b.dataset.subtab === "specs") {
+          $("#subview").innerHTML =
+            n === 5
+              ? "<p>Torque rating: 40 Nm. Spec code: <strong>" + debug.specCode + "</strong></p>"
+              : "<p>Torque rating: " + (10 + n) + " Nm. No spec code assigned.</p>";
+          if (n === 5) { item5SpecsSeen = true; Bench.complete("spa"); }
+        } else {
+          $("#subview").innerHTML = "<p>General-purpose fastener, model IF-" + n + "00.</p>";
+        }
+      })
+    );
+    const go = $("#recall-go");
+    if (go)
+      go.addEventListener("click", () => {
+        if (($("#recall-input").value || "").trim().toUpperCase() === debug.specCode) {
+          Bench.complete("recall");
+          $("#recall-msg").textContent = "Code accepted.";
+        } else {
+          $("#recall-msg").textContent = "Wrong code.";
+          Bench.futile();
+        }
+      });
+  } else {
+    view.innerHTML = "<p>Not found.</p>";
+  }
+  view.querySelectorAll("[data-nav]").forEach((a) => a.addEventListener("click", markLinkNav));
+}
+window.addEventListener("hashchange", () => {
+  if (location.hash === "#/catalog" && prevHash.startsWith("#/item/5") && item5SpecsSeen && !linkNav) {
+    Bench.complete("back");
+  }
+  prevHash = location.hash;
+  renderView();
+});
+prevHash = location.hash || "#/home";
+if (!location.hash) location.hash = "#/home";
+renderView();
+
+// --- iframe + shadow, unlocked after the SPA leg ------------------------------------------------
+window.benchOnComplete = function (step) {
+  if (step === "recall") {
+    $("#s-iframe").classList.remove("locked");
+    $("#frame-pass").textContent = debug.framePass;
+    const html =
+      "<body style='font-family:system-ui;padding:10px'>" +
+      "<label>Frame passcode <input id='fp'></label> " +
+      "<button id='fs'>Submit inside frame</button><p id='fm' style='color:#666;font-size:13px'></p>" +
+      "<script>document.getElementById('fs').addEventListener('click',function(){" +
+      "parent.postMessage({type:'frame-submit',value:document.getElementById('fp').value},'*');});" +
+      "window.addEventListener('message',function(e){if(e.data&&e.data.type==='frame-result'){" +
+      "document.getElementById('fm').textContent=e.data.ok?'Accepted.':'Rejected.';}});<\/script></body>";
+    $("#supplier-frame").setAttribute("srcdoc", html);
+  }
+  if (step === "iframe") {
+    $("#s-shadow").classList.remove("locked");
+    $("#shadow-word").textContent = debug.shadowWord;
+    const host = $("#shadow-host");
+    const root = host.attachShadow({ mode: "open" });
+    root.innerHTML =
+      "<style>button,input{font:inherit;padding:6px 10px}</style>" +
+      "<label>Shadow word <input id='sw'></label> <button id='sb'>Shadow unlock</button> <span id='sm'></span>";
+    root.getElementById("sb").addEventListener("click", () => {
+      if ((root.getElementById("sw").value || "").trim().toLowerCase() === debug.shadowWord) {
+        root.getElementById("sm").textContent = "Unlocked.";
+        Bench.complete("shadow");
+      } else {
+        root.getElementById("sm").textContent = "Wrong word.";
+        Bench.futile();
+      }
+    });
+  }
+};
+window.addEventListener("message", (e) => {
+  if (e.data && e.data.type === "frame-submit") {
+    const ok = (e.data.value || "").trim() === debug.framePass;
+    if (ok) Bench.complete("iframe");
+    else Bench.futile();
+    $("#supplier-frame").contentWindow.postMessage({ type: "frame-result", ok }, "*");
+  }
+});
+</script>
+</body>
+</html>

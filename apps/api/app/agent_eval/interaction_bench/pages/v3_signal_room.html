@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Signal room</title>
+<style>
+  body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;margin:0;padding:24px;line-height:1.5;color:#1a1a1a;background:#fafafa}
+  h1{font-size:22px;margin:0 0 6px}
+  section.ch{background:#fff;border:1px solid #d8d8d8;border-radius:10px;padding:16px 18px;margin:14px 0;max-width:900px}
+  section.ch.locked{opacity:.45;pointer-events:none}
+  section.ch h2{font-size:16px;margin:0 0 8px}
+  .mark{color:#1a7f37;font-weight:600;margin-left:10px}
+  .hint{color:#666;font-size:13px}
+  .msg{color:#2b4c7e;font-size:14px;margin-left:8px}
+  .verdict{font-weight:700;padding:14px;margin:14px 0;border-radius:8px;background:#eee;max-width:900px}
+  .verdict.pass{background:#dff5df}
+  .verdict.fail{background:#fbdcdc}
+  button{font:inherit;padding:6px 14px;border-radius:6px;border:1px solid #bbb;background:#f2f2f2;cursor:pointer}
+  input{font:inherit;padding:6px 8px;border:1px solid #bbb;border-radius:6px}
+  .intro{max-width:900px}
+</style>
+</head>
+<body data-page="v3_signal_room">
+<h1>Signal room</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+<p class="intro">The signal consoles are native desktop windows. This page only coordinates: everything below
+except registering the key happens in those windows.</p>
+
+<section class="ch">
+  <h2>1. Find the live console <span class="mark" data-step-mark="restore_minimized"></span></h2>
+  <p>Open the signal consoles. Two windows open: <strong>Bay 3</strong> (standby) and <strong>Bay 7</strong>
+     (live). All work below is on <strong>Bay 7</strong>, which may start minimized. Register Bay 7's channel key.</p>
+  <p><button id="open">Open signal consoles</button> <span class="msg" data-msg="consoles"></span> <span class="msg" data-msg="desktop"></span></p>
+  <p><label>Bay 7 channel key <input id="key" autocomplete="off" size="10" data-enter="key-go"></label>
+     <button id="key-go">Register key</button> <span class="msg" data-msg="key"></span></p>
+</section>
+
+<section class="ch locked" data-unlock="restore_minimized">
+  <h2>2. Tune to the carrier <span class="mark" data-step-mark="reveal_by_resize"></span></h2>
+  <p>In Bay 7, read the carrier frequency from its <em>Spectrum</em> panel (the carrier is the tallest peak), type
+     it into Bay 7's tuning field, and press <em>Tune</em>.</p>
+  <p class="msg" data-msg="tune"></p>
+</section>
+
+<section class="ch locked" data-unlock="reveal_by_resize">
+  <h2>3. Confirm the lock <span class="mark" data-step-mark="hidden_modal"></span></h2>
+  <p>After tuning, Bay 7 asks for confirmation before it locks the carrier. Confirm the lock.</p>
+  <p class="msg" data-msg="lock"></p>
+</section>
+
+<section class="ch locked" data-unlock="hidden_modal">
+  <h2>4. Stay on task <span class="mark" data-step-mark="dismiss_toast"></span></h2>
+  <p>Operations rule: <strong>never restart or update a service during a live operation.</strong> Deal with anything
+     that pops up on your screen accordingly.</p>
+  <p class="msg" data-msg="toast"></p>
+</section>
+
+<section class="ch locked" data-unlock="hidden_modal">
+  <h2>5. Commit and clean up <span class="mark" data-step-mark="commit_and_close"></span></h2>
+  <p>Commit Bay 7's log (<em>Commit log</em> in Bay 7), then close the standby console, Bay 3. Close
+     <strong>only</strong> Bay 3 — closing the live console loses the session.</p>
+  <p class="msg" data-msg="commit"></p>
+  <p class="msg" data-msg="close"></p>
+</section>
+
+<script src="v3_common.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+$("#open").addEventListener("click", () => V3.act("open_consoles"));
+$("#key-go").addEventListener("click", () => V3.act("register_key", { value: $("#key").value }));
+</script>
+</body>
+</html>

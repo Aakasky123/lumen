@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Calibration bench</title>
+<style>
+  body{font-family:system-ui,-apple-system,sans-serif;margin:0;padding:24px;line-height:1.5;color:#1a1a1a;background:#fafafa}
+  h1{font-size:22px}
+  section.ch{background:#fff;border:1px solid #d8d8d8;border-radius:10px;padding:18px;margin:18px 0;max-width:860px}
+  section.ch.locked{opacity:.4;pointer-events:none}
+  section.ch h2{font-size:16px;margin:0 0 10px}
+  .mark{color:#1a7f37;font-weight:600;margin-left:10px}
+  .hint{color:#666;font-size:13px}
+  .verdict{font-weight:700;padding:14px;margin:18px 0;border-radius:8px;background:#eee;max-width:860px}
+  .verdict.pass{background:#dff5df}
+  .verdict.fail{background:#fbdcdc}
+  button{font:inherit;padding:6px 14px;border-radius:6px;border:1px solid #bbb;background:#f2f2f2;cursor:pointer}
+  input{font:inherit}
+  #track{position:relative;width:320px;height:26px;background:#e4e9f0;border-radius:13px;margin:8px 0}
+  #thumb{position:absolute;top:1px;width:24px;height:24px;border-radius:50%;background:#2b6cb0;cursor:grab;left:0}
+  ul#reorder{list-style:none;padding:0;max-width:260px}
+  ul#reorder li{border:1px solid #bbb;border-radius:6px;padding:8px 12px;margin:6px 0;background:#fdfdfd;cursor:grab}
+  ul#reorder li.dragging{opacity:.4}
+  #chip{display:inline-block;border:1px solid #b9cbe4;background:#e3ecf9;border-radius:8px;padding:8px 14px;cursor:grab}
+  #dropzone{width:280px;height:90px;border:2px dashed #999;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#888;margin-top:10px}
+  #dropzone.over{background:#eef6ee;border-color:#1a7f37}
+  #sign-canvas{border:1px solid #999;border-radius:8px;background:#fff;cursor:crosshair;touch-action:none}
+</style>
+</head>
+<body>
+<h1>Calibration bench</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+
+<section class="ch" id="s-range">
+  <h2>1. Coarse dial <span class="mark" data-step-mark="range"></span></h2>
+  <p>Set the dial to exactly <strong>67</strong>.</p>
+  <input type="range" id="range" min="0" max="100" step="1" value="0" style="width:320px">
+  <span id="range-val">0</span>
+</section>
+
+<section class="ch locked" id="s-dragslider">
+  <h2>2. Fine dial <span class="mark" data-step-mark="dragslider"></span></h2>
+  <p>Drag the blue thumb until the value reads <strong>340 ± 5</strong>. This dial only responds to
+     dragging the thumb — clicking the track or pressing keys does nothing. Release to lock.</p>
+  <div id="track"><div id="thumb"></div></div>
+  <p>Value: <strong id="drag-val">0</strong> / 500 <span class="hint" id="drag-msg"></span></p>
+</section>
+
+<section class="ch locked" id="s-reorder">
+  <h2>3. Priority order <span class="mark" data-step-mark="reorder"></span></h2>
+  <p>Drag the tasks into this order, top to bottom:
+     <strong>Echo, Alpha, Delta, Bravo, Charlie</strong>. Then check.</p>
+  <ul id="reorder"></ul>
+  <button id="reorder-check">Check order</button> <span class="hint" id="reorder-msg"></span>
+</section>
+
+<section class="ch locked" id="s-dropzone">
+  <h2>4. File staging <span class="mark" data-step-mark="dropzone"></span></h2>
+  <p>Drag the document chip into the staging area.</p>
+  <span id="chip" draggable="true">📄 invoice-2026.txt</span>
+  <div id="dropzone">Drop the document here</div>
+</section>
+
+<section class="ch locked" id="s-signature">
+  <h2>5. Signature <span class="mark" data-step-mark="signature"></span></h2>
+  <p>Sign inside the box (draw a continuous stroke with the pointer).</p>
+  <canvas id="sign-canvas" width="320" height="120"></canvas>
+  <p class="hint" id="sign-msg"></p>
+</section>
+
+<section class="ch locked" id="s-quote">
+  <h2>6. Precise selection <span class="mark" data-step-mark="quote"></span></h2>
+  <p id="quote-para">Survey teams crossed the high plateau at dawn, following the old meridian line
+     toward the coastal beacons before the fog returned.</p>
+  <p>Select (for example by double-clicking) exactly the word <strong>meridian</strong> in the
+     paragraph above, then press the button while it is selected.</p>
+  <button id="quote-btn">Quote selection</button> <span class="hint" id="quote-msg"></span>
+</section>
+
+<script>
+window.Bench = (function () {
+  const PAGE = "pointer-precision";
+  const TOKEN = "BENCH_PASS pointer-precision-88f3b6";
+  const STEPS = ["range", "dragslider", "reorder", "dropzone", "signature", "quote"];
+  const done = new Set();
+  let failed = sessionStorage.getItem("bench-fail-" + PAGE) || null;
+  let futile = 0;
+  function render() {
+    const v = document.getElementById("bench-verdict");
+    const p = document.getElementById("bench-progress");
+    if (p) p.textContent = "Challenges complete: " + done.size + " / " + STEPS.length + " | Ineffective interactions: " + futile;
+    if (!v) return;
+    if (failed) { v.textContent = "BENCH_FAIL " + PAGE + ": " + failed; v.className = "verdict fail"; }
+    else if (done.size === STEPS.length) { v.textContent = TOKEN + " — all challenges complete"; v.className = "verdict pass"; }
+  }
+  function complete(step) {
+    if (failed || done.has(step)) return;
+    done.add(step);
+    const m = document.querySelector('[data-step-mark="' + step + '"]');
+    if (m) m.textContent = "✓ complete";
+    render();
+    if (window.benchOnComplete) window.benchOnComplete(step);
+  }
+  function fail(reason) {
+    if (failed) return;
+    failed = reason;
+    sessionStorage.setItem("bench-fail-" + PAGE, reason);
+    render();
+  }
+  window.__benchReport = () => ({ page: PAGE, done: [...done], failed, futile, total: STEPS.length });
+  document.addEventListener("DOMContentLoaded", render);
+  return { complete, fail, has: (s) => done.has(s), futile: () => { futile += 1; render(); } };
+})();
+
+const $ = (sel) => document.querySelector(sel);
+
+// 1. native range to exact value
+$("#range").addEventListener("input", () => {
+  $("#range-val").textContent = $("#range").value;
+  if ($("#range").value === "67") Bench.complete("range");
+});
+
+// 2. drag-only custom slider (0..500 over 296px of travel)
+(function () {
+  const track = $("#track");
+  const thumb = $("#thumb");
+  let dragging = false;
+  let value = 0;
+  function setFromClientX(x) {
+    const r = track.getBoundingClientRect();
+    const px = Math.max(0, Math.min(296, x - r.left - 12));
+    thumb.style.left = px + "px";
+    value = Math.round((px / 296) * 500);
+    $("#drag-val").textContent = String(value);
+  }
+  thumb.addEventListener("mousedown", (e) => { dragging = true; e.preventDefault(); });
+  document.addEventListener("mousemove", (e) => { if (dragging) setFromClientX(e.clientX); });
+  document.addEventListener("mouseup", () => {
+    if (!dragging) return;
+    dragging = false;
+    if (Math.abs(value - 340) <= 5) { $("#drag-msg").textContent = "Locked."; Bench.complete("dragslider"); }
+    else { $("#drag-msg").textContent = "Released outside the target band."; Bench.futile(); }
+  });
+  track.addEventListener("click", (e) => { if (e.target !== thumb) { $("#drag-msg").textContent = "Track clicks are ignored — drag the thumb."; Bench.futile(); } });
+})();
+
+// 3. drag-to-reorder list
+(function () {
+  const ul = $("#reorder");
+  ["Alpha", "Bravo", "Charlie", "Delta", "Echo"].forEach((t) => {
+    const li = document.createElement("li");
+    li.textContent = t;
+    li.draggable = true;
+    ul.appendChild(li);
+  });
+  let dragged = null;
+  ul.addEventListener("dragstart", (e) => { dragged = e.target; e.target.classList.add("dragging"); });
+  ul.addEventListener("dragend", (e) => e.target.classList.remove("dragging"));
+  ul.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    const after = [...ul.querySelectorAll("li:not(.dragging)")].find((li) => e.clientY <= li.getBoundingClientRect().top + li.offsetHeight / 2);
+    if (after) ul.insertBefore(dragged, after);
+    else ul.appendChild(dragged);
+  });
+  $("#reorder-check").addEventListener("click", () => {
+    const order = [...ul.querySelectorAll("li")].map((li) => li.textContent).join(",");
+    if (order === "Echo,Alpha,Delta,Bravo,Charlie") { $("#reorder-msg").textContent = "Order confirmed."; Bench.complete("reorder"); }
+    else { $("#reorder-msg").textContent = "Current order: " + order.replace(/,/g, ", ") + " — not the requested order."; Bench.futile(); }
+  });
+})();
+
+// 4. drag into dropzone
+(function () {
+  const chip = $("#chip");
+  const zone = $("#dropzone");
+  chip.addEventListener("dragstart", (e) => e.dataTransfer.setData("text/plain", "invoice-2026.txt"));
+  zone.addEventListener("dragover", (e) => { e.preventDefault(); zone.classList.add("over"); });
+  zone.addEventListener("dragleave", () => zone.classList.remove("over"));
+  zone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    zone.classList.remove("over");
+    if (e.dataTransfer.getData("text/plain") === "invoice-2026.txt") {
+      zone.textContent = "invoice-2026.txt staged";
+      Bench.complete("dropzone");
+    }
+  });
+})();
+
+// 5. signature canvas
+(function () {
+  const canvas = $("#sign-canvas");
+  const ctx = canvas.getContext("2d");
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "#123";
+  let drawing = false, last = null, length = 0;
+  function pos(e) {
+    const r = canvas.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  }
+  canvas.addEventListener("mousedown", (e) => { drawing = true; last = pos(e); });
+  canvas.addEventListener("mousemove", (e) => {
+    if (!drawing) return;
+    const p = pos(e);
+    ctx.beginPath();
+    ctx.moveTo(last.x, last.y);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    length += Math.hypot(p.x - last.x, p.y - last.y);
+    last = p;
+  });
+  document.addEventListener("mouseup", () => {
+    if (!drawing) return;
+    drawing = false;
+    if (length >= 120) { $("#sign-msg").textContent = "Signature captured."; Bench.complete("signature"); }
+    else if (length > 0) { $("#sign-msg").textContent = "Stroke too short — sign more fully."; Bench.futile(); }
+  });
+})();
+
+// 6. exact word selection
+$("#quote-btn").addEventListener("click", () => {
+  const sel = (window.getSelection().toString() || "").trim();
+  if (sel === "meridian") { $("#quote-msg").textContent = "Quoted: “meridian”."; Bench.complete("quote"); }
+  else { $("#quote-msg").textContent = sel ? "Selection was “" + sel + "” — select only the word meridian." : "Nothing is selected."; Bench.futile(); }
+});
+
+// sequential unlock
+window.benchOnComplete = function (step) {
+  const order = { range: "#s-dragslider", dragslider: "#s-reorder", reorder: "#s-dropzone", dropzone: "#s-signature", signature: "#s-quote" };
+  if (order[step]) document.querySelector(order[step]).classList.remove("locked");
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Badge Office</title>
+<link rel="stylesheet" href="v4_style.css">
+<style>
+  .zones label{display:block;margin:3px 0}
+  #badge-no{font-size:26px;font-weight:700;font-family:ui-monospace,Consolas,monospace}
+  .danger{color:#a3261d}
+</style>
+</head>
+<body data-page="v5_onboarding" data-aux="badge">
+<h1>Badge Office</h1>
+<p id="aux-status" class="hint">Connecting…</p>
+<div class="row"><label>Employee ID <input id="emp" autocomplete="off" size="12"></label></div>
+<div class="row"><label>Department <select id="dept"><option value="">— choose —</option></select></label></div>
+<p><strong>Access zones</strong></p>
+<div class="zones" id="zones"></div>
+<p class="danger"><label><input type="checkbox" id="all"> Grant all-access (every zone, admin override)</label></p>
+<p><button id="issue">Issue badge</button></p>
+<p class="msg" id="msg"></p>
+<p>Badge number: <span id="badge-no">—</span></p>
+<script src="v3_common.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+let built = false;
+V3.onState((st) => {
+  $("#msg").textContent = st.messages.badge || "";
+  if (built) return;
+  built = true;
+  $("#aux-status").textContent = "";
+  for (const d of st.public.departments) $("#dept").appendChild(new Option(d, d));
+  for (const z of st.public.zones) {
+    const label = document.createElement("label");
+    const box = document.createElement("input");
+    box.type = "checkbox";
+    box.value = z;
+    label.append(box, " " + z);
+    $("#zones").appendChild(label);
+  }
+});
+$("#issue").addEventListener("click", async () => {
+  const zones = [...document.querySelectorAll("#zones input:checked")].map((b) => b.value);
+  const res = await V3.act("issue_badge", { emp_id: $("#emp").value, dept: $("#dept").value, zones, all_access: $("#all").checked });
+  if (res.badge) $("#badge-no").textContent = res.badge;
+});
+</script>
+</body>
+</html>

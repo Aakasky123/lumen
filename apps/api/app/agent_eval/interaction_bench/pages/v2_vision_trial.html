@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Optics verification lab</title>
+<style>
+  body{font-family:system-ui,-apple-system,sans-serif;margin:0;padding:24px;line-height:1.5;color:#1a1a1a;background:#fafafa}
+  h1{font-size:22px}
+  section.ch{background:#fff;border:1px solid #d8d8d8;border-radius:10px;padding:18px;margin:18px 0;max-width:900px}
+  section.ch.locked{opacity:.4;pointer-events:none}
+  section.ch h2{font-size:16px;margin:0 0 10px}
+  .mark{color:#1a7f37;font-weight:600;margin-left:10px}
+  .hint{color:#666;font-size:13px}
+  .verdict{font-weight:700;padding:14px;margin:18px 0;border-radius:8px;background:#eee;max-width:900px}
+  .verdict.pass{background:#dff5df}
+  .verdict.fail{background:#fbdcdc}
+  button{font:inherit;padding:6px 14px;border-radius:6px;border:1px solid #bbb;background:#f2f2f2;cursor:pointer}
+  input{font:inherit;padding:6px 8px;border:1px solid #bbb;border-radius:6px}
+  canvas{border:1px solid #999;border-radius:8px;background:#fff}
+  #twin-row{display:flex;gap:22px;justify-content:center;max-width:420px}
+</style>
+</head>
+<body>
+<h1>Optics verification lab</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+
+<section class="ch" id="s-canvasform">
+  <h2>1. Painted intake form <span class="mark" data-step-mark="canvasform"></span></h2>
+  <p>The intake form below exists only as pixels. Click a painted field to focus it, type with the
+     keyboard, and press the painted <strong>OK</strong>. Fill both fields with the values painted
+     above them.</p>
+  <canvas id="pf-canvas" width="420" height="210" tabindex="0"></canvas>
+</section>
+
+<section class="ch locked" id="s-count">
+  <h2>2. Shape census <span class="mark" data-step-mark="count"></span></h2>
+  <p>How many <strong>triangles</strong> are drawn on the plate?</p>
+  <canvas id="census-canvas" width="440" height="200"></canvas>
+  <p><label>Triangle count <input id="census-in" inputmode="numeric" style="width:80px"></label>
+     <button id="census-go">Report census</button> <span class="hint" id="census-msg"></span></p>
+</section>
+
+<section class="ch locked" id="s-arrow">
+  <h2>3. Twin gates <span class="mark" data-step-mark="arrow"></span></h2>
+  <p>The two gates below are identical in every way — except the indicator above points at the
+     correct one. Follow the indicator.</p>
+  <canvas id="arrow-canvas" width="420" height="90"></canvas>
+  <div id="twin-row">
+    <button class="twin">Proceed</button>
+    <button class="twin">Proceed</button>
+  </div>
+  <p class="hint" id="arrow-msg"></p>
+</section>
+
+<section class="ch locked" id="s-ordering">
+  <h2>4. Luminance ladder <span class="mark" data-step-mark="ordering"></span></h2>
+  <p>Click the five lamps in order from <strong>darkest to brightest</strong>. A wrong pick resets
+     the ladder.</p>
+  <canvas id="lum-canvas" width="440" height="160"></canvas>
+  <p class="hint" id="lum-msg">Progress: 0 / 5</p>
+</section>
+
+<script>
+window.Bench = (function () {
+  const PAGE = "vision-trial";
+  const TOKEN = "BENCH_PASS vision-trial-6d1c3a";
+  const STEPS = ["canvasform", "count", "arrow", "ordering"];
+  const done = new Set();
+  let failed = sessionStorage.getItem("bench-fail-" + PAGE) || null;
+  let futile = 0;
+  function render() {
+    const v = document.getElementById("bench-verdict");
+    const p = document.getElementById("bench-progress");
+    if (p) p.textContent = "Challenges complete: " + done.size + " / " + STEPS.length + " | Ineffective interactions: " + futile;
+    if (!v) return;
+    if (failed) { v.textContent = "BENCH_FAIL " + PAGE + ": " + failed; v.className = "verdict fail"; }
+    else if (done.size === STEPS.length) { v.textContent = TOKEN + " — all challenges complete"; v.className = "verdict pass"; }
+  }
+  function complete(step) {
+    if (failed || done.has(step)) return;
+    done.add(step);
+    const m = document.querySelector('[data-step-mark="' + step + '"]');
+    if (m) m.textContent = "✓ complete";
+    render();
+    if (window.benchOnComplete) window.benchOnComplete(step);
+  }
+  function fail(reason) {
+    if (failed) return;
+    failed = reason;
+    sessionStorage.setItem("bench-fail-" + PAGE, reason);
+    render();
+  }
+  window.__benchReport = () => ({ page: PAGE, done: [...done], failed, futile, total: STEPS.length });
+  document.addEventListener("DOMContentLoaded", render);
+  return { complete, fail, has: (s) => done.has(s), futile: () => { futile += 1; render(); } };
+})();
+
+const $ = (sel) => document.querySelector(sel);
+const rand4 = () => Array.from({ length: 4 }, () => "ABCDEFGHJKMNPQRSTUVWXYZ23456789"[Math.floor(Math.random() * 32)]).join("");
+const debug = {};
+window.__benchDebug = debug;
+
+// --- 1. all-canvas form -------------------------------------------------------------------------
+(function () {
+  const canvas = $("#pf-canvas"), ctx = canvas.getContext("2d");
+  const f1 = { x: 30, y: 85, w: 160, h: 34, value: "", expect: rand4() };
+  const f2 = { x: 225, y: 85, w: 160, h: 34, value: "", expect: ["ALPINE", "COBALT", "MARLIN", "SABLE"][Math.floor(Math.random() * 4)] };
+  const ok = { x: 160, y: 150, w: 90, h: 36 };
+  let focused = null, message = "";
+  debug.paintedForm = { f1, f2, ok };
+  function draw() {
+    ctx.fillStyle = "#f7f9fc";
+    ctx.fillRect(0, 0, 420, 210);
+    ctx.fillStyle = "#333";
+    ctx.font = "13px system-ui";
+    ctx.fillText("Intake console (painted)", 30, 28);
+    ctx.font = "600 14px ui-monospace, monospace";
+    ctx.fillText("ID: " + f1.expect, f1.x, f1.y - 12);
+    ctx.fillText("WORD: " + f2.expect, f2.x, f2.y - 12);
+    [f1, f2].forEach((f) => {
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(f.x, f.y, f.w, f.h);
+      ctx.strokeStyle = focused === f ? "#2b6cb0" : "#9aa5b5";
+      ctx.lineWidth = focused === f ? 3 : 1;
+      ctx.strokeRect(f.x, f.y, f.w, f.h);
+      ctx.fillStyle = "#111";
+      ctx.font = "16px ui-monospace, monospace";
+      ctx.fillText(f.value, f.x + 8, f.y + 23);
+    });
+    ctx.fillStyle = "#2b6cb0";
+    ctx.beginPath();
+    ctx.roundRect(ok.x, ok.y, ok.w, ok.h, 8);
+    ctx.fill();
+    ctx.fillStyle = "#fff";
+    ctx.font = "600 15px system-ui";
+    ctx.fillText("OK", ok.x + ok.w / 2 - 11, ok.y + 24);
+    if (message) {
+      ctx.fillStyle = message === "ACCEPTED" ? "#1a7f37" : "#b13030";
+      ctx.font = "600 13px system-ui";
+      ctx.fillText(message, 30, 202);
+    }
+  }
+  draw();
+  canvas.addEventListener("click", (e) => {
+    const r = canvas.getBoundingClientRect();
+    const x = e.clientX - r.left, y = e.clientY - r.top;
+    const inRect = (b) => x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h;
+    if (inRect(f1)) focused = f1;
+    else if (inRect(f2)) focused = f2;
+    else if (inRect(ok)) {
+      if (f1.value === f1.expect && f2.value === f2.expect) { message = "ACCEPTED"; draw(); Bench.complete("canvasform"); return; }
+      message = "MISMATCH — check both fields";
+      Bench.futile();
+    } else focused = null;
+    canvas.focus();
+    draw();
+  });
+  canvas.addEventListener("keydown", (e) => {
+    if (!focused) return;
+    if (e.key === "Backspace") { focused.value = focused.value.slice(0, -1); e.preventDefault(); }
+    else if (e.key.length === 1 && focused.value.length < 10) { focused.value += e.key.toUpperCase(); e.preventDefault(); }
+    draw();
+  });
+})();
+
+// --- 2. triangle census -------------------------------------------------------------------------
+(function () {
+  const canvas = $("#census-canvas"), ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#fbfcfe";
+  ctx.fillRect(0, 0, 440, 200);
+  const nTri = 4 + Math.floor(Math.random() * 4); // 4..7
+  const nOther = 6 + Math.floor(Math.random() * 4);
+  debug.triangles = nTri;
+  const placed = [];
+  function spot() {
+    let x, y, tries = 0;
+    do { x = 25 + Math.random() * 390; y = 25 + Math.random() * 150; tries++; }
+    while (tries < 60 && placed.some((p) => Math.hypot(p.x - x, p.y - y) < 34));
+    placed.push({ x, y });
+    return { x, y };
+  }
+  const palette = ["#4a6fa5", "#6a9a5b", "#a5764a", "#7b5ea7", "#3f8f8a"];
+  for (let i = 0; i < nTri; i++) {
+    const { x, y } = spot();
+    const s = 10 + Math.random() * 6;
+    const rot = Math.random() * Math.PI * 2;
+    ctx.fillStyle = palette[i % palette.length];
+    ctx.beginPath();
+    for (let k = 0; k < 3; k++) {
+      const a = rot + (k * 2 * Math.PI) / 3;
+      const px = x + s * Math.cos(a), py = y + s * Math.sin(a);
+      if (k === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fill();
+  }
+  for (let i = 0; i < nOther; i++) {
+    const { x, y } = spot();
+    ctx.fillStyle = palette[(i + 2) % palette.length];
+    if (i % 2) { ctx.beginPath(); ctx.arc(x, y, 10, 0, Math.PI * 2); ctx.fill(); }
+    else { ctx.fillRect(x - 9, y - 9, 18, 18); }
+  }
+  $("#census-go").addEventListener("click", () => {
+    if (parseInt(($("#census-in").value || "").trim(), 10) === nTri) {
+      $("#census-msg").textContent = "Census accepted.";
+      Bench.complete("count");
+    } else { $("#census-msg").textContent = "Census rejected — recount."; Bench.futile(); }
+  });
+})();
+
+// --- 3. twin gates + painted arrow --------------------------------------------------------------
+(function () {
+  const canvas = $("#arrow-canvas"), ctx = canvas.getContext("2d");
+  const correct = Math.floor(Math.random() * 2); // 0 = left twin, 1 = right twin
+  debug.correctTwin = correct;
+  ctx.fillStyle = "#f7f9fc";
+  ctx.fillRect(0, 0, 420, 90);
+  const cx = correct === 0 ? 105 : 315;
+  ctx.strokeStyle = "#b13030";
+  ctx.fillStyle = "#b13030";
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.moveTo(210, 20);
+  ctx.lineTo(cx, 20);
+  ctx.lineTo(cx, 55);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(cx - 11, 55); ctx.lineTo(cx + 11, 55); ctx.lineTo(cx, 76);
+  ctx.closePath();
+  ctx.fill();
+  document.querySelectorAll("#twin-row .twin").forEach((b, i) =>
+    b.addEventListener("click", () => {
+      if (i === correct) { $("#arrow-msg").textContent = "Gate opened."; Bench.complete("arrow"); }
+      else { $("#arrow-msg").textContent = "Wrong gate — the indicator pointed at the other one."; Bench.futile(); }
+    })
+  );
+})();
+
+// --- 4. luminance ordering ----------------------------------------------------------------------
+(function () {
+  const canvas = $("#lum-canvas"), ctx = canvas.getContext("2d");
+  const levels = ["#4a4a4a", "#6e6e6e", "#929292", "#b6b6b6", "#dadada"]; // darkest -> brightest
+  const order = [0, 1, 2, 3, 4];
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  const lamps = order.map((level, i) => ({ level, x: 55 + i * 82, y: 80 }));
+  debug.lampOrder = [...lamps].sort((a, b) => a.level - b.level).map((l) => ({ x: l.x, y: l.y, level: l.level }));
+  function draw() {
+    ctx.fillStyle = "#101724";
+    ctx.fillRect(0, 0, 440, 160);
+    lamps.forEach((l) => {
+      ctx.beginPath();
+      ctx.arc(l.x, l.y, 22, 0, Math.PI * 2);
+      ctx.fillStyle = levels[l.level];
+      ctx.fill();
+      if (l.done) {
+        ctx.strokeStyle = "#57d977";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      }
+    });
+  }
+  draw();
+  let next = 0;
+  canvas.addEventListener("click", (e) => {
+    const r = canvas.getBoundingClientRect();
+    const x = e.clientX - r.left, y = e.clientY - r.top;
+    const hit = lamps.find((l) => Math.hypot(l.x - x, l.y - y) <= 26);
+    if (!hit) { Bench.futile(); return; }
+    if (hit.level === next) {
+      hit.done = true;
+      next += 1;
+      $("#lum-msg").textContent = "Progress: " + next + " / 5";
+      draw();
+      if (next === 5) { $("#lum-msg").textContent = "Ladder complete."; Bench.complete("ordering"); }
+    } else {
+      lamps.forEach((l) => { l.done = false; });
+      next = 0;
+      draw();
+      $("#lum-msg").textContent = "Wrong lamp — ladder reset. Progress: 0 / 5";
+      Bench.futile();
+    }
+  });
+})();
+
+// sequential unlock
+window.benchOnComplete = function (step) {
+  const order = { canvasform: "#s-count", count: "#s-arrow", arrow: "#s-ordering" };
+  if (order[step]) document.querySelector(order[step]).classList.remove("locked");
+};
+</script>
+</body>
+</html>

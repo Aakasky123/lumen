@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Form controls bench</title>
+<link rel="stylesheet" href="v4_style.css">
+<style>
+  #range{width:320px}
+  #multi{min-width:220px}
+  .swatch{display:inline-block;width:22px;height:22px;border-radius:4px;border:1px solid #999;vertical-align:middle}
+</style>
+</head>
+<body data-page="v4_widgets">
+<h1>Form controls bench</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+<p class="intro">Seven independent challenges, in any order. Each uses one of the browser's built-in controls — several
+  open pickers that the browser draws outside the page.</p>
+
+<section class="ch">
+  <h2>1. Dropdown <span class="mark" data-step-mark="native_select"></span></h2>
+  <p>Choose the port <span class="val" data-public="port"></span>, then save.</p>
+  <div class="row"><select id="port"><option value="">— choose a port —</option></select> <button id="port-go">Save port</button></div>
+  <p class="msg" data-msg="select"></p>
+</section>
+
+<section class="ch">
+  <h2>2. Date <span class="mark" data-step-mark="date_input"></span></h2>
+  <p>Set the delivery date to <span class="val" data-public="date_text"></span>, then save.</p>
+  <div class="row"><input type="date" id="date" min="2026-01-01" max="2028-12-31"> <button id="date-go">Save date</button></div>
+  <p class="msg" data-msg="date"></p>
+</section>
+
+<section class="ch">
+  <h2>3. Time <span class="mark" data-step-mark="time_input"></span></h2>
+  <p>Set the pickup time to <span class="val" data-public="time_text"></span>, then save.</p>
+  <div class="row"><input type="time" id="time"> <button id="time-go">Save time</button></div>
+  <p class="msg" data-msg="time"></p>
+</section>
+
+<section class="ch">
+  <h2>4. Color <span class="mark" data-step-mark="color_input"></span></h2>
+  <p>Set the label color to exactly <span class="val" data-public="color"></span> (the color picker accepts a hex
+     value), then save.</p>
+  <div class="row"><input type="color" id="color" value="#808080"> <span class="val" id="color-show">#808080</span> <button id="color-go">Save color</button></div>
+  <p class="msg" data-msg="color"></p>
+</section>
+
+<section class="ch">
+  <h2>5. Slider to an exact value <span class="mark" data-step-mark="range_exact"></span></h2>
+  <p>Set the slider to exactly <span class="val" data-public="range"></span> (0–1000), then save. A focused slider
+     also moves by 1 with the arrow keys.</p>
+  <div class="row"><input type="range" id="range" min="0" max="1000" step="1" value="500"> <span class="val" id="range-show">500</span>
+     <button id="range-go">Save value</button></div>
+  <p class="msg" data-msg="range"></p>
+</section>
+
+<section class="ch">
+  <h2>6. Multi-select list <span class="mark" data-step-mark="multi_select"></span></h2>
+  <p>Select exactly <span class="val" id="multi-want"></span> in this list (Ctrl+click adds or removes an item), then save.</p>
+  <div class="row"><select id="multi" multiple size="8"></select> <button id="multi-go">Save selection</button></div>
+  <p class="msg" data-msg="multi"></p>
+</section>
+
+<section class="ch">
+  <h2>7. Attach a file <span class="mark" data-step-mark="file_pick"></span></h2>
+  <p>Attach <span class="val" data-public="file"></span> from the mission inbox
+     <span class="path" data-public="inbox"></span> using the file chooser. Look-alike files sit beside it.</p>
+  <div class="row"><input type="file" id="file" accept=".csv,text/csv"></div>
+  <p class="msg" data-msg="file"></p>
+</section>
+
+<script src="v3_common.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+let pub = null;
+$("#port-go").addEventListener("click", () => V3.act("native_select", { value: $("#port").value }));
+$("#date-go").addEventListener("click", () => V3.act("date_input", { value: $("#date").value }));
+$("#time-go").addEventListener("click", () => V3.act("time_input", { value: $("#time").value }));
+$("#color").addEventListener("input", () => ($("#color-show").textContent = $("#color").value));
+$("#color-go").addEventListener("click", () => V3.act("color_input", { value: $("#color").value }));
+$("#range").addEventListener("input", () => ($("#range-show").textContent = $("#range").value));
+$("#range-go").addEventListener("click", () => V3.act("range_exact", { value: $("#range").value }));
+$("#multi-go").addEventListener("click", () => V3.act("multi_select", { values: [...$("#multi").selectedOptions].map((o) => o.value) }));
+$("#file").addEventListener("change", async (e) => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  const text = file.size <= 1000000 ? await file.text() : "";
+  await V3.act("file_pick", { name: file.name, text });
+  e.target.value = "";
+});
+V3.onState((st) => {
+  if (pub) return;
+  pub = st.public;
+  for (const port of pub.ports) $("#port").appendChild(new Option(port, port));
+  for (const item of pub.multi_options) $("#multi").appendChild(new Option(item, item));
+  $("#multi-want").textContent = pub.multi.join(", ");
+});
+</script>
+</body>
+</html>

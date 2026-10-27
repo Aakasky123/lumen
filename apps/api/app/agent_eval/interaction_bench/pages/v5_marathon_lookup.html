@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Policy Lookup</title>
+<link rel="stylesheet" href="v4_style.css">
+<style>
+  #card dl{display:grid;grid-template-columns:120px 1fr;gap:4px 10px}
+  #card dt{color:#667}
+  #card dd{margin:0;font-weight:600}
+  #expired{background:#fbeaea;border:1px solid #e3a5a5;border-radius:8px;padding:10px 14px;display:none}
+</style>
+</head>
+<body data-page="v5_marathon" data-aux="lookup">
+<h1>Policy Lookup</h1>
+<p id="aux-status" class="hint">Connecting…</p>
+<div class="row"><label>Policy number <input id="policy" autocomplete="off" size="12" data-enter="search"></label> <button id="search">Search</button></div>
+<div id="expired"><p><strong>Session expired.</strong> Enter your operator code to continue.</p>
+  <div class="row"><input id="code" autocomplete="off" size="10" data-enter="reauth"> <button id="reauth">Restore session</button></div></div>
+<p class="msg" id="msg"></p>
+<div id="card" class="box" style="padding:10px 14px;display:none"></div>
+<script src="v3_common.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+V3.ready.then(() => ($("#aux-status").textContent = ""));
+$("#search").addEventListener("click", async () => {
+  const res = await V3.act("lookup", { policy: $("#policy").value });
+  $("#expired").style.display = res.expired ? "block" : "none";
+  $("#msg").textContent = res.msg || "";
+  const card = $("#card");
+  card.innerHTML = "";
+  card.style.display = res.policy ? "block" : "none";
+  if (res.policy) {
+    const p = res.policy;
+    const dl = document.createElement("dl");
+    for (const [k, v] of [["Policy", p.number], ["Holder", p.holder], ["Status", p.status], ["Covers", p.coverage.join(", ")], ["Deductible", "$" + p.deductible], ["Limit", "$" + p.limit]]) {
+      dl.appendChild(Object.assign(document.createElement("dt"), { textContent: k }));
+      dl.appendChild(Object.assign(document.createElement("dd"), { textContent: v }));
+    }
+    card.appendChild(dl);
+  }
+});
+$("#reauth").addEventListener("click", async () => {
+  const res = await V3.act("reauth", { code: $("#code").value });
+  $("#msg").textContent = res.msg || "";
+  if (res.ok) $("#expired").style.display = "none";
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "@/lib/*": ["../renderer/lib/*"],
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts", "../renderer/lib/runPhase.ts", "../renderer/lib/threads.ts", "../renderer/lib/pendingQuestionConfirmation.ts", "../renderer/lib/format.ts", "../renderer/lib/chatMessages.ts", "../renderer/lib/memoryFacts.ts", "../renderer/lib/cost.ts"],
+  "exclude": ["node_modules", "android", "**/*.test.ts"]
+}

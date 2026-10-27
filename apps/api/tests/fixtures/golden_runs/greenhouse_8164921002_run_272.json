@@ -1,0 +1,1033 @@
+{
+  "schema_version": "golden_completion_run_v1",
+  "provenance": {
+    "run_id": 272,
+    "vendor": "Greenhouse",
+    "target_url": "https://job-boards.greenhouse.io/known/jobs/8164921002",
+    "captured_from_local_artifacts": true,
+    "source_artifacts": {
+      "review_summary": "storage/artifacts/runs/272/review_summary.json",
+      "review_diff": "storage/artifacts/runs/272/review_diff.json",
+      "review_capture_dom": "storage/artifacts/runs/272/review_capture_dom.json",
+      "otp_handshake": "storage/artifacts/runs/272/otp_handshake.json",
+      "otp_challenge_dom": "storage/artifacts/runs/272/actions/023_observe_page_dom.json",
+      "otp_continue_click_dom": "storage/artifacts/runs/272/actions/025_click_navigation_button_dom.json",
+      "confirmation_dom": "storage/artifacts/runs/272/actions/027_detect_validation_errors_dom.json",
+      "event_source": "storage/lumen.db"
+    }
+  },
+  "ready_for_review": {
+    "review_summary": {
+      "status": "READY_FOR_REVIEW",
+      "field_count": 13,
+      "filled_labels": [
+        "First Name",
+        "Last Name",
+        "Email",
+        "Phone",
+        "Country*",
+        "Location (City)*",
+        "Please provide a LinkedIn profile",
+        "Would you now or in the future require sponsorship?*",
+        "How many years of professional Python experience do you have?*",
+        "How did you hear about this job?*",
+        "Do you have a Github/Gitlab profile to share with our hiring team?*",
+        "Please describe a project or product you\u2019ve worked on that is relevant to this position. Please be specific about your individual contributions.",
+        "If yes, please provide your Github/Gitlab profile."
+      ],
+      "skipped_fields": [
+        {
+          "node_id": "lumen_node_033",
+          "label": "How would you describe your gender identity? (mark all that apply)",
+          "reason": "skipped_optional_demographic_policy",
+          "status": "skipped_optional_demographic_policy"
+        },
+        {
+          "node_id": "lumen_node_035",
+          "label": "How would you describe your racial/ethnic background? (mark all that apply)",
+          "reason": "skipped_optional_demographic_policy",
+          "status": "skipped_optional_demographic_policy"
+        },
+        {
+          "node_id": "lumen_node_043",
+          "label": "Are you a veteran or active member of the United States Armed Forces?",
+          "reason": "skipped_optional_demographic_policy",
+          "status": "skipped_optional_demographic_policy"
+        }
+      ],
+      "upload_count": 1,
+      "uploaded_documents": [
+        {
+          "label": "Resume/CV*",
+          "status": "success"
+        }
+      ],
+      "unresolved_required_fields": [],
+      "final_submit_clicked": false,
+      "final_submit_policy": "Human approval required; Lumen did not click final submit."
+    },
+    "review_diff": {
+      "extraction_empty": false,
+      "summary": {
+        "MATCHED_EQUAL": 0,
+        "MATCHED_MISMATCH": 0,
+        "UNMATCHED_REVIEW_ITEM": 7,
+        "UNMATCHED_LEDGER_FIELD": 13,
+        "total_expected_fields": 13,
+        "total_displayed_pairs": 7,
+        "total_records": 20
+      },
+      "expected_field_count": 13,
+      "displayed_pair_count": 7,
+      "record_count": 20,
+      "review_capture": {
+        "dom_snapshot_path": "storage/artifacts/runs/272/review_capture_dom.json",
+        "screenshot_path": null,
+        "ax_tree_path": null,
+        "capture_source": "runtime_observation_fallback"
+      }
+    }
+  },
+  "submit_approval": {
+    "questions": [
+      {
+        "id": 221,
+        "question_type": "submit_approval",
+        "status": "applied",
+        "answer_payload": {
+          "resolved_by": "approve_run",
+          "resolved_reason": "submit_approval_consumed",
+          "resolved_at": "2026-06-12T06:54:13.633843+00:00"
+        }
+      },
+      {
+        "id": 222,
+        "question_type": "otp_manual",
+        "status": "applied",
+        "answer_payload": {
+          "resolved_by": "manual_otp_fill",
+          "resolved_at": "2026-06-12T06:54:42.453464+00:00"
+        }
+      }
+    ],
+    "events": [
+      {
+        "id": 54352,
+        "event_type": "OPERATOR_QUESTION_ASKED",
+        "payload": {
+          "question_id": 221,
+          "question_type": "submit_approval"
+        }
+      },
+      {
+        "id": 54357,
+        "event_type": "SUBMIT_APPROVAL_RECEIVED",
+        "payload": {
+          "pending_submit_fingerprint": "37fd0e283588263fddf99e9142b696e1c37176f9c773d11dbd3ade5af7aa2d3e"
+        }
+      },
+      {
+        "id": 54358,
+        "event_type": "SUBMIT_APPROVAL_SAVED",
+        "payload": {
+          "pending_submit_fingerprint": "37fd0e283588263fddf99e9142b696e1c37176f9c773d11dbd3ade5af7aa2d3e"
+        }
+      },
+      {
+        "id": 54367,
+        "event_type": "SUBMISSION_RESUME_FROM_PENDING_ACTION",
+        "payload": {
+          "pending_submit_fingerprint": "37fd0e283588263fddf99e9142b696e1c37176f9c773d11dbd3ade5af7aa2d3e"
+        }
+      },
+      {
+        "id": 54370,
+        "event_type": "SUBMIT_ATTEMPTED",
+        "payload": {
+          "target": {
+            "text": "Submit application",
+            "label": "Submit application",
+            "node_id": "lumen_node_045",
+            "snapshot_id": "1f86128cf10b765ac2",
+            "input_type": "submit",
+            "_allow_final_submit": true
+          }
+        }
+      },
+      {
+        "id": 54373,
+        "event_type": "SUBMIT_BUTTON_CLICKED",
+        "payload": {
+          "target": {
+            "text": "Submit application",
+            "label": "Submit application",
+            "node_id": "lumen_node_045",
+            "snapshot_id": "1f86128cf10b765ac2",
+            "input_type": "submit",
+            "_allow_final_submit": true
+          }
+        }
+      },
+      {
+        "id": 54383,
+        "event_type": "OPERATOR_QUESTION_ASKED",
+        "payload": {
+          "question_id": 222,
+          "question_type": "otp_manual"
+        }
+      }
+    ],
+    "actions": [
+      {
+        "step_number": 20,
+        "primitive": "click_navigation_button",
+        "status": "succeeded",
+        "target": {
+          "node_id": "lumen_node_045",
+          "snapshot_id": "1f86128cf10b765ac2",
+          "text": "Submit application",
+          "label": "Submit application",
+          "name": null,
+          "input_type": "submit",
+          "_allow_final_submit": true
+        },
+        "value_used": null,
+        "screenshot_before": "storage/artifacts/runs/272/actions/022_click_navigation_button_before.png",
+        "screenshot_after": "storage/artifacts/runs/272/actions/022_click_navigation_button_after.png",
+        "dom_snapshot_path": "storage/artifacts/runs/272/actions/022_click_navigation_button_dom.json",
+        "error_message": null
+      },
+      {
+        "step_number": 21,
+        "primitive": "batch_fill_fields",
+        "status": "succeeded",
+        "target": {
+          "fills": [
+            {
+              "field_key": "verification_code_0",
+              "label": "Security code",
+              "target": {
+                "selector": "#security-input-0"
+              },
+              "value": "[REDACTED_OTP_CHAR]"
+            },
+            {
+              "field_key": "verification_code_1",
+              "label": "Security code",
+              "target": {
+                "selector": "#security-input-1"
+              },
+              "value": "[REDACTED_OTP_CHAR]"
+            },
+            {
+              "field_key": "verification_code_2",
+              "label": "Security code",
+              "target": {
+                "selector": "#security-input-2"
+              },
+              "value": "[REDACTED_OTP_CHAR]"
+            },
+            {
+              "field_key": "verification_code_3",
+              "label": "Security code",
+              "target": {
+                "selector": "#security-input-3"
+              },
+              "value": "[REDACTED_OTP_CHAR]"
+            },
+            {
+              "field_key": "verification_code_4",
+              "label": "Security code",
+              "target": {
+                "selector": "#security-input-4"
+              },
+              "value": "[REDACTED_OTP_CHAR]"
+            },
+            {
+              "field_key": "verification_code_5",
+              "label": "Security code",
+              "target": {
+                "selector": "#security-input-5"
+              },
+              "value": "[REDACTED_OTP_CHAR]"
+            },
+            {
+              "field_key": "verification_code_6",
+              "label": "Security code",
+              "target": {
+                "selector": "#security-input-6"
+              },
+              "value": "[REDACTED_OTP_CHAR]"
+            },
+            {
+              "field_key": "verification_code_7",
+              "label": "Security code",
+              "target": {
+                "selector": "#security-input-7"
+              },
+              "value": "[REDACTED_OTP_CHAR]"
+            }
+          ],
+          "otp": true,
+          "label": "Security code"
+        },
+        "value_used": "[REDACTED_OTP]",
+        "screenshot_before": null,
+        "screenshot_after": null,
+        "dom_snapshot_path": null,
+        "error_message": null
+      },
+      {
+        "step_number": 22,
+        "primitive": "click_navigation_button",
+        "status": "succeeded",
+        "target": {
+          "text": "Submit application",
+          "selector": "div > div:nth-of-type(4) > form > div:nth-of-type(5) > button",
+          "_allow_final_submit": true
+        },
+        "value_used": null,
+        "screenshot_before": "storage/artifacts/runs/272/actions/025_click_navigation_button_before.png",
+        "screenshot_after": "storage/artifacts/runs/272/actions/025_click_navigation_button_after.png",
+        "dom_snapshot_path": "storage/artifacts/runs/272/actions/025_click_navigation_button_dom.json",
+        "error_message": null
+      }
+    ]
+  },
+  "otp": {
+    "handshake": {
+      "detected_checkpoint_type": "OTP_REQUIRED",
+      "otp_field_label": "Security code",
+      "can_resume": true,
+      "needs_user": true,
+      "safe_resume_point": {
+        "state": "WAITING_FOR_USER_OTP",
+        "run_id": 272
+      },
+      "manual_action_required": true,
+      "gmail_lookup": null
+    },
+    "challenge_observation": {
+      "url": "https://job-boards.greenhouse.io/known/jobs/8164921002",
+      "title": "Job Application for Senior Software Engineer at Known",
+      "page_type": "otp",
+      "otp_required": true,
+      "final_submit_detected": true,
+      "visible_text": [],
+      "fields": [
+        {
+          "label": "Security code",
+          "type": "text",
+          "tag": "input",
+          "role": "",
+          "id": "security-input-0",
+          "selector": "#security-input-0",
+          "required": true,
+          "value_present": false,
+          "visible": true
+        },
+        {
+          "label": "security-input-1",
+          "type": "text",
+          "tag": "input",
+          "role": "",
+          "id": "security-input-1",
+          "selector": "#security-input-1",
+          "required": true,
+          "value_present": false,
+          "visible": true
+        },
+        {
+          "label": "security-input-2",
+          "type": "text",
+          "tag": "input",
+          "role": "",
+          "id": "security-input-2",
+          "selector": "#security-input-2",
+          "required": true,
+          "value_present": false,
+          "visible": true
+        },
+        {
+          "label": "security-input-3",
+          "type": "text",
+          "tag": "input",
+          "role": "",
+          "id": "security-input-3",
+          "selector": "#security-input-3",
+          "required": true,
+          "value_present": false,
+          "visible": true
+        },
+        {
+          "label": "security-input-4",
+          "type": "text",
+          "tag": "input",
+          "role": "",
+          "id": "security-input-4",
+          "selector": "#security-input-4",
+          "required": true,
+          "value_present": false,
+          "visible": true
+        },
+        {
+          "label": "security-input-5",
+          "type": "text",
+          "tag": "input",
+          "role": "",
+          "id": "security-input-5",
+          "selector": "#security-input-5",
+          "required": true,
+          "value_present": false,
+          "visible": true
+        },
+        {
+          "label": "security-input-6",
+          "type": "text",
+          "tag": "input",
+          "role": "",
+          "id": "security-input-6",
+          "selector": "#security-input-6",
+          "required": true,
+          "value_present": false,
+          "visible": true
+        },
+        {
+          "label": "security-input-7",
+          "type": "text",
+          "tag": "input",
+          "role": "",
+          "id": "security-input-7",
+          "selector": "#security-input-7",
+          "required": true,
+          "value_present": false,
+          "visible": true
+        }
+      ],
+      "buttons": [
+        "Submit application"
+      ],
+      "button_details": [
+        {
+          "text": "Submit application",
+          "type": "submit",
+          "disabled": true,
+          "visible": true,
+          "selector": "div > div:nth-of-type(4) > form > div:nth-of-type(5) > button"
+        }
+      ],
+      "validation_errors": [],
+      "blocker_signals": [
+        {
+          "category": "OTP_REQUIRED",
+          "evidence": "OTP-like text is visible."
+        },
+        {
+          "category": "OTP_REQUIRED",
+          "evidence": "Observation flagged an OTP-like required field."
+        },
+        {
+          "category": "OTP_REQUIRED",
+          "evidence": "Security code"
+        }
+      ],
+      "semantic_snapshot": {
+        "snapshot_id": "b41e4aa0f0458153c7",
+        "url": "https://job-boards.greenhouse.io/known/jobs/8164921002",
+        "title": "Job Application for Senior Software Engineer at Known",
+        "domain": "job-boards.greenhouse.io",
+        "page_type": "otp",
+        "blocker_signals": [
+          {
+            "category": "OTP_REQUIRED",
+            "evidence": "OTP-like text is visible."
+          },
+          {
+            "category": "OTP_REQUIRED",
+            "evidence": "Observation flagged an OTP-like required field."
+          },
+          {
+            "category": "OTP_REQUIRED",
+            "evidence": "Security code"
+          }
+        ]
+      },
+      "html_markers": {
+        "contains_recaptcha": true,
+        "contains_security_input": true,
+        "contains_confirmation_text": false
+      }
+    },
+    "events": [
+      {
+        "id": 54107,
+        "event_type": "RUN_STATE_CHANGED",
+        "payload": {
+          "from_state": "CREATED",
+          "to_state": "PLANNING",
+          "reason": "Brain is decomposing the goal and retrieving memory."
+        }
+      },
+      {
+        "id": 54111,
+        "event_type": "RUN_STATE_CHANGED",
+        "payload": {
+          "from_state": "PLANNING",
+          "to_state": "EXTRACTING_JOB",
+          "reason": "Job Understanding Agent is extracting posting data."
+        }
+      },
+      {
+        "id": 54115,
+        "event_type": "RUN_STATE_CHANGED",
+        "payload": {
+          "from_state": "EXTRACTING_JOB",
+          "to_state": "TAILORING_RESUME",
+          "reason": "Resume Strategy Agent is selecting and preparing the resume artifact."
+        }
+      },
+      {
+        "id": 54119,
+        "event_type": "RUN_STATE_CHANGED",
+        "payload": {
+          "from_state": "TAILORING_RESUME",
+          "to_state": "PREPARING_ANSWERS",
+          "reason": "Answer Agent is preparing form responses and review gates."
+        }
+      },
+      {
+        "id": 54124,
+        "event_type": "RUN_STATE_CHANGED",
+        "payload": {
+          "from_state": "PREPARING_ANSWERS",
+          "to_state": "STARTING_BROWSER",
+          "reason": "Runtime is leasing a persistent browser session."
+        }
+      },
+      {
+        "id": 54128,
+        "event_type": "RUN_STATE_CHANGED",
+        "payload": {
+          "from_state": "STARTING_BROWSER",
+          "to_state": "FILLING_APPLICATION",
+          "reason": "Browser Operator Agent is filling the form through deterministic primitives."
+        }
+      },
+      {
+        "id": 54342,
+        "event_type": "RUN_STATE_CHANGED",
+        "payload": {
+          "from_state": "FILLING_APPLICATION",
+          "to_state": "READY_FOR_REVIEW",
+          "reason": "Prepared application is parked and waiting for one-time submit approval."
+        }
+      },
+      {
+        "id": 54374,
+        "event_type": "SUBMIT_RESPONSE_OBSERVED",
+        "payload": {
+          "status": "otp_required",
+          "reason": "Lumen detected an email/security-code challenge after submit.",
+          "outcome_evidence": {
+            "auditor": "Lumen Outcome Auditor",
+            "adapter": "real-playwright-threaded",
+            "platform": "greenhouse"
+          }
+        }
+      },
+      {
+        "id": 54377,
+        "event_type": "RUN_STATE_CHANGED",
+        "payload": {
+          "from_state": "READY_FOR_REVIEW",
+          "to_state": "FILLING_APPLICATION",
+          "reason": "Email security code required after submit click."
+        }
+      },
+      {
+        "id": 54378,
+        "event_type": "RUN_STATE_CHANGED",
+        "payload": {
+          "from_state": "FILLING_APPLICATION",
+          "to_state": "OTP_REQUIRED",
+          "reason": "Runtime detected OTP field: Security code."
+        }
+      },
+      {
+        "id": 54379,
+        "event_type": "OTP_REQUIRED",
+        "payload": {
+          "field_label": "Security code"
+        }
+      },
+      {
+        "id": 54380,
+        "event_type": "EMAIL_OTP_CONNECTION_REQUIRED",
+        "payload": {
+          "status": "not_connected"
+        }
+      },
+      {
+        "id": 54381,
+        "event_type": "RUN_STATE_CHANGED",
+        "payload": {
+          "from_state": "OTP_REQUIRED",
+          "to_state": "WAITING_FOR_USER_OTP",
+          "reason": "Gmail is not connected; waiting for manual OTP entry."
+        }
+      },
+      {
+        "id": 54382,
+        "event_type": "LUMEN_USER_CHECKPOINT_WRITTEN",
+        "payload": {}
+      },
+      {
+        "id": 54388,
+        "event_type": "EMAIL_OTP_FILLED",
+        "payload": {}
+      },
+      {
+        "id": 54389,
+        "event_type": "RUN_STATE_CHANGED",
+        "payload": {
+          "from_state": "WAITING_FOR_USER_OTP",
+          "to_state": "OTP_FILLED",
+          "reason": "OTP field filled after human approval or manual entry."
+        }
+      },
+      {
+        "id": 54390,
+        "event_type": "RUN_STATE_CHANGED",
+        "payload": {
+          "from_state": "OTP_FILLED",
+          "to_state": "FILLING_APPLICATION",
+          "reason": "Runtime resumes application flow after OTP."
+        }
+      },
+      {
+        "id": 54395,
+        "event_type": "EMAIL_OTP_CONTINUE_CLICKED",
+        "payload": {
+          "status": "succeeded",
+          "target": {
+            "text": "Submit application",
+            "selector": "div > div:nth-of-type(4) > form > div:nth-of-type(5) > button"
+          }
+        }
+      },
+      {
+        "id": 54398,
+        "event_type": "SUBMIT_RESPONSE_OBSERVED",
+        "payload": {
+          "status": "submitted",
+          "reason": "Lumen verified post-submit confirmation evidence.",
+          "outcome_evidence": {
+            "auditor": "Lumen Outcome Auditor",
+            "adapter": "real-playwright-threaded",
+            "platform": "greenhouse",
+            "before_url": "https://job-boards.greenhouse.io/known/jobs/8164921002",
+            "after_url": "https://job-boards.greenhouse.io/known/jobs/8164921002/confirmation",
+            "url_changed": true,
+            "dom_changed": true,
+            "confirmation_text_matches": [
+              "we've received your application"
+            ],
+            "success_url_transition": true,
+            "soft_block_matches": [],
+            "validation_errors": [],
+            "submit_click_observed": true,
+            "form_disappeared": true,
+            "submit_button_disappeared": true,
+            "structural_success": true,
+            "positive_signals": [
+              "submit_click_observed",
+              "confirmation_text",
+              "success_url_transition",
+              "url_changed",
+              "dom_changed",
+              "form_disappeared",
+              "submit_button_disappeared",
+              "structural_success"
+            ],
+            "blocking_signals": [],
+            "signal_tiers": {
+              "strong": [
+                "confirmation_text",
+                "success_url_transition"
+              ],
+              "weak": [
+                "validation_absent",
+                "dom_changed",
+                "form_disappeared",
+                "submit_button_disappeared",
+                "structural_success"
+              ]
+            },
+            "confirmation_strength": "explicit_text",
+            "contradictions": []
+          }
+        }
+      },
+      {
+        "id": 54399,
+        "event_type": "RUN_STATE_CHANGED",
+        "payload": {
+          "from_state": "FILLING_APPLICATION",
+          "to_state": "READY_FOR_REVIEW",
+          "reason": "OTP continuation verified the submitted application outcome."
+        }
+      },
+      {
+        "id": 54402,
+        "event_type": "RUN_STATE_CHANGED",
+        "payload": {
+          "from_state": "READY_FOR_REVIEW",
+          "to_state": "COMPLETED",
+          "reason": "Lumen verified post-submit confirmation evidence."
+        }
+      }
+    ]
+  },
+  "completion": {
+    "confirmation_observation": {
+      "url": "https://job-boards.greenhouse.io/known/jobs/8164921002/confirmation",
+      "title": "Thank you for applying",
+      "page_type": "application_form",
+      "otp_required": false,
+      "final_submit_detected": false,
+      "visible_text": [
+        "Thank you for your interest in Known!",
+        "We've received your application -\u00a0if there is a fit,\u00a0someone from our team will be in touch!",
+        "View more jobs at Known",
+        "Back to job post",
+        "Give your application a boost!",
+        "Sign in to MyGreenhouse and flag this as your Dream Job to stand out, track your status, and more.",
+        "Sign in to MyGreenhouse",
+        "Powered by"
+      ],
+      "fields": [],
+      "buttons": [],
+      "button_details": [],
+      "validation_errors": [],
+      "blocker_signals": [],
+      "semantic_snapshot": {
+        "snapshot_id": "7beef5d22412129211",
+        "url": "https://job-boards.greenhouse.io/known/jobs/8164921002/confirmation",
+        "title": "Thank you for applying",
+        "domain": "job-boards.greenhouse.io",
+        "page_type": "application_form",
+        "blocker_signals": []
+      },
+      "html_markers": {
+        "contains_recaptcha": true,
+        "contains_security_input": false,
+        "contains_confirmation_text": true
+      }
+    },
+    "events": [
+      {
+        "id": 54107,
+        "event_type": "RUN_STATE_CHANGED",
+        "payload": {
+          "from_state": "CREATED",
+          "to_state": "PLANNING",
+          "reason": "Brain is decomposing the goal and retrieving memory."
+        }
+      },
+      {
+        "id": 54111,
+        "event_type": "RUN_STATE_CHANGED",
+        "payload": {
+          "from_state": "PLANNING",
+          "to_state": "EXTRACTING_JOB",
+          "reason": "Job Understanding Agent is extracting posting data."
+        }
+      },
+      {
+        "id": 54115,
+        "event_type": "RUN_STATE_CHANGED",
+        "payload": {
+          "from_state": "EXTRACTING_JOB",
+          "to_state": "TAILORING_RESUME",
+          "reason": "Resume Strategy Agent is selecting and preparing the resume artifact."
+        }
+      },
+      {
+        "id": 54119,
+        "event_type": "RUN_STATE_CHANGED",
+        "payload": {
+          "from_state": "TAILORING_RESUME",
+          "to_state": "PREPARING_ANSWERS",
+          "reason": "Answer Agent is preparing form responses and review gates."
+        }
+      },
+      {
+        "id": 54124,
+        "event_type": "RUN_STATE_CHANGED",
+        "payload": {
+          "from_state": "PREPARING_ANSWERS",
+          "to_state": "STARTING_BROWSER",
+          "reason": "Runtime is leasing a persistent browser session."
+        }
+      },
+      {
+        "id": 54128,
+        "event_type": "RUN_STATE_CHANGED",
+        "payload": {
+          "from_state": "STARTING_BROWSER",
+          "to_state": "FILLING_APPLICATION",
+          "reason": "Browser Operator Agent is filling the form through deterministic primitives."
+        }
+      },
+      {
+        "id": 54342,
+        "event_type": "RUN_STATE_CHANGED",
+        "payload": {
+          "from_state": "FILLING_APPLICATION",
+          "to_state": "READY_FOR_REVIEW",
+          "reason": "Prepared application is parked and waiting for one-time submit approval."
+        }
+      },
+      {
+        "id": 54374,
+        "event_type": "SUBMIT_RESPONSE_OBSERVED",
+        "payload": {
+          "status": "otp_required",
+          "reason": "Lumen detected an email/security-code challenge after submit.",
+          "outcome_evidence": {
+            "auditor": "Lumen Outcome Auditor",
+            "adapter": "real-playwright-threaded",
+            "platform": "greenhouse"
+          }
+        }
+      },
+      {
+        "id": 54377,
+        "event_type": "RUN_STATE_CHANGED",
+        "payload": {
+          "from_state": "READY_FOR_REVIEW",
+          "to_state": "FILLING_APPLICATION",
+          "reason": "Email security code required after submit click."
+        }
+      },
+      {
+        "id": 54378,
+        "event_type": "RUN_STATE_CHANGED",
+        "payload": {
+          "from_state": "FILLING_APPLICATION",
+          "to_state": "OTP_REQUIRED",
+          "reason": "Runtime detected OTP field: Security code."
+        }
+      },
+      {
+        "id": 54381,
+        "event_type": "RUN_STATE_CHANGED",
+        "payload": {
+          "from_state": "OTP_REQUIRED",
+          "to_state": "WAITING_FOR_USER_OTP",
+          "reason": "Gmail is not connected; waiting for manual OTP entry."
+        }
+      },
+      {
+        "id": 54389,
+        "event_type": "RUN_STATE_CHANGED",
+        "payload": {
+          "from_state": "WAITING_FOR_USER_OTP",
+          "to_state": "OTP_FILLED",
+          "reason": "OTP field filled after human approval or manual entry."
+        }
+      },
+      {
+        "id": 54390,
+        "event_type": "RUN_STATE_CHANGED",
+        "payload": {
+          "from_state": "OTP_FILLED",
+          "to_state": "FILLING_APPLICATION",
+          "reason": "Runtime resumes application flow after OTP."
+        }
+      },
+      {
+        "id": 54396,
+        "event_type": "SUBMIT_CONFIRMATION_CHECKED",
+        "payload": {
+          "status": "submitted",
+          "reason": "Lumen verified post-submit confirmation evidence.",
+          "outcome_evidence": {
+            "auditor": "Lumen Outcome Auditor",
+            "adapter": "real-playwright-threaded",
+            "platform": "greenhouse",
+            "before_url": "https://job-boards.greenhouse.io/known/jobs/8164921002",
+            "after_url": "https://job-boards.greenhouse.io/known/jobs/8164921002/confirmation",
+            "url_changed": true,
+            "dom_changed": true,
+            "confirmation_text_matches": [
+              "we've received your application"
+            ],
+            "success_url_transition": true,
+            "soft_block_matches": [],
+            "validation_errors": [],
+            "submit_click_observed": true,
+            "form_disappeared": true,
+            "submit_button_disappeared": true,
+            "structural_success": true,
+            "positive_signals": [
+              "submit_click_observed",
+              "confirmation_text",
+              "success_url_transition",
+              "url_changed",
+              "dom_changed",
+              "form_disappeared",
+              "submit_button_disappeared",
+              "structural_success"
+            ],
+            "blocking_signals": [],
+            "signal_tiers": {
+              "strong": [
+                "confirmation_text",
+                "success_url_transition"
+              ],
+              "weak": [
+                "validation_absent",
+                "dom_changed",
+                "form_disappeared",
+                "submit_button_disappeared",
+                "structural_success"
+              ]
+            },
+            "confirmation_strength": "explicit_text",
+            "contradictions": []
+          }
+        }
+      },
+      {
+        "id": 54398,
+        "event_type": "SUBMIT_RESPONSE_OBSERVED",
+        "payload": {
+          "status": "submitted",
+          "reason": "Lumen verified post-submit confirmation evidence.",
+          "outcome_evidence": {
+            "auditor": "Lumen Outcome Auditor",
+            "adapter": "real-playwright-threaded",
+            "platform": "greenhouse",
+            "before_url": "https://job-boards.greenhouse.io/known/jobs/8164921002",
+            "after_url": "https://job-boards.greenhouse.io/known/jobs/8164921002/confirmation",
+            "url_changed": true,
+            "dom_changed": true,
+            "confirmation_text_matches": [
+              "we've received your application"
+            ],
+            "success_url_transition": true,
+            "soft_block_matches": [],
+            "validation_errors": [],
+            "submit_click_observed": true,
+            "form_disappeared": true,
+            "submit_button_disappeared": true,
+            "structural_success": true,
+            "positive_signals": [
+              "submit_click_observed",
+              "confirmation_text",
+              "success_url_transition",
+              "url_changed",
+              "dom_changed",
+              "form_disappeared",
+              "submit_button_disappeared",
+              "structural_success"
+            ],
+            "blocking_signals": [],
+            "signal_tiers": {
+              "strong": [
+                "confirmation_text",
+                "success_url_transition"
+              ],
+              "weak": [
+                "validation_absent",
+                "dom_changed",
+                "form_disappeared",
+                "submit_button_disappeared",
+                "structural_success"
+              ]
+            },
+            "confirmation_strength": "explicit_text",
+            "contradictions": []
+          }
+        }
+      },
+      {
+        "id": 54399,
+        "event_type": "RUN_STATE_CHANGED",
+        "payload": {
+          "from_state": "FILLING_APPLICATION",
+          "to_state": "READY_FOR_REVIEW",
+          "reason": "OTP continuation verified the submitted application outcome."
+        }
+      },
+      {
+        "id": 54400,
+        "event_type": "APPLICATION_SUBMITTED",
+        "payload": {
+          "status": "submitted",
+          "reason": "Lumen verified post-submit confirmation evidence.",
+          "outcome_evidence": {
+            "auditor": "Lumen Outcome Auditor",
+            "adapter": "real-playwright-threaded",
+            "platform": "greenhouse",
+            "before_url": "https://job-boards.greenhouse.io/known/jobs/8164921002",
+            "after_url": "https://job-boards.greenhouse.io/known/jobs/8164921002/confirmation",
+            "url_changed": true,
+            "dom_changed": true,
+            "confirmation_text_matches": [
+              "we've received your application"
+            ],
+            "success_url_transition": true,
+            "soft_block_matches": [],
+            "validation_errors": [],
+            "submit_click_observed": true,
+            "form_disappeared": true,
+            "submit_button_disappeared": true,
+            "structural_success": true,
+            "positive_signals": [
+              "submit_click_observed",
+              "confirmation_text",
+              "success_url_transition",
+              "url_changed",
+              "dom_changed",
+              "form_disappeared",
+              "submit_button_disappeared",
+              "structural_success"
+            ],
+            "blocking_signals": [],
+            "signal_tiers": {
+              "strong": [
+                "confirmation_text",
+                "success_url_transition"
+              ],
+              "weak": [
+                "validation_absent",
+                "dom_changed",
+                "form_disappeared",
+                "submit_button_disappeared",
+                "structural_success"
+              ]
+            },
+            "confirmation_strength": "explicit_text",
+            "contradictions": []
+          }
+        }
+      },
+      {
+        "id": 54401,
+        "event_type": "END_TO_END_GOAL_COMPLETED",
+        "payload": {}
+      },
+      {
+        "id": 54402,
+        "event_type": "RUN_STATE_CHANGED",
+        "payload": {
+          "from_state": "READY_FOR_REVIEW",
+          "to_state": "COMPLETED",
+          "reason": "Lumen verified post-submit confirmation evidence."
+        }
+      }
+    ]
+  }
+}

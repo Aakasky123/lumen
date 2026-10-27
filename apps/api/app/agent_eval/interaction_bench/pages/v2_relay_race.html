@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Harbor relay stations</title>
+<style>
+  body{font-family:system-ui,-apple-system,sans-serif;margin:0;padding:24px;line-height:1.5;color:#1a1a1a;background:#fafafa}
+  h1{font-size:22px}
+  .hint{color:#666;font-size:13px}
+  .verdict{font-weight:700;padding:14px;margin:18px 0;border-radius:8px;background:#eee;max-width:860px}
+  .verdict.pass{background:#dff5df}
+  .verdict.fail{background:#fbdcdc}
+  button{font:inherit;padding:6px 14px;border-radius:6px;border:1px solid #bbb;background:#f2f2f2;cursor:pointer}
+  button:disabled{opacity:.5}
+  input{font:inherit;padding:6px 8px;border:1px solid #bbb;border-radius:6px}
+  #view{background:#fff;border:1px solid #d8d8d8;border-radius:10px;padding:18px;max-width:860px;min-height:180px}
+  .navrow{margin:10px 0}
+  .navrow a{margin-right:14px}
+  .mark{color:#1a7f37;font-weight:600;margin-left:10px}
+  #codebox{font-size:26px;font-weight:700;letter-spacing:4px;font-family:ui-monospace,monospace}
+  canvas{border:1px solid #999;border-radius:8px;background:#fff}
+</style>
+</head>
+<body>
+<h1>Harbor relay stations</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+<p class="hint">Four stations. Information appears briefly and only where it appears — carry it with
+you. Marks:
+<span class="mark" data-step-mark="reveal"></span>
+<span class="mark" data-step-mark="entry"></span>
+<span class="mark" data-step-mark="swatch"></span>
+<span class="mark" data-step-mark="sum"></span></p>
+<div class="navrow">
+  <a href="#/s1">Station 1</a><a href="#/s2">Station 2</a><a href="#/s3">Station 3</a><a href="#/s4">Station 4</a>
+</div>
+<div id="view"></div>
+
+<script>
+window.Bench = (function () {
+  const PAGE = "relay-race";
+  const TOKEN = "BENCH_PASS relay-race-4b8d27";
+  const STEPS = ["reveal", "entry", "swatch", "sum"];
+  const done = new Set();
+  let failed = sessionStorage.getItem("bench-fail-" + PAGE) || null;
+  let futile = 0;
+  function render() {
+    const v = document.getElementById("bench-verdict");
+    const p = document.getElementById("bench-progress");
+    if (p) p.textContent = "Challenges complete: " + done.size + " / " + STEPS.length + " | Ineffective interactions: " + futile;
+    if (!v) return;
+    if (failed) { v.textContent = "BENCH_FAIL " + PAGE + ": " + failed; v.className = "verdict fail"; }
+    else if (done.size === STEPS.length) { v.textContent = TOKEN + " — all challenges complete"; v.className = "verdict pass"; }
+  }
+  function complete(step) {
+    if (failed || done.has(step)) return;
+    done.add(step);
+    const m = document.querySelector('[data-step-mark="' + step + '"]');
+    if (m) m.textContent = "✓ " + step;
+    render();
+  }
+  function fail(reason) {
+    if (failed) return;
+    failed = reason;
+    sessionStorage.setItem("bench-fail-" + PAGE, reason);
+    render();
+  }
+  window.__benchReport = () => ({ page: PAGE, done: [...done], failed, futile, total: STEPS.length });
+  document.addEventListener("DOMContentLoaded", render);
+  return { complete, fail, has: (s) => done.has(s), futile: () => { futile += 1; render(); } };
+})();
+
+const $ = (sel) => document.querySelector(sel);
+const rand4 = () => Array.from({ length: 4 }, () => "ABCDEFGHJKMNPQRSTUVWXYZ23456789"[Math.floor(Math.random() * 32)]).join("");
+const COLORS = { crimson: "#d7263d", teal: "#1b998b", amber: "#f4a259", violet: "#7b5ea7" };
+const colorNames = Object.keys(COLORS);
+const debug = {
+  code: rand4(),
+  A: 10 + Math.floor(Math.random() * 80),
+  B: 10 + Math.floor(Math.random() * 80),
+  flagColor: colorNames[Math.floor(Math.random() * 4)],
+};
+window.__benchDebug = debug;
+let revealsLeft = 3;
+let revealTimer = null;
+
+function renderView() {
+  const hash = location.hash || "#/s1";
+  const view = $("#view");
+  clearTimeout(revealTimer);
+  if (hash === "#/s1") {
+    view.innerHTML =
+      "<h2>Station 1 — Manifest</h2>" +
+      "<p>Manifest count: <strong>" + debug.A + "</strong> (you will need this later).</p>" +
+      "<p>The transit code displays for 4 seconds per reveal. Reveals remaining: <strong id='rev-left'>" + revealsLeft + "</strong></p>" +
+      "<p id='codebox'>····</p>" +
+      "<button id='reveal-btn'>Reveal transit code</button>";
+    $("#reveal-btn").addEventListener("click", () => {
+      if (revealsLeft <= 0) { $("#codebox").textContent = "reveal budget exhausted"; Bench.futile(); return; }
+      revealsLeft -= 1;
+      $("#rev-left").textContent = String(revealsLeft);
+      $("#codebox").textContent = debug.code;
+      Bench.complete("reveal");
+      revealTimer = setTimeout(() => { const cb = $("#codebox"); if (cb) cb.textContent = "····"; }, 4000);
+    });
+  } else if (hash === "#/s2") {
+    view.innerHTML =
+      "<h2>Station 2 — Berth office</h2>" +
+      "<p><label>Transit code <input id='code-in' autocomplete='off'></label> <button id='code-go'>Verify</button> <span class='hint' id='code-msg'></span></p>" +
+      "<div id='berth-info' style='display:none'><p>Berth number: <strong>" + debug.B + "</strong></p>" +
+      "<p>Flag color: <strong>" + debug.flagColor + "</strong></p></div>";
+    if (Bench.has("entry")) $("#berth-info").style.display = "block";
+    $("#code-go").addEventListener("click", () => {
+      if (($("#code-in").value || "").trim().toUpperCase() === debug.code) {
+        Bench.complete("entry");
+        $("#berth-info").style.display = "block";
+        $("#code-msg").textContent = "Verified.";
+      } else { $("#code-msg").textContent = "Wrong code. Get it from Station 1."; Bench.futile(); }
+    });
+  } else if (hash === "#/s3") {
+    view.innerHTML =
+      "<h2>Station 3 — Flag locker</h2>" +
+      "<p>Click the flag whose <em>actual color</em> matches Station 2's flag color. The painted " +
+      "labels on the flags are unreliable.</p>" +
+      "<canvas id='flags' width='520' height='140'></canvas><p class='hint' id='flag-msg'></p>";
+    drawFlags();
+  } else if (hash === "#/s4") {
+    view.innerHTML =
+      "<h2>Station 4 — Tally house</h2>" +
+      "<p>Enter the manifest count (Station 1) plus the berth number (Station 2).</p>" +
+      "<p><label>Combined total <input id='sum-in' inputmode='numeric' autocomplete='off'></label> " +
+      "<button id='sum-go'>Submit tally</button> <span class='hint' id='sum-msg'></span></p>";
+    $("#sum-go").addEventListener("click", () => {
+      if (parseInt(($("#sum-in").value || "").trim(), 10) === debug.A + debug.B) {
+        $("#sum-msg").textContent = "Tally accepted.";
+        Bench.complete("sum");
+      } else { $("#sum-msg").textContent = "Tally rejected."; Bench.futile(); }
+    });
+  }
+}
+
+function drawFlags() {
+  const canvas = $("#flags");
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#f4f6f9";
+  ctx.fillRect(0, 0, 520, 140);
+  const order = [...colorNames];
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  // painted labels are shifted by one — every label lies
+  const rects = order.map((name, i) => ({ name, x: 20 + i * 125, y: 25, w: 100, h: 70 }));
+  window.__benchDebug.flagRects = rects;
+  rects.forEach((r, i) => {
+    ctx.fillStyle = COLORS[r.name];
+    ctx.fillRect(r.x, r.y, r.w, r.h);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "600 13px system-ui";
+    const lie = order[(i + 1) % order.length];
+    ctx.fillText(lie, r.x + 10, r.y + 42);
+  });
+  canvas.addEventListener("click", (e) => {
+    const box = canvas.getBoundingClientRect();
+    const x = e.clientX - box.left, y = e.clientY - box.top;
+    const hit = rects.find((r) => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h);
+    if (!hit) { Bench.futile(); return; }
+    if (hit.name === debug.flagColor) { $("#flag-msg").textContent = "Correct flag raised."; Bench.complete("swatch"); }
+    else { $("#flag-msg").textContent = "That flag's color is " + hit.name + " — not the one."; Bench.futile(); }
+  });
+}
+
+window.addEventListener("hashchange", renderView);
+if (!location.hash) location.hash = "#/s1";
+renderView();
+</script>
+</body>
+</html>

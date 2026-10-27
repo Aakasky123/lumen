@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>History step</title>
+<link rel="stylesheet" href="v4_style.css">
+</head>
+<body data-page="v4_browser" data-aux="hop">
+<h1 id="title">Step</h1>
+<p id="aux-status" class="hint">Connecting…</p>
+<p id="say"></p>
+<p id="links"></p>
+<script src="v3_common.js"></script>
+<script>
+const params = new URLSearchParams(location.search);
+const step = params.get("step") === "b" ? "b" : "a";
+const sid = params.get("sid") || "";
+document.getElementById("title").textContent = step === "a" ? "Step A" : "Step B";
+document.title = step === "a" ? "Step A" : "Step B";
+const SAY = {
+  a: "This is Step A. Follow the link to Step B.",
+  b: "This is Step B. Now use the browser's Back button to return to Step A.",
+  back: "Back on Step A. Now use the browser's Forward button to go to Step B again.",
+  done: "Back and Forward both done. You can return to the mission page.",
+};
+function render(phase) {
+  document.getElementById("say").textContent = SAY[phase] || SAY[step];
+  const links = document.getElementById("links");
+  links.innerHTML = "";
+  const a = document.createElement("a");
+  if (step === "a") {
+    a.href = "v4_browser_hop?sid=" + encodeURIComponent(sid) + "&step=b";
+    a.textContent = "Go to Step B";
+    links.appendChild(a);
+  } else if (phase === "done") {
+    const st = V3.state() || {}, back = new URLSearchParams();  // the same run: its focus and tag
+    if (st.focus) back.set("focus", st.focus);
+    if (st.tag) back.set("tag", st.tag);
+    a.href = "v4_browser" + (back.toString() ? "?" + back : "");
+    a.textContent = "Return to the mission page";
+    links.appendChild(a);
+  }
+}
+async function report(navtype) {
+  await V3.ready;
+  const res = await V3.act("hop", { step, navtype });
+  document.getElementById("aux-status").textContent = "";
+  render(res.phase);
+}
+const nav = performance.getEntriesByType("navigation")[0];
+report(nav ? nav.type : "navigate");
+addEventListener("pageshow", (e) => { if (e.persisted) report("back_forward"); });
+</script>
+</body>
+</html>

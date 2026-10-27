@@ -1,0 +1,218 @@
+{
+  "schema_version": "lumen_capability_snapshot_v1",
+  "provenance": {
+    "run_id": 486,
+    "surface": "real_chrome",
+    "site_family": "SmartRecruiters",
+    "target_url": "https://jobs.smartrecruiters.com/oneclick-ui/company/IPTGlobal/publication/3884d420-3212-47ea-a379-394a5c53a128?dcr_ci=IPTGlobal&jr_id=6a67c8443b5e6b116a5509fd",
+    "confirmation_url": "https://jobs.smartrecruiters.com/oneclick-ui/company/IPTGlobal/publication/3884d420-3212-47ea-a379-394a5c53a128/success?dcr_ci=IPTGlobal&jr_id=6a67c8443b5e6b116a5509fd",
+    "captured_at": "2026-07-27T22:10:00Z",
+    "captured_from_local_run_database": true,
+    "captured_from_local_trajectory_artifacts": true,
+    "external_confirmation_observed_in_real_chrome": true,
+    "snapshot_represents": "controlled regression target derived from a supervised recovery",
+    "sanitized": true
+  },
+  "source_outcome": {
+    "lumen_runtime_completed_submission": false,
+    "lumen_runtime_final_state": "READY_FOR_REVIEW",
+    "lumen_final_submit_receipt_observed": false,
+    "supervised_final_activation_after_explicit_user_confirmation": true,
+    "external_success_page_observed": true,
+    "reason_for_controlled_target": "The source run proved the form and exposed the failures, while the supervised recovery proved the external result. CI must prove the desired combined contract without claiming the source runtime submitted autonomously."
+  },
+  "privacy": {
+    "raw_candidate_values_retained": false,
+    "raw_resume_retained": false,
+    "raw_optional_message_retained": false,
+    "retained_value_classes": [
+      "non-empty profile name",
+      "valid email plus matching confirmation",
+      "valid location",
+      "valid telephone number",
+      "approved resume filename",
+      "explicit privacy acknowledgement",
+      "explicit final-action approval"
+    ]
+  },
+  "snapshot": {
+    "spec_id": "smartrecruiters_application_grounded_and_submitted_after_explicit_approval",
+    "body_mode": "fixture",
+    "verified_success": true,
+    "final_state": "COMPLETED",
+    "verified_success_criteria": [
+      "saved profile and resume context is available without special wording in the goal",
+      "required identity, contact, location, and confirmation-email controls are verified by browser read-back",
+      "the approved resume is verified present in the form",
+      "the optional ungrounded hiring message remains unchanged and is not copied from an instruction or placeholder",
+      "the required privacy control exposes its complete composed accessibility label rather than only a required marker",
+      "a session paused over a recoverable browser engineering block resumes the same owned browser run",
+      "the exact final control receives one activation only after explicit user approval",
+      "the owned tab exposes explicit application-submitted evidence at the success URL",
+      "the controlled fixture reaches COMPLETED with verified receipts"
+    ],
+    "forbidden_side_effects_observed": [],
+    "failure_artifacts": [
+      "sanitized source-run and supervised-recovery summary",
+      "vision observation manifest",
+      "model-input manifest",
+      "raw composed accessibility relationship evidence",
+      "paused-state provenance and resume scheduling events",
+      "normalized fixture receipts",
+      "optional-ungrounded skip evidence",
+      "explicit final-action approval evidence",
+      "confirmation URL, title, and viewport evidence",
+      "final fixture state"
+    ],
+    "receipts": [
+      {
+        "type": "composed_control_label",
+        "outcome": "verified_succeeded",
+        "verification": {
+          "slotted_text_observed": true,
+          "label_not_required_marker_only": true,
+          "raw_label_redacted": true
+        }
+      },
+      {
+        "type": "paused_blocked_resume",
+        "outcome": "verified_succeeded",
+        "verification": {
+          "restored_blocked_state": true,
+          "scheduled_same_owned_run": true,
+          "pending_final_action_bypassed": false
+        }
+      },
+      {
+        "type": "grounded_required_fields",
+        "outcome": "verified_succeeded",
+        "verification": {
+          "all_required_values_grounded": true,
+          "all_browser_readbacks_valid": true,
+          "confirmation_email_matches": true,
+          "raw_values_redacted": true,
+          "value_classes": [
+            "first name",
+            "last name",
+            "email",
+            "confirm email",
+            "location",
+            "telephone"
+          ]
+        }
+      },
+      {
+        "type": "file_uploaded",
+        "outcome": "verified_succeeded",
+        "verification": {
+          "observed_present": true,
+          "raw_file_redacted": true,
+          "artifact_kind": "resume"
+        }
+      },
+      {
+        "type": "optional_ungrounded_controls",
+        "outcome": "verified_succeeded",
+        "verification": {
+          "all_skipped": true,
+          "browser_mutation_attempted": false,
+          "user_question_asked": false,
+          "control_class": "optional hiring message",
+          "raw_labels_redacted": true
+        }
+      },
+      {
+        "type": "privacy_acknowledgement",
+        "outcome": "verified_succeeded",
+        "verification": {
+          "explicit_user_answer": true,
+          "checked_readback": true,
+          "full_composed_label_observed": true
+        }
+      },
+      {
+        "type": "browser_click",
+        "outcome": "verified_succeeded",
+        "verification": {
+          "final_action": true,
+          "allow_final_submit": true,
+          "source": "explicit_user_approval",
+          "outcome_status": "succeeded",
+          "outcome_confidence": 1.0,
+          "activation_count": 1,
+          "confirmation_url_observed": true,
+          "confirmation_text_observed": true
+        }
+      }
+    ]
+  },
+  "evidence_summary": {
+    "owned_tab": {
+      "target_host": "jobs.smartrecruiters.com",
+      "initial_path": "/oneclick-ui/company/IPTGlobal/publication/3884d420-3212-47ea-a379-394a5c53a128",
+      "final_path": "/oneclick-ui/company/IPTGlobal/publication/3884d420-3212-47ea-a379-394a5c53a128/success",
+      "unrelated_tab_mutation_observed": false
+    },
+    "candidate_context": {
+      "authorized_scopes": [
+        "profile",
+        "resume",
+        "memory"
+      ],
+      "raw_values_redacted": true
+    },
+    "observed_failure": {
+      "privacy_control_selector": "#noPolicy >>> #noPolicy",
+      "privacy_control_observed_label": "*",
+      "privacy_question_id": 487,
+      "model_failure_reason": "grounding_citation_page_source_not_allowed_for_choice",
+      "runtime_block_reason": "grounding_recovery_exhausted",
+      "pause_overlay_stranded_blocked_session": true
+    },
+    "fixed_contract": {
+      "extension_build": "2026-07-27-open-shadow-composed-text-v54",
+      "composed_slotted_accessibility_text_required": true,
+      "required_marker_only_label_forbidden": true,
+      "paused_from_blocked_uses_guarded_recovery": true,
+      "resume_events": [
+        "APPLICATION_EXECUTION_RECOVERY_RESUME_STARTED",
+        "IN_BROWSER_RESUME_SCHEDULED"
+      ]
+    },
+    "source_final_action": {
+      "mode": "safe_approval",
+      "authorization_source": "explicit_user_confirmation_in_current_task",
+      "lumen_runtime_receipt_observed": false,
+      "supervised_activation_count": 1,
+      "external_outcome_verified": true
+    },
+    "confirmation": {
+      "url": "https://jobs.smartrecruiters.com/oneclick-ui/company/IPTGlobal/publication/3884d420-3212-47ea-a379-394a5c53a128/success?dcr_ci=IPTGlobal&jr_id=6a67c8443b5e6b116a5509fd",
+      "title": "Software Engineer - IPT Global",
+      "required_viewport_fragments": [
+        "Application submitted!",
+        "has been submitted successfully."
+      ]
+    },
+    "source_artifacts": {
+      "trajectory_manifest": "storage/artifacts/runs/486/vision-trajectory/manifest.jsonl",
+      "model_input_manifest": "storage/artifacts/runs/486/vision-trajectory/model-input-manifest.jsonl",
+      "database": "storage/lumen.db",
+      "raw_artifacts_are_local_only": true
+    }
+  },
+  "runtime_contract_dependencies": [
+    "approved_final_action_confirmed_once",
+    "answered_field_resumes_owned_browser_session"
+  ],
+  "component_regressions": {
+    "backend": "test_resume_paused_blocked_browser_session_reuses_guarded_recovery",
+    "extension": "vision evidence reads slotted accessibility labels across open shadow components"
+  },
+  "replay_policy": {
+    "ci": "Use this sanitized fixture and controlled bodies. Never submit another real application.",
+    "real_chrome": "Replay against a controlled SmartRecruiters test tenant or disposable application only.",
+    "exact_iptglobal_url": "Source proof only; do not schedule recurring submissions to the real posting.",
+    "route_is_not_asserted": true
+  }
+}

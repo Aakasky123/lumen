@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Beacon Desk</title>
+<link rel="stylesheet" href="v4_style.css">
+<link rel="stylesheet" href="v6_style.css">
+<style>
+  .nav{width:210px;flex:none;font-size:13px}
+  .view{display:flex;justify-content:space-between;padding:5px 8px;border-radius:6px;cursor:pointer}
+  .view.on{background:#e8f1fb;font-weight:600}
+  .agents{margin-top:14px}
+  .agent{padding:3px 8px;border-bottom:1px solid #f0f2f5}
+  .agent .sk{color:#667;font-size:12px}
+  .main{flex:1;min-width:0}
+  .main h3{margin:2px 0 8px;font-size:16px}
+  th button.sort{border:0;background:none;padding:0;font:inherit;font-weight:600;cursor:pointer}
+  button.link{border:0;background:none;padding:0;color:#1d4f91;cursor:pointer;text-align:left;font-size:13px}
+  #rows tr{cursor:pointer}
+  #rows tr:hover td{background:#f6f9fc}
+  .tv{display:flex;gap:14px}
+  .conv{flex:1;min-width:0}
+  .props{width:230px;flex:none;font-size:13px}
+  .m{border:1px solid #e3e6ea;border-radius:8px;padding:6px 10px;margin:6px 0;font-size:13px}
+  .m.agent{background:#f3f7fc}
+  .m.note{background:#fff8e6;border-color:#e5cf8f}
+  .m .by{color:#556;font-size:12px}
+  .ev{color:#667;font-size:12px;font-style:italic;margin:4px 0}
+  .seg button.on,.hit.on{background:#d7e6f7;border-color:#7aa7d9}
+  .seg{margin:10px 0 4px}
+  textarea#composer{width:100%;box-sizing:border-box;min-height:90px;font-size:13px}
+  .toggle.on{background:#fde8e8;border-color:#e0a5a0;color:#b42318}
+  .order{border:1px solid #dde3ea;border-radius:8px;padding:6px 10px;background:#fafbfc;margin-top:10px}
+  .order div{display:flex;justify-content:space-between;gap:8px}
+  .order .refund{font-weight:600;border-top:1px solid #e3e6ea;margin-top:4px;padding-top:4px}
+  .hit{display:block;width:100%;text-align:left;margin:3px 0;font-size:13px}
+  #merge-q{width:100%;box-sizing:border-box}
+</style>
+</head>
+<body data-page="v6_helpdesk">
+<h1>Beacon Desk</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+<p class="intro">Five independent tasks in one support desk.</p>
+
+<div class="tasks">
+  <section class="ch">
+    <h2>1. Assign by skill <span class="mark" data-step-mark="assign_skills"></span></h2>
+    <p>Each ticket in <strong>Unassigned</strong> needs one skill (Billing, Hardware, Network or Spanish; see its tags
+       and message). Assign it to an agent with that skill and, among those, the lowest open load (shown in the Agents
+       panel and the Assignee menu; loads rise as you assign).</p>
+    <p class="msg" data-msg="assign"></p>
+  </section>
+  <section class="ch">
+    <h2>2. Merge duplicates <span class="mark" data-step-mark="merge_duplicates"></span></h2>
+    <p><strong>Possible duplicates</strong> holds exactly three duplicate pairs (same requester, same issue). Merge the
+       newer ticket of each pair into the older one: open the newer ticket, then <em>Merge into…</em>. Merge nothing
+       else.</p>
+    <p class="msg" data-msg="merge"></p>
+  </section>
+  <section class="ch">
+    <h2>3. Refund reply <span class="mark" data-step-mark="macro_reply"></span></h2>
+    <p>Answer ticket <span class="val" id="refund-id"></span> with a <strong>public reply</strong> using the
+       <strong>Refund issued</strong> macro, all placeholders filled: requester's first name, order id from the
+       customer's message, approved refund amount from the order panel.</p>
+    <p class="msg" data-msg="macro"></p>
+  </section>
+  <section class="ch">
+    <h2>4. Escalate SLA breaches <span class="mark" data-step-mark="sla_escalate"></span></h2>
+    <p>First-response SLA: <span id="sla-text"></span>. In <strong>First response SLA</strong>, turn on
+       <strong>Escalated</strong> for every ticket with no first response whose age (Now minus Created) exceeds the SLA
+       of its current priority; exactly at the limit is not a breach. Change nothing else.</p>
+    <p class="msg" data-msg="sla"></p>
+  </section>
+  <section class="ch">
+    <h2>5. Close confirmed tickets <span class="mark" data-step-mark="close_confirmed"></span></h2>
+    <p>In <strong>Pending customer</strong>, set Status to <strong>Solved</strong> on every ticket whose customer's
+       latest message clearly confirms the issue is fixed. Leave the rest as they are.</p>
+    <p class="msg" data-msg="solve"></p>
+  </section>
+</div>
+
+<section class="app" aria-label="Helpdesk">
+  <div class="app-head"><h2>Beacon Desk</h2><span class="muted">Now: <span data-public="now_text"></span> · signed in as Team lead</span></div>
+  <div class="panes">
+    <div class="pane nav">
+      <strong>Views</strong>
+      <div id="views" role="navigation" aria-label="Views"></div>
+      <div class="agents" id="agents-panel"><strong>Agents</strong><div id="agents"></div></div>
+    </div>
+    <div class="pane main" id="main"></div>
+  </div>
+</section>
+
+<script src="v3_common.js"></script>
+<script src="v6_kit.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+const { h } = K;
+const PAGE = 10;
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const RANK = { Urgent: 0, High: 1, Normal: 2, Low: 3 };
+const COLS = {
+  unassigned: [["id", "ID"], ["subject", "Subject"], ["requester", "Requester"], ["created", "Created"], ["assignee", "Assignee"]],
+  duplicates: [["id", "ID"], ["subject", "Subject"], ["requester", "Requester"], ["created", "Created"], ["status", "Status"]],
+  refunds: [["id", "ID"], ["subject", "Subject"], ["requester", "Requester"], ["created", "Created"], ["status", "Status"]],
+  sla: [["id", "ID"], ["subject", "Subject"], ["priority", "Priority"], ["created", "Created"], ["first_response", "First response"], ["escalated", "Escalated"]],
+  pending: [["id", "ID"], ["subject", "Subject"], ["requester", "Requester"], ["updated", "Last update"], ["status", "Status"]],
+};
+const THREAD_BUDGET = 600, CLIP = 360;  // a ticket's visible thread stays short, however long it grows
+let pub = null, view = "unassigned", page = 1, sort = { key: "id", dir: -1 }, openId = null;
+const threadPage = {}, drafts = {}, modes = {};
+
+function when(iso) {  // "2027-03-03 09:14" -> "Mar 3, 09:14"
+  const [d, t] = iso.split(" ");
+  const [, m, day] = d.split("-").map(Number);
+  return `${MONTHS[m - 1]} ${day}, ${t}`;
+}
+const ticket = (id) => pub.tickets.find((t) => t.id === id);
+const viewLabel = (id) => pub.views.find((v) => v.id === id).label;
+
+function cell(t, key) {
+  if (key === "id") return "#" + t.id;
+  if (key === "created" || key === "updated") return when(t[key]);
+  if (key === "first_response") return t.first_response ? when(t.first_response) : "none";
+  if (key === "escalated") return t.escalated ? "Yes" : "No";
+  if (key === "assignee") return t.assignee || "—";
+  return t[key];
+}
+function sortKey(t, key) {
+  if (key === "id") return Number(t.id);
+  if (key === "priority") return RANK[t.priority];
+  if (key === "created" || key === "updated" || key === "first_response") return t[key] || "";
+  return String(cell(t, key)).toLowerCase();
+}
+
+// --- views nav and agents -------------------------------------------------------------------------
+function drawNav() {
+  const box = $("#views");
+  box.innerHTML = "";
+  for (const v of pub.views) {
+    box.append(h("div", { class: "view" + (v.id === view ? " on" : ""), role: "button", tabindex: "0", dataset: { view: v.id },
+      onclick: () => { view = v.id; page = 1; sort = { key: "id", dir: -1 }; openId = null; drawAll(); },
+      onkeydown: (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.currentTarget.click(); } } },
+      h("span", { text: v.label }), h("span", { class: "badge", text: String(pub.tickets.filter((t) => t.view === v.id).length) })));
+  }
+  $("#agents-panel").hidden = !!openId;  // inside a ticket, the Assignee menu shows skills and loads instead
+  const agents = $("#agents");
+  agents.innerHTML = "";
+  for (const a of pub.agents) {
+    agents.append(h("div", { class: "agent", dataset: { agent: a.name } }, h("div", {}, h("strong", { text: a.name }), ` · ${a.load} open`),
+      h("div", { class: "sk", text: a.skills.join(", ") })));
+  }
+}
+
+// --- ticket table ---------------------------------------------------------------------------------
+function drawTable() {
+  const box = $("#main");
+  const cols = COLS[view];
+  const list = pub.tickets.filter((t) => t.view === view).sort((a, b) => {
+    const x = sortKey(a, sort.key), y = sortKey(b, sort.key);
+    return (x < y ? -1 : x > y ? 1 : 0) * sort.dir;
+  });
+  page = Math.min(page, Math.max(1, Math.ceil(list.length / PAGE)));
+  const head = h("tr", {}, cols.map(([key, name]) => h("th", { "aria-sort": sort.key === key ? (sort.dir > 0 ? "ascending" : "descending") : "none" },
+    h("button", { type: "button", class: "sort", text: name + (sort.key === key ? (sort.dir > 0 ? " ▲" : " ▼") : ""),
+      onclick: () => { sort = sort.key === key ? { key, dir: -sort.dir } : { key, dir: 1 }; page = 1; drawTable(); } }))));
+  const rows = h("tbody", { id: "rows" });
+  for (const t of list.slice((page - 1) * PAGE, page * PAGE)) {
+    rows.append(h("tr", { dataset: { id: t.id }, onclick: () => { openId = t.id; drawAll(); } },
+      cols.map(([key]) => h("td", {}, key === "subject" ? h("button", { type: "button", class: "link", text: t.subject }) : String(cell(t, key))))));
+  }
+  box.innerHTML = "";
+  box.append(h("h3", { text: viewLabel(view) }), h("table", { class: "grid" }, h("thead", {}, head), rows), h("div", { class: "pager", id: "pager" }));
+  K.pager($("#pager"), list.length, PAGE, page, (p) => { page = p; drawTable(); });
+}
+
+// --- one ticket -----------------------------------------------------------------------------------
+const clip = (text) => text.length > CLIP ? text.slice(0, CLIP - 14) + "… (shortened)" : text;
+function message(m) {
+  if (m.who === "event") return h("div", { class: "ev", text: `${m.text} · ${m.author} · ${when(m.at)}` });
+  const role = { customer: "Customer", agent: "Agent", note: "Internal note" }[m.who];
+  return h("div", { class: "m " + m.who }, h("div", { class: "by", text: `${m.author} · ${role} · ${when(m.at)}` }), h("div", { text: clip(m.text) }));
+}
+function threadPages(msgs) {  // message indexes in pages that fit the budget, newest page first
+  const pages = [];
+  let cur = [], used = 0;
+  for (let i = msgs.length - 1; i >= 0; i--) {
+    const cost = clip(msgs[i].text).length + 45;
+    if (cur.length && used + cost > THREAD_BUDGET) { pages.push(cur); cur = []; used = 0; }
+    cur.unshift(i);
+    used += cost;
+  }
+  if (cur.length) pages.push(cur);
+  return pages;
+}
+
+function composer(t) {
+  const mode = modes[t.id] || "public";
+  const area = h("textarea", { id: "composer", "aria-label": mode === "public" ? "Public reply" : "Internal note",
+    placeholder: mode === "public" ? "Reply to the customer…" : "Note for the team (the customer never sees it)…" });
+  area.value = drafts[t.id] || "";
+  area.addEventListener("input", () => { drafts[t.id] = area.value; });
+  const seg = h("div", { class: "seg row", role: "group", "aria-label": "Reply type" },
+    [["public", "Public reply"], ["note", "Internal note"]].map(([m, label]) => h("button", { type: "button", id: "mode-" + m,
+      class: m === mode ? "on" : "", "aria-pressed": m === mode ? "true" : "false", text: label, onclick: () => { modes[t.id] = m; drawMain(); } })));
+  const macro = h("button", { type: "button", id: "macro", "aria-haspopup": "listbox", text: "Apply macro ▾" });
+  macro.addEventListener("click", () => K.menu(macro, pub.macros.map((m) => ({ label: m.title, value: m.id })), (id) => {
+    const text = pub.macros.find((m) => m.id === id).text;
+    const start = area.selectionStart, end = area.selectionEnd;  // insert at the caret
+    area.value = area.value.slice(0, start) + text + area.value.slice(end);
+    drafts[t.id] = area.value;
+    area.focus();
+  }));
+  const send = h("button", { type: "button", id: "send", class: "primary", text: mode === "public" ? "Send public reply" : "Add internal note",
+    onclick: async () => {
+      const body = area.value;
+      if (!body.trim()) return K.toast("Write a message first.");
+      drafts[t.id] = "";
+      area.value = "";
+      const res = await V3.act("reply", { id: t.id, body, public: mode === "public" });
+      if (res.ok) K.toast(res.msg || "Sent.");  // problems show in the task's feedback line
+    } });
+  return h("div", {}, seg, area, h("div", { class: "row" }, macro, send));
+}
+
+function setField(t, field, value) { return V3.act("set", { id: t.id, field, value }); }
+
+function props(t) {
+  const closed = t.status === "Closed";
+  const box = h("div", { class: "props", "aria-label": "Ticket properties" });
+  const select = (id, label, values, field, labels) => {
+    const btn = h("button", { id, "aria-label": label, disabled: closed });
+    K.select(btn, { options: values.map((v, i) => ({ value: v, label: labels ? labels[i] : v })), value: t[field], onChange: (v) => setField(t, field, v) });
+    btn.addEventListener("click", () => {  // runs after the kit opens the menu: keep a wide menu inside the window
+      const menu = document.querySelector(".k-menu");
+      const over = menu ? menu.getBoundingClientRect().right - (document.documentElement.clientWidth - 8) : 0;
+      if (over > 0) menu.style.left = parseFloat(menu.style.left) - over + "px";
+    });
+    box.append(h("div", { class: "field" }, h("span", { text: label }), btn));
+  };
+  select("p-assignee", "Assignee", [""].concat(pub.agents.map((a) => a.name)), "assignee",
+    ["Unassigned"].concat(pub.agents.map((a) => `${a.name} · ${a.skills.join(", ")} · ${a.load} open`)));
+  select("p-priority", "Priority", Object.keys(RANK), "priority");
+  select("p-status", "Status", closed ? ["Closed"] : ["Open", "Pending", "Solved"], "status");
+  box.append(h("div", { class: "field" }, h("span", { text: "Escalation" }),
+    h("button", { type: "button", id: "p-escalated", role: "switch", "aria-checked": String(t.escalated), class: "toggle" + (t.escalated ? " on" : ""),
+      disabled: closed, text: t.escalated ? "Escalated: on" : "Escalated: off", onclick: () => setField(t, "escalated", !t.escalated) })));
+  box.append(h("div", { class: "muted", text: "First response: " + (t.first_response ? when(t.first_response) : "none yet") }));
+  if (!closed) box.append(h("p", {}, h("button", { type: "button", id: "p-merge", text: "Merge into…", onclick: () => openMerge(t) })));
+  if (t.order) {
+    const o = t.order;
+    box.append(h("div", { class: "order", "aria-label": "Order" }, h("strong", { text: "Order " + o.id }), h("div", { class: "muted", text: "Placed " + when(o.placed) }),
+      o.items.map((it) => h("div", {}, h("span", { text: it.name }), h("span", { text: K.money(it.price) }))),
+      h("div", {}, h("span", { text: "Order total" }), h("span", { text: K.money(o.total) })),
+      h("div", { class: "refund" }, h("span", { text: "Refund" }), h("span", { text: `${K.money(o.refund.amount)} ${o.refund.status}` }))));
+  }
+  return box;
+}
+
+function drawTicket(t) {
+  const box = $("#main");
+  box.innerHTML = "";
+  box.append(h("div", { class: "row" }, h("button", { type: "button", id: "back", text: "← " + viewLabel(t.view), onclick: () => { openId = null; drawAll(); } }),
+      h("h3", { id: "tv-title", text: `#${t.id} ${t.subject}` })),
+    h("div", { class: "muted", text: `${t.requester} <${t.email}> · created ${when(t.created)} · group ${t.group} · tags: ${t.tags.join(", ") || "none"}` }));
+  const conv = h("div", { class: "conv", id: "conv" });
+  const pages = threadPages(t.messages);
+  const at = threadPage[t.id];
+  let shown = pages[Math.min(at || 0, pages.length - 1)];
+  if (at === undefined && t.messages.length > 4) shown = shown.slice(-3);  // long threads collapse their older messages
+  const pageOf = (i) => pages.findIndex((p) => p.includes(i));
+  const before = shown[0], after = t.messages.length - 1 - shown[shown.length - 1];
+  if (before) {
+    conv.append(h("button", { type: "button", class: "link", id: "earlier", text: `Show ${before} earlier message${before > 1 ? "s" : ""}`,
+      onclick: () => { threadPage[t.id] = pageOf(before - 1); drawMain(); } }));
+  }
+  for (const i of shown) conv.append(message(t.messages[i]));
+  if (after) {
+    conv.append(h("button", { type: "button", class: "link", id: "later", text: `Show ${after} later message${after > 1 ? "s" : ""}`,
+      onclick: () => { threadPage[t.id] = pageOf(shown[shown.length - 1] + 1); drawMain(); } }));
+  }
+  conv.append(t.status === "Closed" ? h("p", { class: "muted", text: `Closed: merged into #${t.merged_into}.` }) : composer(t));
+  box.append(h("div", { class: "tv" }, conv, props(t)));
+}
+
+// --- merge ----------------------------------------------------------------------------------------
+function openMerge(t) {
+  let chosen = null;
+  const input = h("input", { id: "merge-q", autocomplete: "off", placeholder: "Ticket id or subject", "aria-label": "Search tickets" });
+  const results = h("div", { id: "merge-results", role: "listbox", "aria-label": "Matching tickets" });
+  const note = h("p", { class: "muted", id: "merge-note" });
+  function hits() {
+    const q = input.value.trim().replace(/^#/, "").toLowerCase();
+    return q ? pub.tickets.filter((x) => x.id !== t.id && (x.id.includes(q) || x.subject.toLowerCase().includes(q))).slice(0, 4) : [];
+  }
+  function choose(x) {
+    chosen = x.id;
+    note.textContent = `Merging #${t.id} into #${x.id}.`;
+    list();
+  }
+  function list() {
+    results.innerHTML = "";
+    const found = hits();
+    for (const x of found) {
+      results.append(h("button", { type: "button", role: "option", class: "hit" + (chosen === x.id ? " on" : ""), "aria-selected": chosen === x.id ? "true" : "false",
+        dataset: { id: x.id }, text: `#${x.id} · ${x.subject} · ${x.requester} · ${when(x.created).split(",")[0]}`, onclick: () => choose(x) }));
+    }
+    if (input.value.trim() && !found.length) results.append(h("p", { class: "muted", text: "No matching tickets." }));
+  }
+  input.addEventListener("input", () => { chosen = null; note.textContent = ""; list(); });
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); const first = hits()[0]; if (first) choose(first); } });
+  K.modal({
+    title: `Merge #${t.id} into another ticket`,
+    body: h("div", {}, h("p", { class: "muted", text: `#${t.id} closes into the ticket you choose.` }), input, results, note),
+    actions: [
+      { label: "Cancel" },
+      { label: "Merge", primary: true, onClick: async () => {
+        if (!chosen) { note.textContent = "Choose a ticket to merge into."; return true; }
+        const res = await V3.act("merge", { id: t.id, into: chosen });
+        if (!res.ok) { note.textContent = res.msg; return true; }  // refused: nothing changed, the dialog stays open
+        return false;
+      } },
+    ],
+  });
+}
+
+function drawMain() { const t = openId && ticket(openId); if (t) drawTicket(t); else drawTable(); }
+function drawAll() { drawNav(); drawMain(); }
+
+V3.onState((st) => {
+  pub = st.public;
+  $("#refund-id").textContent = "#" + pub.refund_ticket;
+  $("#sla-text").textContent = Object.entries(pub.sla).map(([p, hrs]) => `${p} ${hrs} h`).join(" · ");
+  drawAll();
+});
+</script>
+</body>
+</html>

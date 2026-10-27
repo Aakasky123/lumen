@@ -1,0 +1,107 @@
+{
+  "name": "lumen-desktop",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "description": "Lumen personal task-execution desktop agent",
+  "author": "Lumen",
+  "private": true,
+  "type": "module",
+  "main": "main.mjs",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "test": "node --test \"test/**/*.test.mjs\"",
+    "build": "npm run prepare:package && electron-builder --dir",
+    "build:renderer": "node scripts/build-renderer.mjs",
+    "build:api": "node scripts/build-api-sidecar.mjs",
+    "generate:icons": "node ../../scripts/py.mjs ../../scripts/generate-icons.py",
+    "prepare:package": "node scripts/prepare-package.mjs",
+    "package": "npm run prepare:package && electron-builder --win nsis",
+    "package:mac": "npm run prepare:package && electron-builder --mac"
+  },
+  "devDependencies": {
+    "electron": "43.2.0",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "ai.lumen.desktop",
+    "productName": "Lumen",
+    "asar": true,
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.mjs",
+      "preload.cjs",
+      "control_indicator.mjs",
+      "pointer_overlay.mjs",
+      "build/icon.png",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../renderer/out",
+        "to": "renderer"
+      },
+      {
+        "from": "binaries",
+        "to": "binaries"
+      },
+      {
+        "from": "../extension",
+        "to": "extension",
+        "filter": [
+          "manifest.json",
+          "src/**/*"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "artifactName": "Lumen-Setup-${version}-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Lumen"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "category": "public.app-category.productivity",
+      "icon": "build/icon.png",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "entitlements/entitlements.mac.plist",
+      "entitlementsInherit": "entitlements/entitlements.mac.plist",
+      "artifactName": "Lumen-${version}-${arch}.${ext}"
+    },
+    "dmg": {
+      "artifactName": "Lumen-${version}-${arch}.${ext}"
+    }
+  }
+}

@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Corvid CRM</title>
+<link rel="stylesheet" href="v4_style.css">
+<link rel="stylesheet" href="v6_style.css">
+<style>
+  .tabs{display:flex;gap:2px;padding:8px 14px 0;background:#f6f8fa;border-bottom:1px solid #e3e6ea}
+  .tabs button{border:1px solid transparent;border-bottom:0;border-radius:6px 6px 0 0;background:transparent;font-size:14px;padding:5px 16px}
+  .tabs button[aria-selected=true]{background:#fff;border-color:#e3e6ea;font-weight:600;margin-bottom:-1px}
+  #main{padding:10px 14px;min-height:400px;font-size:13px}
+  .listhead,.rechead{display:flex;gap:8px;align-items:center;justify-content:space-between}
+  .rechead h3,.rechead h4{margin:6px 0}
+  button.link{background:none;border:0;padding:0;color:#1f5fa8;text-decoration:underline;font-size:13px}
+  dl.kv{display:grid;grid-template-columns:repeat(3,minmax(160px,1fr));gap:4px 16px;margin:6px 0}
+  dl.kv dt{color:#667;font-size:12px}
+  dl.kv dd{margin:0}
+  ul.plain{list-style:none;padding:0;margin:4px 0}
+  ul.plain li{padding:3px 0;border-bottom:1px solid #f0f2f5}
+  .field .k-select{align-self:flex-start;min-width:200px}
+  .err{color:#b42318;font-size:12px;min-height:1em;margin:4px 0}
+  .sig{background:#fafbfc;border-left:3px solid #9fb3c8;padding:4px 8px;font-size:13px}
+  .board{display:flex;gap:8px}
+  .col{flex:1;min-width:0;background:#f1f4f7;border-radius:8px;padding:6px;min-height:320px}
+  .col.over{background:#dce9f7;outline:2px dashed #7aa7d9}
+  .col h4{margin:2px 4px 6px;font-size:13px}
+  .deal{position:relative;background:#fff;border:1px solid #d6dce3;border-radius:6px;padding:5px 7px;margin-bottom:6px;cursor:grab;user-select:none;touch-action:none}
+  .deal .nm{font-weight:600}
+  .deal.dragging{z-index:50;pointer-events:none;cursor:grabbing;box-shadow:0 8px 20px rgba(0,0,0,.2)}
+  .docs{display:flex;gap:12px;align-items:flex-start}
+  .doclist{width:300px;flex:none;display:flex;flex-direction:column;gap:6px}
+  .docrow{text-align:left;background:#fff;font-size:13px}
+  .docrow.on{background:#e8f1fb;border-color:#7aa7d9}
+  #viewer{flex:1;height:300px;border:1px solid #cfd6de;border-radius:6px;background:#e4e7eb}
+  .datefield{display:inline-flex;gap:4px}
+  .cal{padding:6px 8px}
+  .calhead{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px}
+  .calgrid{display:grid;grid-template-columns:repeat(7,30px);gap:2px;text-align:center;font-size:12px}
+  .calgrid button{padding:2px 0;font-size:12px}
+  .calgrid button.on{background:#d7e6f7;border-color:#7aa7d9}
+  .k-toast{pointer-events:none}  /* a status line: it never blocks the board under it */
+  .k-modal .line{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:4px 0;border-bottom:1px solid #f0f2f5;font-size:13px}
+</style>
+</head>
+<body data-page="v6_crm">
+<h1>Corvid CRM</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+<p class="intro">Five independent tasks in one CRM. Today is <strong data-public="today_text"></strong>.</p>
+
+<div class="tasks">
+  <section class="ch">
+    <h2>1. Account from a contract <span class="mark" data-step-mark="account_from_contract"></span></h2>
+    <p>Sales just closed <strong id="t1-company"></strong>. Create its account from the signed contract in Documents:
+       legal name, billing city, industry, and annual contract value (12 × the monthly fee).</p>
+    <p class="msg" data-msg="account"></p>
+  </section>
+  <section class="ch">
+    <h2>2. Add a contact <span class="mark" data-step-mark="link_contact"></span></h2>
+    <p>Add the person in this email signature as a contact of their company's existing account:</p>
+    <p class="sig" id="t2-signature"></p>
+    <p class="msg" data-msg="link"></p>
+  </section>
+  <section class="ch">
+    <h2>3. Renewal deal <span class="mark" data-step-mark="deal_stage"></span></h2>
+    <p>The contract with <span id="t3-company"></span> sets a renewal date. Move the deal <strong id="t3-deal"></strong>
+       to <strong>Negotiation</strong> and set its close date to 30 days before that renewal date.</p>
+    <p class="msg" data-msg="deal"></p>
+  </section>
+  <section class="ch">
+    <h2>4. Log a call <span class="mark" data-step-mark="log_call"></span></h2>
+    <p>You just called <strong id="t4-contact"></strong> (<span id="t4-company"></span>) and left a voicemail about
+       pricing. Log it on their contact: type Call, outcome Left voicemail, a note that mentions pricing, and a
+       next-step date 2 business days after today.</p>
+    <p class="msg" data-msg="call"></p>
+  </section>
+  <section class="ch">
+    <h2>5. Notice period <span class="mark" data-step-mark="notice_period"></span></h2>
+    <p>The account <strong id="t5-account"></strong> has no notice period. Fill in its Notice period (days) from the
+       termination clause of its contract.</p>
+    <p class="msg" data-msg="notice"></p>
+  </section>
+</div>
+
+<section class="app" aria-label="CRM">
+  <div class="app-head"><h2>Corvid CRM</h2><span class="muted">you@corvidsoftware.example</span></div>
+  <div class="tabs" id="tabs" role="tablist">
+    <button role="tab" data-tab="accounts">Accounts</button>
+    <button role="tab" data-tab="contacts">Contacts</button>
+    <button role="tab" data-tab="deals">Deals</button>
+    <button role="tab" data-tab="documents">Documents</button>
+  </div>
+  <div id="main" role="tabpanel"></div>
+</section>
+
+<script src="v3_common.js"></script>
+<script src="v6_kit.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+const { h } = K;
+const PAGE = 10;
+let pub = null, tab = "accounts", view = null, docId = null;
+const query = { accounts: "", contacts: "" }, pageNo = { accounts: 1, contacts: 1 };
+
+const byId = (list, id) => list.find((x) => x.id === id);
+const account = (id) => byId(pub.accounts, id);
+const person = (id) => byId(pub.contacts, id);
+const byName = (list) => list.slice().sort((x, y) => x.name.localeCompare(y.name) || x.id.localeCompare(y.id));
+const options = (values) => values.map((x) => ({ value: x, label: x }));
+function isoOk(s) {
+  const d = new Date(s + "T00:00:00Z");
+  return /^\d{4}-\d{2}-\d{2}$/.test(s) && !isNaN(d) && d.toISOString().slice(0, 10) === s;
+}
+function longDate(iso) {
+  return new Date(iso + "T00:00:00Z").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
+}
+function kv(pairs) {
+  return h("dl", { class: "kv" }, pairs.map(([k, v]) => h("div", {}, h("dt", { text: k }), h("dd", { text: v }))));
+}
+function field(id, label, value, attrs) {
+  const input = h("input", Object.assign({ id, value: value || "", autocomplete: "off" }, attrs || {}));
+  return [h("div", { class: "field" }, h("label", { for: id, text: label }), input), input];
+}
+function picker(id, label, opts) {
+  const btn = h("button", { id, "aria-label": label });
+  const sel = K.select(btn, opts);
+  return [h("div", { class: "field" }, h("span", { text: label }), btn), sel];
+}
+const backTo = (label) => h("button", { type: "button", class: "link", text: "← " + label, onclick: () => go(null) });
+
+// --- navigation --------------------------------------------------------------------------------
+function go(next) { view = next; draw(); }
+function showIn(nextTab, next) { tab = nextTab; go(next); }
+const formOpen = () => !!(view && view.kind.endsWith("-form"));
+
+function draw() {
+  K.closeMenu();
+  closeCalendar();
+  document.querySelectorAll("#tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === tab)));
+  const main = $("#main");
+  main.innerHTML = "";
+  const kind = view && view.kind;
+  if (tab === "accounts") kind === "account" ? accountView(main, view.id) : kind === "account-form" ? accountForm(main, view.id) : accountList(main);
+  else if (tab === "contacts") kind === "contact" ? contactView(main, view.id) : kind === "contact-form" ? contactForm(main, view.id, view.preset) : contactList(main);
+  else if (tab === "deals") kind === "deal" ? dealView(main, view.id) : dealBoard(main);
+  else docsView(main);
+}
+document.querySelectorAll("#tabs button").forEach((b) => b.addEventListener("click", () => showIn(b.dataset.tab, null)));
+
+// --- lists ---------------------------------------------------------------------------------------
+function listView(main, key, items, cols, onOpen, newLabel, onNew) {
+  const search = h("input", { id: "list-search", placeholder: "Search " + key, "aria-label": "Search " + key, autocomplete: "off", value: query[key] });
+  const rows = h("tbody", { id: "rows" });
+  const pager = h("div", { class: "pager" });
+  function paint() {
+    const q = query[key].trim().toLowerCase();
+    const list = items.filter((it) => !q || cols.map(([, get]) => get(it)).join(" ").toLowerCase().includes(q));
+    pageNo[key] = Math.min(pageNo[key], Math.max(1, Math.ceil(list.length / PAGE)));
+    rows.innerHTML = "";
+    for (const it of list.slice((pageNo[key] - 1) * PAGE, pageNo[key] * PAGE)) {
+      rows.append(h("tr", { dataset: { id: it.id } }, cols.map(([, get], i) => h("td", {},
+        i === 0 ? h("button", { type: "button", class: "link", text: get(it), onclick: () => onOpen(it.id) }) : get(it)))));
+    }
+    if (!list.length) rows.append(h("tr", {}, h("td", { colspan: String(cols.length), class: "muted", text: "No matches." })));
+    K.pager(pager, list.length, PAGE, pageNo[key], (p) => { pageNo[key] = p; paint(); });
+  }
+  search.addEventListener("input", () => { query[key] = search.value; pageNo[key] = 1; paint(); });
+  main.append(h("div", { class: "listhead" }, search, h("button", { type: "button", class: "primary", text: newLabel, onclick: onNew })),
+    h("table", { class: "grid" }, h("thead", {}, h("tr", {}, cols.map(([label]) => h("th", { text: label })))), rows), pager);
+  paint();
+}
+function accountList(main) {
+  listView(main, "accounts", byName(pub.accounts), [
+    ["Account", (a) => a.name], ["Industry", (a) => a.industry || "—"], ["Billing city", (a) => a.city || "—"],
+    ["Annual contract value", (a) => (a.acv ? K.money(a.acv) : "—")],
+  ], (id) => go({ kind: "account", id }), "New account", () => go({ kind: "account-form" }));
+}
+function contactList(main) {
+  listView(main, "contacts", byName(pub.contacts), [
+    ["Name", (c) => c.name], ["Email", (c) => c.email], ["Account", (c) => (account(c.account_id) || { name: "—" }).name],
+  ], (id) => go({ kind: "contact", id }), "New contact", () => go({ kind: "contact-form" }));
+}
+
+// --- accounts --------------------------------------------------------------------------------------
+function accountView(main, id) {
+  const a = account(id);
+  const people = byName(pub.contacts.filter((c) => c.account_id === id));
+  const deals = pub.deals.filter((d) => d.account_id === id);
+  main.append(backTo("Accounts"),
+    h("div", { class: "rechead" }, h("h3", { text: a.name }), h("button", { type: "button", text: "Edit", onclick: () => go({ kind: "account-form", id }) })),
+    kv([["Industry", a.industry || "—"], ["Billing city", a.city || "—"], ["Website", a.website || "—"],
+      ["Annual contract value", a.acv ? K.money(a.acv) : "—"], ["Notice period (days)", a.notice || "—"]]),
+    h("div", { class: "rechead" }, h("h4", { text: `Contacts (${people.length})` }), h("span", {},
+      h("button", { type: "button", text: "Link existing contact", onclick: () => linkModal(id) }), " ",
+      h("button", { type: "button", text: "New contact", onclick: () => showIn("contacts", { kind: "contact-form", preset: id }) }))),
+    people.length ? h("ul", { class: "plain" }, people.map((c) => h("li", {},
+      h("button", { type: "button", class: "link", text: c.name, onclick: () => showIn("contacts", { kind: "contact", id: c.id }) }),
+      ` · ${c.title} · ${c.email} `,
+      h("button", { type: "button", class: "link", text: "Unlink", "aria-label": "Unlink " + c.name, onclick: () => V3.act("unlink_contact", { contact_id: c.id }) }))))
+      : h("p", { class: "muted", text: "No contacts." }),
+    h("h4", { text: "Deals" }),
+    deals.length ? h("ul", { class: "plain" }, deals.map((d) => h("li", { text: `${d.name} · ${d.stage} · close ${d.close}` })))
+      : h("p", { class: "muted", text: "No deals." }));
+}
+function accountForm(main, id) {
+  const a = id ? account(id) : {};
+  const [nameF, name] = field("f-name", "Legal name", a.name);
+  const [cityF, city] = field("f-city", "Billing city", a.city);
+  const [indF, industry] = picker("f-industry", "Industry", { options: options(pub.industries), value: a.industry || "", placeholder: "Choose an industry" });
+  const [webF, website] = field("f-website", "Website", a.website);
+  const [acvF, acv] = field("f-acv", "Annual contract value ($)", a.acv, { inputmode: "decimal" });
+  const [noticeF, notice] = field("f-notice", "Notice period (days)", a.notice, { inputmode: "numeric" });
+  const err = h("p", { class: "err", role: "alert" });
+  async function save() {
+    const fields = { name: name.value.trim(), city: city.value.trim(), industry: industry.value || "", website: website.value.trim(),
+      acv: acv.value.trim(), notice: notice.value.trim() };
+    if (!fields.name) return (err.textContent = "Legal name is required.");
+    if (fields.acv && !/^\$?\d[\d,]*(\.\d{1,2})?$/.test(fields.acv)) return (err.textContent = "Annual contract value must be an amount like 12500.00.");
+    if (fields.notice && !/^\d+$/.test(fields.notice)) return (err.textContent = "Notice period must be a whole number of days.");
+    const res = await V3.act(id ? "update_account" : "create_account", id ? { id, fields } : { fields });
+    if (!res.saved) return (err.textContent = res.msg);
+    go({ kind: "account", id: res.id });
+    K.toast(res.ok ? "Account saved." : res.msg);
+  }
+  main.append(backTo("Accounts"), h("h3", { text: id ? "Edit account" : "New account" }),
+    h("div", { class: "formgrid" }, nameF, cityF, indF, webF, acvF, noticeF), err,
+    h("div", { class: "row" }, h("button", { type: "button", class: "primary", text: id ? "Save" : "Create account", onclick: save }),
+      h("button", { type: "button", text: "Cancel", onclick: () => go(id ? { kind: "account", id } : null) })));
+}
+function linkModal(accountId) {
+  const q = h("input", { id: "link-search", placeholder: "Search by name or email", "aria-label": "Search contacts", autocomplete: "off" });
+  const results = h("div");
+  function paint() {
+    const term = q.value.trim().toLowerCase();
+    const list = byName(pub.contacts).filter((c) => c.account_id !== accountId
+      && (term ? (c.name + " " + c.email).toLowerCase().includes(term) : !c.account_id)).slice(0, 6);
+    results.innerHTML = "";
+    for (const c of list) {
+      const home = account(c.account_id);
+      results.append(h("div", { class: "line" }, h("span", { text: `${c.name} · ${c.email} · ${home ? home.name : "no account"}` }),
+        h("button", { type: "button", text: "Link", "aria-label": `Link ${c.name} (${c.email})`, onclick: async () => {
+          modal.close();
+          const res = await V3.act("link_contact", { account_id: accountId, contact_id: c.id });
+          K.toast(res.ok ? "Contact linked." : res.msg);
+        } })));
+    }
+    if (!list.length) results.append(h("p", { class: "muted", text: "No contacts match." }));
+  }
+  q.addEventListener("input", paint);
+  const modal = K.modal({ title: "Link an existing contact", body: h("div", {}, q, results), actions: [{ label: "Close" }] });
+  paint();
+}
+
+// --- contacts ----------------------------------------------------------------------------------------
+function contactView(main, id) {
+  const c = person(id), home = account(c.account_id);
+  const acts = pub.activities.filter((t) => t.contact_id === id).sort((x, y) => y.date.localeCompare(x.date) || y.id.localeCompare(x.id));
+  const [typeF, type] = picker("log-type", "Type", { options: options(pub.types), placeholder: "Choose a type" });
+  const [outF, outcome] = picker("log-outcome", "Outcome", { options: options(pub.outcomes), placeholder: "Choose an outcome" });
+  const [nextBox, next] = dateField("log-next", "", "Next-step date");
+  const note = h("textarea", { id: "log-note", rows: "2" });
+  const err = h("p", { class: "err", role: "alert" });
+  async function save() {
+    if (!type.value) return (err.textContent = "Choose an activity type.");
+    if (next.value.trim() && !isoOk(next.value.trim())) return (err.textContent = "Enter the next-step date as YYYY-MM-DD.");
+    const res = await V3.act("log_activity", { contact_id: id, type: type.value, outcome: outcome.value || "", next_step: next.value.trim(), note: note.value });
+    K.toast(res.ok ? "Activity logged." : res.msg);
+  }
+  main.append(backTo("Contacts"),
+    h("div", { class: "rechead" }, h("h3", { text: c.name }), h("button", { type: "button", text: "Edit", onclick: () => go({ kind: "contact-form", id }) })),
+    kv([["Title", c.title || "—"], ["Email", c.email], ["Phone", c.phone || "—"], ["Account", home ? home.name : "— none —"]]),
+    h("h4", { text: "Activities" }),
+    acts.length ? h("ul", { class: "plain" }, acts.map((t) => h("li", {
+      text: `${t.date} · ${t.type}${t.outcome ? " · " + t.outcome : ""} · ${t.note || "—"}${t.next_step ? " · next step " + t.next_step : ""}` })))
+      : h("p", { class: "muted", text: "No activities yet." }),
+    h("h4", { text: "Log activity" }),
+    h("div", { class: "formgrid" }, typeF, outF,
+      h("div", { class: "field" }, h("label", { for: "log-next", text: "Next-step date" }), nextBox),
+      h("div", { class: "field" }, h("label", { for: "log-note", text: "Note" }), note)),
+    err, h("button", { type: "button", class: "primary", text: "Save activity", onclick: save }));
+}
+function contactForm(main, id, preset) {
+  const c = id ? person(id) : { account_id: preset || "" };
+  const [nameF, name] = field("c-name", "Name", c.name);
+  const [titleF, title] = field("c-title", "Title", c.title);
+  const [emailF, email] = field("c-email", "Email", c.email);
+  const [phoneF, phone] = field("c-phone", "Phone", c.phone);
+  const [accF, acc] = picker("c-account", "Account", {
+    options: [{ value: "", label: "— No account —" }].concat(byName(pub.accounts).map((a) => ({ value: a.id, label: a.name }))), value: c.account_id || "" });
+  const err = h("p", { class: "err", role: "alert" });
+  async function save() {
+    const fields = { name: name.value.trim(), title: title.value.trim(), email: email.value.trim(), phone: phone.value.trim(), account_id: acc.value || "" };
+    if (!fields.name || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(fields.email)) return (err.textContent = "A contact needs a name and a valid email address.");
+    const res = await V3.act(id ? "update_contact" : "create_contact", id ? { id, fields } : { fields });
+    if (!res.saved) return (err.textContent = res.msg);
+    go({ kind: "contact", id: res.id });
+    K.toast(res.ok ? "Contact saved." : res.msg);
+  }
+  main.append(backTo("Contacts"), h("h3", { text: id ? "Edit contact" : "New contact" }),
+    h("div", { class: "formgrid" }, nameF, titleF, emailF, phoneF, accF), err,
+    h("div", { class: "row" }, h("button", { type: "button", class: "primary", text: id ? "Save" : "Create contact", onclick: save }),
+      h("button", { type: "button", text: "Cancel", onclick: () => go(id ? { kind: "contact", id } : null) })));
+}
+
+// --- deals: a board whose cards drag between stage columns ------------------------------------------
+function dealBoard(main) {
+  const board = h("div", { class: "board" });
+  for (const stage of pub.stages) {
+    const deals = pub.deals.filter((d) => d.stage === stage).sort((x, y) => x.close.localeCompare(y.close));
+    board.append(h("div", { class: "col", dataset: { stage }, role: "list", "aria-label": stage },
+      h("h4", { text: `${stage} (${deals.length})` }), deals.map(dealCard)));
+  }
+  main.append(h("p", { class: "muted", text: "Drag a card to another column to change its stage, or open it to edit it." }), board);
+}
+function dealCard(d) {
+  const card = h("div", { class: "deal", role: "listitem", tabindex: "0", "aria-label": d.name, dataset: { id: d.id } },
+    h("div", { class: "nm", text: d.name }), h("div", { class: "muted", text: `${K.money(d.amount)} · close ${d.close}` }));
+  card.addEventListener("keydown", (e) => { if (e.key === "Enter") go({ kind: "deal", id: d.id }); });
+  card.addEventListener("click", () => go({ kind: "deal", id: d.id }));  // a drag's click lands on the column, not the card
+  card.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    const x0 = e.clientX, y0 = e.clientY;
+    let dragging = false, over = null;
+    const columnAt = (x, y) => { const el = document.elementFromPoint(x, y); return el && el.closest(".col"); };
+    function move(ev) {
+      const dx = ev.clientX - x0, dy = ev.clientY - y0;
+      if (!dragging && Math.abs(dx) + Math.abs(dy) < 6) return;  // a click, not a drag (yet)
+      dragging = true;
+      card.classList.add("dragging");
+      card.style.transform = `translate(${dx}px, ${dy}px)`;
+      const col = columnAt(ev.clientX, ev.clientY);
+      if (col !== over) { if (over) over.classList.remove("over"); over = col; if (over) over.classList.add("over"); }
+    }
+    function up(ev) {
+      removeEventListener("pointermove", move);
+      removeEventListener("pointerup", up);
+      if (!dragging) return;
+      const col = columnAt(ev.clientX, ev.clientY);
+      card.classList.remove("dragging");
+      card.style.transform = "";
+      if (over) over.classList.remove("over");
+      if (col && col.dataset.stage !== d.stage) V3.act("update_deal", { id: d.id, stage: col.dataset.stage }).then((res) => { if (!res.ok) K.toast(res.msg); });
+    }
+    addEventListener("pointermove", move);
+    addEventListener("pointerup", up);
+  });
+  return card;
+}
+function dealView(main, id) {
+  const d = byId(pub.deals, id), home = account(d.account_id);
+  const [stageF, stage] = picker("deal-stage", "Stage", { options: options(pub.stages), value: d.stage });
+  const [closeBox, close] = dateField("deal-close", d.close, "Close date");
+  const err = h("p", { class: "err", role: "alert" });
+  async function save() {
+    if (!isoOk(close.value.trim())) return (err.textContent = "Enter the close date as YYYY-MM-DD.");
+    const res = await V3.act("update_deal", { id, stage: stage.value, close: close.value.trim() });
+    K.toast(res.ok ? "Deal saved." : res.msg);
+  }
+  main.append(backTo("Deals board"),
+    h("h3", { text: d.name }), kv([["Account", home.name], ["Amount", K.money(d.amount)]]),
+    h("div", { class: "formgrid" }, stageF, h("div", { class: "field" }, h("label", { for: "deal-close", text: "Close date" }), closeBox)),
+    err, h("button", { type: "button", class: "primary", text: "Save deal", onclick: save }));
+}
+
+// --- a small calendar for date fields (typing YYYY-MM-DD works too) -----------------------------
+let cal = null;
+function closeCalendar() { if (cal) { cal.remove(); cal = null; } }
+document.addEventListener("mousedown", (e) => { if (cal && !cal.contains(e.target) && !e.target.closest(".calbtn")) closeCalendar(); }, true);
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeCalendar(); });
+function dateField(id, value, label) {
+  const input = h("input", { id, value: value || "", placeholder: "YYYY-MM-DD", autocomplete: "off", size: "11" });
+  const btn = h("button", { type: "button", class: "calbtn", text: "📅", "aria-label": "Pick the " + label.toLowerCase() + " from a calendar" });
+  btn.addEventListener("click", () => (cal ? closeCalendar() : openCalendar(btn, input)));
+  return [h("span", { class: "datefield" }, input, btn), input];
+}
+function openCalendar(anchor, input) {
+  const base = isoOk(input.value.trim()) ? input.value.trim() : pub.today;
+  let y = Number(base.slice(0, 4)), m = Number(base.slice(5, 7)) - 1;
+  cal = h("div", { class: "k-menu cal", role: "dialog", "aria-label": "Calendar" });
+  const step = (n) => { m += n; if (m < 0) { m = 11; y -= 1; } if (m > 11) { m = 0; y += 1; } paint(); };
+  function paint() {
+    cal.innerHTML = "";
+    const month = new Date(Date.UTC(y, m, 1)).toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
+    const grid = h("div", { class: "calgrid" }, ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"].map((d) => h("span", { class: "muted", text: d })));
+    for (let i = (new Date(Date.UTC(y, m, 1)).getUTCDay() + 6) % 7; i > 0; i--) grid.append(h("span"));
+    for (let d = 1; d <= new Date(Date.UTC(y, m + 1, 0)).getUTCDate(); d++) {
+      const iso = `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+      grid.append(h("button", { type: "button", class: iso === input.value.trim() ? "on" : "", text: String(d), "aria-label": longDate(iso), onclick: () => {
+        input.value = iso;
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        closeCalendar();
+      } }));
+    }
+    cal.append(h("div", { class: "calhead" },
+      h("button", { type: "button", text: "‹", "aria-label": "Previous month", onclick: () => step(-1) }), h("strong", { text: month }),
+      h("button", { type: "button", text: "›", "aria-label": "Next month", onclick: () => step(1) })), grid);
+  }
+  paint();
+  const r = anchor.getBoundingClientRect();
+  cal.style.left = Math.round(r.left + scrollX) + "px";
+  cal.style.top = Math.round(r.bottom + scrollY + 2) + "px";
+  document.body.append(cal);
+}
+
+// --- documents: contracts open in a same-origin viewer ----------------------------------------------
+function docsView(main) {
+  const list = h("div", { class: "doclist" });
+  for (const d of pub.documents) {
+    list.append(h("button", { type: "button", class: "docrow" + (d.id === docId ? " on" : ""), dataset: { id: d.id }, onclick: () => { docId = d.id; draw(); } },
+      h("strong", { text: d.customer }), h("div", { class: "muted", text: `${d.number} · Master subscription agreement` })));
+  }
+  const frame = h("iframe", { id: "viewer", title: "Contract viewer" });
+  const d = docId && byId(pub.documents, docId);
+  frame.srcdoc = d ? contractDoc(d) : '<p style="font:14px system-ui;color:#667;padding:8px">Choose a document to open it.</p>';
+  main.append(h("div", { class: "docs" }, list, frame));
+}
+function contractDoc(d) {
+  const esc = (s) => String(s).replace(/[&<>]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[ch]);
+  const row = (k, v) => `<p><b>${k}:</b> ${esc(v)}</p>`;
+  return `<!doctype html><meta charset="utf-8"><style>
+body{margin:0;padding:12px;background:#e4e7eb;font:13px/1.45 Georgia,serif;color:#222}
+.page{position:relative;box-sizing:border-box;background:#fff;max-width:540px;min-height:330px;margin:0 auto 14px;padding:18px 26px 30px;box-shadow:0 1px 4px rgba(0,0,0,.18)}
+h1{font-size:15px;margin:0 0 4px}p{margin:3px 0}.foot{position:absolute;bottom:8px;right:26px;font-size:11px;color:#888}
+</style>
+<div class="page"><h1>Master Subscription Agreement</h1><p>Contract ${esc(d.number)} between Corvid Software Inc. and the customer below.</p>
+${row("Customer (legal name)", d.customer)}${row("Billing address", d.address)}${row("Industry", d.industry)}
+${row("Monthly subscription fee", K.money(d.fee))}${row("Start date", longDate(d.start))}${row("Initial term", d.term + " months")}
+${row("Renewal date", longDate(d.renewal))}<p>Payment terms: each invoice is payable within ${d.payment_days} days of its date.</p>
+<div class="foot">Page 1 of 2</div></div>
+<div class="page"><p><b>7. Renewal.</b> After the initial term this agreement renews for successive 12-month terms.</p>
+<p><b>8. Termination.</b> Either party may terminate this agreement by giving the other party at least ${d.notice_days} days' written notice before the renewal date.</p>
+<p><b>9. Signatures.</b> Signed for ${esc(d.customer)} and for Corvid Software Inc.</p>
+<div class="foot">Page 2 of 2</div></div>`;
+}
+
+V3.onState((st) => {
+  const first = !pub;
+  pub = st.public;
+  if (first) {
+    const t = pub.tasks;
+    $("#t1-company").textContent = t.account_from_contract.company;
+    $("#t2-signature").textContent = t.link_contact.signature;
+    $("#t3-deal").textContent = t.deal_stage.deal;
+    $("#t3-company").textContent = t.deal_stage.company;
+    $("#t4-contact").textContent = t.log_call.contact;
+    $("#t4-company").textContent = t.log_call.company;
+    $("#t5-account").textContent = t.notice_period.account;
+  }
+  if (first || !formOpen()) draw();  // an open form keeps what was typed into it
+});
+</script>
+</body>
+</html>

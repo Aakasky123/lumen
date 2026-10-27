@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Relay console</title>
+<style>
+  body{font-family:system-ui,-apple-system,sans-serif;margin:0;padding:32px;line-height:1.5;color:#1a1a1a;background:#101a2b}
+  .card{background:#fff;border-radius:12px;padding:26px;max-width:420px}
+  code{font-size:22px}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Relay console</h1>
+  <p>Your relay code is:</p>
+  <p><code id="code">unavailable</code></p>
+  <p style="color:#666;font-size:13px">Return to the archive operations tab and enter this code.</p>
+</div>
+<script>
+const m = location.hash.match(/k=([A-Za-z0-9-]+)/);
+document.getElementById("code").textContent = m ? m[1] : "unavailable — reopen from the operations desk";
+</script>
+</body>
+</html>

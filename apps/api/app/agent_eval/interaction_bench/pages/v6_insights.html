@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Beacon Analytics</title>
+<link rel="stylesheet" href="v4_style.css">
+<link rel="stylesheet" href="v6_style.css">
+<style>
+  .dash{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:12px;align-items:start}
+  .panel{border:1px solid #e3e6ea;border-radius:8px;padding:10px 12px;min-width:0;position:relative}
+  .panel.wide{grid-column:1 / -1}
+  .panel h3{font-size:14px;margin:0 0 8px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .panel h3 .muted{font-weight:400}
+  .chart{position:relative;width:520px;max-width:100%}
+  .chart svg{display:block;overflow:visible}
+  .chart svg:focus{outline:2px solid #7aa7d9;outline-offset:3px;border-radius:4px}
+  .axis text{font-size:11px;fill:#667}
+  .axis .gridline{stroke:#edf0f3}
+  .line{fill:none;stroke:#2a78d6;stroke-width:2}
+  .bar{fill:#2a78d6}
+  .hit{fill:#000;fill-opacity:0;pointer-events:all}
+  .marker{pointer-events:none}
+  .marker .guide{stroke:#9aa5b1;stroke-dasharray:3 3}
+  .marker .dot{fill:#fff;stroke:#2a78d6;stroke-width:2}
+  .marker .ring{fill:none;stroke:#1f2933;stroke-width:1.5}
+  .tip{position:absolute;pointer-events:none;background:#1f2933;color:#fff;font-size:12px;padding:3px 8px;border-radius:6px;white-space:nowrap;z-index:5}
+  .legend{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px}
+  .legend button{font-size:12px;padding:2px 8px;background:#fff;display:inline-flex;align-items:center;gap:6px}
+  .legend button[aria-pressed=false]{color:#8a94a0;text-decoration:line-through}
+  .sw{width:10px;height:10px;border-radius:2px;display:inline-block}
+  .kpis{display:flex;gap:10px}
+  .kpi{flex:1;border:1px solid #e3e6ea;border-radius:8px;padding:6px 12px}
+  .kpi .v{font-size:22px;font-weight:600}
+  #range-btn{font-size:13px;padding:4px 10px;background:#fff}
+  .picker{position:absolute;right:12px;top:42px;z-index:20;background:#fff;border:1px solid #b9c2cc;border-radius:8px;box-shadow:0 8px 22px rgba(0,0,0,.16);padding:10px;display:flex;gap:14px;font-size:13px;font-weight:400}
+  .picker[hidden]{display:none}
+  .presets{display:flex;flex-direction:column;gap:4px}
+  .presets button{font-size:13px;padding:4px 10px;text-align:left;background:#fff}
+  .presets button[aria-pressed=true]{background:#d7e6f7;border-color:#7aa7d9}
+  .cal-nav{display:flex;justify-content:space-between}
+  .cal-nav button{padding:0 10px}
+  .months{display:flex;gap:16px}
+  .mtitle{text-align:center;font-weight:600;margin:2px 0 4px}
+  .days{display:grid;grid-template-columns:repeat(7,30px);gap:2px;text-align:center;font-size:12px}
+  .days .wd{color:#889}
+  .days button{padding:0;height:26px;font-size:12px;border-color:transparent;background:#fff;border-radius:4px}
+  .days button.in{background:#e8f1fb}
+  .days button.end{background:#2b6cb0;color:#fff}
+  .days button:disabled{color:#c3c8cf}
+  .pivot-wrap{overflow-x:auto}
+  #pivot th,#pivot td{padding:4px 6px;font-size:12.5px}
+  #pivot th.num,#rev-table th.num{text-align:right}
+  #pivot tr.cat{cursor:pointer}
+  #pivot tr.cat td:first-child{font-weight:600}
+  #pivot tr.prod td:first-child{padding-left:28px}
+  .twisty{padding:0 5px;font-size:11px;background:#fff;margin-right:2px}
+</style>
+</head>
+<body data-page="v6_insights">
+<h1>Beacon Analytics</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+<p class="intro">Five independent questions about the dashboard below. Chart values appear on hover, or when a chart has
+  keyboard focus (arrow keys move between points). Today is <strong data-public="today_text"></strong>.</p>
+
+<div class="tasks">
+  <section class="ch">
+    <h2>1. Signups on a day <span class="mark" data-step-mark="tooltip_value"></span></h2>
+    <p>How many signups were there on <strong id="q-day"></strong>?</p>
+    <div class="row"><input id="a-tooltip_value" size="10" autocomplete="off" aria-label="Signups" data-enter="go-tooltip_value"> <button id="go-tooltip_value" data-step="tooltip_value">Submit</button></div>
+    <p class="msg" data-msg="tooltip_value"></p>
+  </section>
+  <section class="ch">
+    <h2>2. Year-over-year growth <span class="mark" data-step-mark="quarter_growth"></span></h2>
+    <p>By what percent did revenue grow from <strong id="q-from"></strong> to <strong id="q-to"></strong>? One decimal place.</p>
+    <div class="row"><input id="a-quarter_growth" size="10" autocomplete="off" aria-label="Growth in percent" data-enter="go-quarter_growth"> <button id="go-quarter_growth" data-step="quarter_growth">Submit</button></div>
+    <p class="msg" data-msg="quarter_growth"></p>
+  </section>
+  <section class="ch">
+    <h2>3. One region <span class="mark" data-step-mark="legend_filter"></span></h2>
+    <p>Show only <strong id="q-region"></strong> on the Revenue by region chart, then tell us in which quarter its revenue
+       was highest.</p>
+    <div class="row"><input id="a-legend_filter" size="10" autocomplete="off" aria-label="Quarter" data-enter="go-legend_filter"> <button id="go-legend_filter" data-step="legend_filter">Submit</button></div>
+    <p class="msg" data-msg="legend_filter"></p>
+  </section>
+  <section class="ch">
+    <h2>4. Refund rates <span class="mark" data-step-mark="pivot_drill"></span></h2>
+    <p>Which <strong id="q-category"></strong> product has the highest refund rate over the whole period?</p>
+    <div class="row"><input id="a-pivot_drill" size="18" autocomplete="off" aria-label="Product" data-enter="go-pivot_drill"> <button id="go-pivot_drill" data-step="pivot_drill">Submit</button></div>
+    <p class="msg" data-msg="pivot_drill"></p>
+  </section>
+  <section class="ch">
+    <h2>5. KPI for a range <span class="mark" data-step-mark="range_kpi"></span></h2>
+    <p>Set the range to <strong id="q-range"></strong> and report <strong>Active users</strong>.</p>
+    <div class="row"><input id="a-range_kpi" size="10" autocomplete="off" aria-label="Active users" data-enter="go-range_kpi"> <button id="go-range_kpi" data-step="range_kpi">Submit</button></div>
+    <p class="msg" data-msg="range_kpi"></p>
+  </section>
+</div>
+
+<section class="app" aria-label="Analytics dashboard">
+  <div class="app-head"><h2>Beacon Analytics</h2><span class="muted">Growth dashboard</span></div>
+  <div class="dash">
+    <div class="panel wide">
+      <h3>Overview <button id="range-btn" aria-haspopup="dialog" aria-expanded="false"></button></h3>
+      <div class="kpis">
+        <div class="kpi"><div class="muted">Active users</div><div class="v" id="kpi-active"></div></div>
+        <div class="kpi"><div class="muted">Sessions</div><div class="v" id="kpi-sessions"></div></div>
+        <div class="kpi"><div class="muted">Conversion</div><div class="v" id="kpi-conv"></div></div>
+      </div>
+      <div class="picker" id="picker" role="dialog" aria-label="Choose a date range" hidden></div>
+    </div>
+    <div class="panel">
+      <h3>Daily signups <span class="muted">last 30 days</span></h3>
+      <div class="chart" id="signups"></div>
+    </div>
+    <div class="panel">
+      <h3>Quarterly revenue <button id="rev-toggle" type="button" aria-expanded="false" aria-controls="rev-table">Show data table</button></h3>
+      <div class="chart" id="revenue"></div>
+      <table class="grid" id="rev-table" hidden><thead><tr><th>Quarter</th><th class="num">Revenue</th></tr></thead><tbody></tbody></table>
+    </div>
+    <div class="panel">
+      <h3>Revenue by region <span class="muted" id="regions-year"></span></h3>
+      <div class="legend" id="legend" role="group" aria-label="Regions shown on the chart"></div>
+      <div class="chart" id="regions"></div>
+    </div>
+    <div class="panel">
+      <h3>Orders and refunds by category <span class="row" style="margin:0"><span class="muted">Measure</span><button id="measure"></button></span></h3>
+      <div class="muted" id="pivot-period"></div>
+      <div class="pivot-wrap"><table class="grid" id="pivot"></table></div>
+    </div>
+  </div>
+</section>
+
+<script src="v3_common.js"></script>
+<script src="v6_kit.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+const { h } = K;
+const NS = "http://www.w3.org/2000/svg";
+const REGION_COLORS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4"];
+let pub = null;
+
+// Calendar days are local dates: "2027-03-14" is March 14 in any time zone.
+const toDay = (iso) => { const [y, m, d] = iso.split("-").map(Number); return new Date(y, m - 1, d || 1); };
+const toIso = (d) => [d.getFullYear(), String(d.getMonth() + 1).padStart(2, "0"), String(d.getDate()).padStart(2, "0")].join("-");
+const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+const addMonths = (d, n) => new Date(d.getFullYear(), d.getMonth() + n, 1);
+const daysBetween = (a, b) => Math.round((b - a) / 864e5);
+const fmt = (d, o) => d.toLocaleDateString("en-US", o);
+const num = (n) => Number(n).toLocaleString("en-US");
+const usd = (n) => "$" + num(n);
+const sum = (xs) => xs.reduce((a, b) => a + b, 0);
+const compactUsd = (v) => v >= 1e6 ? "$" + v / 1e6 + "M" : v >= 1e3 ? "$" + v / 1e3 + "K" : "$" + v;
+function rangeLabel(a, b) {
+  const md = (d) => fmt(d, { month: "short", day: "numeric" });
+  return md(a) + (a.getFullYear() === b.getFullYear() ? "" : ", " + a.getFullYear()) + " – " + md(b) + ", " + b.getFullYear();
+}
+
+// Redraw a container and give keyboard focus back to the control that had it (matched by data-key).
+function redraw(box, draw) {
+  const key = box.contains(document.activeElement) ? document.activeElement.dataset.key : null;
+  draw();
+  const again = key && [...box.querySelectorAll("[data-key]")].find((el) => el.dataset.key === key);
+  if (again) again.focus();
+}
+
+// --- charts ---------------------------------------------------------------------------------------
+function svgEl(tag, attrs, text) {
+  const el = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs || {})) el.setAttribute(k, v);
+  if (text !== undefined) el.textContent = text;
+  return el;
+}
+function ticks(max) {  // gridlines at a round step (1, 2 or 5 × 10^k), about four of them
+  const raw = max / 4, mag = 10 ** Math.floor(Math.log10(raw));
+  const step = [1, 2, 5, 10].map((m) => m * mag).find((s) => s >= raw);
+  const out = [];
+  for (let v = 0; v <= Math.ceil(max / step) * step; v += step) out.push(v);
+  return out;
+}
+/** An SVG chart frame with y gridlines; y(value) maps to pixels. */
+function frame(title, height, pad, yTicks, yLabel) {
+  const W = 520;
+  const svg = svgEl("svg", { width: W, height, viewBox: `0 0 ${W} ${height}`, tabindex: "0", role: "group",
+    "aria-label": title + ": hover a point, or use the arrow keys, to read its value" });
+  const plot = { left: pad.left, right: W - pad.right, top: pad.top, bottom: height - pad.bottom };
+  const lo = yTicks[0], hi = yTicks[yTicks.length - 1];
+  const y = (v) => plot.bottom - (v - lo) / (hi - lo) * (plot.bottom - plot.top);
+  const axis = svgEl("g", { class: "axis" });
+  for (const t of yTicks) {
+    axis.append(svgEl("line", { x1: plot.left, x2: plot.right, y1: y(t), y2: y(t), class: "gridline" }),
+      svgEl("text", { x: plot.left - 6, y: y(t) + 4, "text-anchor": "end" }, yLabel(t)));
+  }
+  svg.append(axis);
+  const xLabel = (x, row, text) => axis.append(svgEl("text", { x, y: plot.bottom + 15 * row, "text-anchor": "middle" }, text));
+  return { svg, plot, y, xLabel, width: W };
+}
+/** Hover targets (a full-height column per mark) and a keyboard focus marker; both show the mark's tooltip. */
+function interact(wrap, f, marks, markerFor) {
+  const { svg, plot } = f;
+  const marker = svgEl("g", { class: "marker" });
+  const tip = h("div", { class: "tip", role: "status", hidden: true });
+  svg.append(marker);
+  let cur = 0;
+  function show(i) {
+    cur = i;
+    const m = marks[i];
+    marker.replaceChildren(...markerFor(m));
+    tip.textContent = m.text;
+    tip.hidden = false;
+    tip.style.left = Math.max(0, Math.min(m.cx - tip.offsetWidth / 2, f.width - tip.offsetWidth)) + "px";
+    tip.style.top = Math.max(0, m.cy - tip.offsetHeight - 10) + "px";
+  }
+  function hide() { tip.hidden = true; marker.replaceChildren(); cur = 0; }  // keyboard focus starts at the first mark
+  marks.forEach((m, i) => {
+    const hit = svgEl("rect", { class: "hit", x: m.x, y: plot.top, width: m.w, height: plot.bottom - plot.top });
+    hit.addEventListener("mouseenter", () => show(i));
+    svg.append(hit);
+  });
+  svg.addEventListener("mouseleave", () => (document.activeElement === svg ? show(cur) : hide()));
+  svg.addEventListener("focus", () => show(cur));
+  svg.addEventListener("blur", hide);
+  svg.addEventListener("keydown", (e) => {
+    const to = { ArrowRight: cur + 1, ArrowDown: cur + 1, ArrowLeft: cur - 1, ArrowUp: cur - 1, Home: 0, End: marks.length - 1 }[e.key];
+    if (to === undefined) return;
+    e.preventDefault();
+    show(Math.max(0, Math.min(marks.length - 1, to)));
+  });
+  wrap.replaceChildren(svg, tip);
+}
+const ringFor = (f) => (m) => [svgEl("rect", { x: m.bx - 2, y: m.cy - 2, width: m.bw + 4, height: f.plot.bottom - m.cy + 2, rx: 3, class: "ring" })];
+
+function drawSignups() {
+  const { start, values } = pub.data.signups;
+  const f = frame("Daily signups", 200, { left: 44, right: 8, top: 10, bottom: 24 }, [500, 1000, 1500, 2000], num);
+  const step = (f.plot.right - f.plot.left) / values.length;
+  const cx = (i) => f.plot.left + step * (i + 0.5);
+  const days = values.map((_, i) => addDays(toDay(start), i));
+  days.forEach((d, i) => { if (i % 7 === 1) f.xLabel(cx(i), 1, fmt(d, { month: "short", day: "numeric" })); });
+  f.svg.append(svgEl("path", { class: "line", d: values.map((v, i) => (i ? "L" : "M") + cx(i).toFixed(1) + "," + f.y(v).toFixed(1)).join("") }));
+  const marks = values.map((v, i) => ({ x: f.plot.left + step * i, w: step, cx: cx(i), cy: f.y(v),
+    text: fmt(days[i], { weekday: "short", month: "short", day: "numeric" }) + " · " + num(v) + " signups" }));
+  interact($("#signups"), f, marks, (m) => [svgEl("line", { x1: m.cx, x2: m.cx, y1: f.plot.top, y2: f.plot.bottom, class: "guide" }),
+    svgEl("circle", { cx: m.cx, cy: m.cy, r: 4.5, class: "dot" })]);
+}
+
+function drawRevenue() {
+  const { years, values } = pub.data.revenue;
+  const f = frame("Quarterly revenue", 210, { left: 50, right: 8, top: 10, bottom: 38 }, ticks(Math.max(...values)), compactUsd);
+  const slot = (f.plot.right - f.plot.left) / values.length;
+  const marks = values.map((v, i) => {
+    const x = f.plot.left + slot * i, bw = slot * 0.6, bx = x + (slot - bw) / 2;
+    f.svg.append(svgEl("rect", { class: "bar", x: bx, y: f.y(v), width: bw, height: f.plot.bottom - f.y(v), rx: 3 }));
+    f.xLabel(x + slot / 2, 1, "Q" + (i % 4 + 1));
+    return { x, w: slot, cx: x + slot / 2, cy: f.y(v), bx, bw, text: `Q${i % 4 + 1} ${years[i >> 2]} · ${usd(v)}` };
+  });
+  years.forEach((yr, k) => f.xLabel(f.plot.left + slot * (k * 4 + 2), 2, String(yr)));
+  interact($("#revenue"), f, marks, ringFor(f));
+  $("#rev-table tbody").replaceChildren(...values.map((v, i) => h("tr", {}, h("td", { text: `Q${i % 4 + 1} ${years[i >> 2]}` }), h("td", { class: "num", text: usd(v) }))));
+}
+$("#rev-toggle").addEventListener("click", () => {
+  const table = $("#rev-table");
+  table.hidden = !table.hidden;
+  $("#rev-toggle").textContent = table.hidden ? "Show data table" : "Hide data table";
+  $("#rev-toggle").setAttribute("aria-expanded", table.hidden ? "false" : "true");
+});
+
+const shownRegions = new Set();
+function drawLegend() {
+  const { names } = pub.data.regions;
+  names.forEach((r, i) => {
+    shownRegions.add(r);
+    const sw = h("span", { class: "sw", style: { background: REGION_COLORS[i] } });
+    const btn = h("button", { type: "button", "aria-pressed": "true" }, sw, r);
+    btn.addEventListener("click", () => {  // toggles in place, so keyboard focus stays on the item
+      const on = !shownRegions.has(r);
+      on ? shownRegions.add(r) : shownRegions.delete(r);
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+      sw.style.background = on ? REGION_COLORS[i] : "#c9ced6";
+      drawRegions();
+    });
+    $("#legend").append(btn);
+  });
+}
+function drawRegions() {
+  const { year, names, values } = pub.data.regions;
+  const visible = names.filter((r) => shownRegions.has(r));
+  if (!visible.length) return $("#regions").replaceChildren(h("p", { class: "muted", text: "No regions selected — choose one in the legend." }));
+  const f = frame(`Revenue by region, ${year}`, 210, { left: 50, right: 8, top: 10, bottom: 24 }, ticks(Math.max(...visible.flatMap((r) => values[r]))), compactUsd);
+  const group = (f.plot.right - f.plot.left) / 4, inner = group * 0.84, slot = inner / visible.length;
+  const marks = [];
+  for (let q = 0; q < 4; q++) {
+    f.xLabel(f.plot.left + group * (q + 0.5), 1, "Q" + (q + 1));
+    visible.forEach((r, k) => {
+      const v = values[r][q], x = f.plot.left + group * q + (group - inner) / 2 + slot * k;
+      const bw = Math.min(slot - 2, 44), bx = x + (slot - bw) / 2;
+      f.svg.append(svgEl("rect", { x: bx, y: f.y(v), width: bw, height: f.plot.bottom - f.y(v), rx: 2, fill: REGION_COLORS[names.indexOf(r)] }));
+      marks.push({ x, w: slot, cx: x + slot / 2, cy: f.y(v), bx, bw, text: `${r} · Q${q + 1} ${year} · ${usd(v)}` });
+    });
+  }
+  interact($("#regions"), f, marks, ringFor(f));
+}
+
+// --- pivot ----------------------------------------------------------------------------------------
+let measure = "orders", openCategory = null;
+function cell(orders, refunds) {
+  if (measure === "orders") return num(orders);
+  if (measure === "refunds") return num(refunds);
+  return (refunds / orders * 100).toFixed(1) + "%";
+}
+function pivotRow(cls, first, orders, refunds, attrs) {
+  return h("tr", Object.assign({ class: cls }, attrs || {}), first, orders.map((o, i) => h("td", { class: "num", text: cell(o, refunds[i]) })),
+    h("td", { class: "num", text: cell(sum(orders), sum(refunds)) }));
+}
+function drawPivot() {
+  const { months, categories } = pub.data.pivot;
+  const body = h("tbody");
+  for (const c of categories) {
+    const open = openCategory === c.name;
+    const orders = months.map((_, i) => sum(c.products.map((p) => p.orders[i])));
+    const refunds = months.map((_, i) => sum(c.products.map((p) => p.refunds[i])));
+    const twisty = h("button", { type: "button", class: "twisty", dataset: { key: c.name }, "aria-expanded": open ? "true" : "false",
+      "aria-label": (open ? "Collapse " : "Expand ") + c.name, text: open ? "▾" : "▸" });
+    body.append(pivotRow("cat", h("td", {}, twisty, c.name), orders, refunds,
+      { onclick: () => { openCategory = open ? null : c.name; redraw($("#pivot"), drawPivot); } }));
+    if (open) for (const p of c.products) body.append(pivotRow("prod", h("td", { text: p.name }), p.orders, p.refunds));
+  }
+  const head = h("tr", {}, h("th", { text: "Category" }), months.map((m) => h("th", { class: "num", text: fmt(toDay(m), { month: "short" }) })), h("th", { class: "num", text: "Total" }));
+  $("#pivot").replaceChildren(h("thead", {}, head), body);
+}
+
+// --- KPIs and the date range picker ---------------------------------------------------------------
+let range = null, pick = null, viewMonth = null, custom = false;
+const picker = $("#picker");
+function presets() {
+  const today = toDay(pub.today);
+  return [["Last 7 days", addDays(today, -6), today], ["Last 30 days", addDays(today, -29), today],
+    ["This month", new Date(today.getFullYear(), today.getMonth(), 1), today]];
+}
+function drawKpis() {
+  const d = pub.data.daily, first = toDay(d.start);
+  const a = daysBetween(first, range.start), b = daysBetween(first, range.end) + 1;
+  const sessions = sum(d.sessions.slice(a, b));
+  $("#kpi-active").textContent = num(sum(d.active.slice(a, b)));
+  $("#kpi-sessions").textContent = num(sessions);
+  $("#kpi-conv").textContent = (sum(d.conversions.slice(a, b)) / sessions * 100).toFixed(2) + "%";
+  const preset = presets().find(([, s, e]) => +s === +range.start && +e === +range.end);
+  $("#range-btn").textContent = (preset ? preset[0] + ": " : "") + rangeLabel(range.start, range.end) + " ▾";
+}
+function setRange(start, end) {
+  range = { start, end };
+  closePicker();
+  drawKpis();
+  $("#range-btn").focus();
+}
+function openPicker() {
+  pick = { start: range.start, end: range.end };
+  custom = false;
+  const today = toDay(pub.today);
+  viewMonth = addMonths(today, -1);  // the left calendar shows last month, the right one this month
+  picker.hidden = false;
+  $("#range-btn").setAttribute("aria-expanded", "true");
+  drawPicker();
+  picker.querySelector("button").focus();
+}
+function closePicker() {
+  picker.hidden = true;
+  $("#range-btn").setAttribute("aria-expanded", "false");
+}
+function drawPicker() {
+  const list = h("div", { class: "presets" });
+  for (const [label, s, e] of presets()) list.append(h("button", { type: "button", text: label, onclick: () => setRange(s, e) }));
+  list.append(h("button", { type: "button", text: "Custom range", "aria-pressed": custom ? "true" : "false", dataset: { key: "custom" },
+    onclick: () => { custom = true; redraw(picker, drawPicker); } }));
+  picker.replaceChildren(list);
+  if (custom) picker.append(calendar());
+}
+function month(first) {
+  const today = toDay(pub.today), dataStart = toDay(pub.data.daily.start);
+  const grid = h("div", { class: "days" }, ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"].map((w) => h("span", { class: "wd", text: w })));
+  for (let i = (first.getDay() + 6) % 7; i > 0; i--) grid.append(h("span"));
+  for (let d = first; d.getMonth() === first.getMonth(); d = addDays(d, 1)) {
+    const day = d;
+    const isEnd = pick.start && (+day === +pick.start || (pick.end && +day === +pick.end));
+    const inside = pick.end && day > pick.start && day < pick.end;
+    grid.append(h("button", { type: "button", class: isEnd ? "end" : inside ? "in" : "", disabled: day < dataStart || day > today,
+      "aria-label": fmt(day, { weekday: "long", month: "long", day: "numeric", year: "numeric" }), dataset: { key: toIso(day) },
+      text: String(day.getDate()), onclick: () => chooseDay(day) }));
+  }
+  return h("div", { class: "month" }, h("div", { class: "mtitle", text: fmt(first, { month: "long", year: "numeric" }) }), grid);
+}
+function chooseDay(day) {
+  // the first click starts a range, the second ends it (an earlier day starts it over)
+  pick = pick.start && !pick.end && day >= pick.start ? { start: pick.start, end: day } : { start: day, end: null };
+  redraw(picker, drawPicker);
+}
+function calendar() {
+  const today = toDay(pub.today), dataStart = toDay(pub.data.daily.start);
+  const nav = (label, key, delta, disabled) => h("button", { type: "button", "aria-label": label, dataset: { key }, text: delta < 0 ? "‹" : "›", disabled,
+    onclick: () => { viewMonth = addMonths(viewMonth, delta); redraw(picker, drawPicker); } });
+  const status = pick.end ? rangeLabel(pick.start, pick.end) : pick.start ? "Now choose the end day" : "Choose the start day";
+  return h("div", { class: "cal" },
+    h("div", { class: "cal-nav" }, nav("Previous month", "prev", -1, viewMonth <= dataStart), nav("Next month", "next", 1, addMonths(viewMonth, 1) >= addMonths(today, 0))),
+    h("div", { class: "months" }, month(viewMonth), month(addMonths(viewMonth, 1))),
+    h("div", { class: "row" }, h("span", { class: "muted", text: status }),
+      h("button", { type: "button", class: "primary", text: "Apply", disabled: !pick.end, onclick: () => setRange(pick.start, pick.end) }),
+      h("button", { type: "button", text: "Cancel", onclick: () => { closePicker(); $("#range-btn").focus(); } })));
+}
+$("#range-btn").addEventListener("click", () => (picker.hidden ? openPicker() : closePicker()));
+picker.addEventListener("keydown", (e) => { if (e.key === "Escape") { closePicker(); $("#range-btn").focus(); } });
+document.addEventListener("mousedown", (e) => {
+  if (!picker.hidden && !picker.contains(e.target) && !$("#range-btn").contains(e.target)) closePicker();
+});
+
+// --- answers --------------------------------------------------------------------------------------
+function viewState(step) {  // what the dashboard shows, sent with the answer
+  if (step === "legend_filter") return { visible: pub.data.regions.names.filter((r) => shownRegions.has(r)) };
+  if (step === "range_kpi") return { range: { start: toIso(range.start), end: toIso(range.end) } };
+  return {};
+}
+document.querySelectorAll("button[data-step]").forEach((b) => b.addEventListener("click", () => {
+  const step = b.dataset.step;
+  V3.act("answer", Object.assign({ step, value: $("#a-" + step).value }, viewState(step)));
+}));
+
+V3.onState((st) => {
+  if (pub) return;
+  pub = st.public;
+  const t = pub.tasks;
+  $("#q-day").textContent = t.tooltip_value.text;
+  $("#q-from").textContent = `Q${t.quarter_growth.quarter} ${t.quarter_growth.from}`;
+  $("#q-to").textContent = `Q${t.quarter_growth.quarter} ${t.quarter_growth.to}`;
+  $("#q-region").textContent = t.legend_filter.region;
+  $("#q-category").textContent = t.pivot_drill.category;
+  $("#q-range").textContent = t.range_kpi.text;
+  $("#regions-year").textContent = String(pub.data.regions.year);
+  const months = pub.data.pivot.months.map(toDay);
+  $("#pivot-period").textContent = rangeLabel(months[0], addDays(addMonths(months[months.length - 1], 1), -1));
+  K.select($("#measure"), { options: [{ value: "orders", label: "Orders" }, { value: "refunds", label: "Refunds" }, { value: "rate", label: "Refund rate" }],
+    value: measure, onChange: (v) => { measure = v; drawPivot(); } });
+  const preset = presets()[1];
+  range = { start: preset[1], end: preset[2] };
+  drawSignups(); drawRevenue(); drawLegend(); drawRegions(); drawPivot(); drawKpis();
+});
+</script>
+</body>
+</html>

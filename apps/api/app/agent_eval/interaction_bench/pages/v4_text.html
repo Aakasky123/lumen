@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Text editing bench</title>
+<link rel="stylesheet" href="v4_style.css">
+<style>
+  .card{white-space:pre-line;font-family:ui-monospace,Consolas,monospace;background:#f7f9fb;border:1px solid #dde3ea;border-radius:8px;padding:10px 14px;display:inline-block}
+  textarea{font-family:ui-monospace,Consolas,monospace;font-size:13px;width:100%;max-width:640px;box-sizing:border-box}
+  #sentence{width:100%;max-width:820px;box-sizing:border-box}
+  #toolbar{display:flex;gap:6px;margin-bottom:6px}
+  #toolbar button{width:38px;padding:4px 0}
+  #editor{border:1px solid #bbb;border-radius:6px;padding:10px 12px;min-height:44px;max-width:760px;background:#fff;outline:none;font-size:15px}
+  #editor:focus{box-shadow:0 0 0 3px #bcd3ee}
+  .special{font-size:22px;font-family:"Segoe UI",system-ui,sans-serif;background:#f7f9fb;border:1px solid #dde3ea;border-radius:8px;padding:8px 14px;display:inline-block}
+  #special{width:420px;font-size:16px}
+  #acwrap{position:relative;display:inline-block}
+  #city{width:340px}
+  #suggest{position:absolute;left:0;right:0;top:100%;margin:2px 0 0;padding:4px 0;list-style:none;background:#fff;border:1px solid #b9c2cc;border-radius:6px;box-shadow:0 6px 18px rgba(0,0,0,.14);display:none;z-index:20}
+  #suggest li{padding:5px 12px;cursor:default}
+  #suggest li.active{background:#dbe8f7}
+</style>
+</head>
+<body data-page="v4_text">
+<h1>Text editing bench</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+<p class="intro">Seven independent challenges, in any order. Each changes text in a different way. Only the final
+  text counts — enter it exactly.</p>
+
+<section class="ch">
+  <h2>1. Multi-line entry <span class="mark" data-step-mark="multiline"></span></h2>
+  <p>Type this delivery address into the box exactly, one line per line:</p>
+  <div class="card" id="addr"></div>
+  <p><textarea id="address" rows="5" spellcheck="false"></textarea></p>
+  <button id="address-go">Save address</button>
+  <p class="msg" data-msg="multiline"></p>
+</section>
+
+<section class="ch">
+  <h2>2. Insert at the caret <span class="mark" data-step-mark="caret_insert"></span></h2>
+  <p>Insert the word <span class="val" data-public="insert_word"></span> right before
+     <span class="val" data-public="anchor"></span> (with one space on each side). Change nothing else.</p>
+  <p><input id="sentence" spellcheck="false"></p>
+  <button id="sentence-go">Save sentence</button>
+  <p class="msg" data-msg="insert"></p>
+</section>
+
+<section class="ch">
+  <h2>3. Rich-text formatting <span class="mark" data-step-mark="rich_format"></span></h2>
+  <p>Make <span class="val" data-public="bold_word"></span> <strong>bold</strong> and
+     <span class="val" data-public="italic_word"></span> <em>italic</em> — whole words, nothing else formatted, no
+     words changed. Select a word and use the toolbar or Ctrl+B / Ctrl+I.</p>
+  <div id="toolbar"><button id="b-bold" title="Bold (Ctrl+B)"><strong>B</strong></button><button id="b-italic" title="Italic (Ctrl+I)"><em>I</em></button>
+    <button id="rich-reset" style="width:auto">Reset paragraph</button></div>
+  <div id="editor" contenteditable="true" spellcheck="false"></div>
+  <p><button id="rich-go">Save formatting</button></p>
+  <p class="msg" data-msg="rich"></p>
+</section>
+
+<section class="ch">
+  <h2>4. Delete a line <span class="mark" data-step-mark="line_delete"></span></h2>
+  <p>Remove the whole line <span class="val" data-public="temp_line"></span> from this config — leave no blank line
+     behind, and keep every other line as it is.</p>
+  <p><textarea id="config" rows="11" spellcheck="false"></textarea></p>
+  <button id="config-go">Save config</button>
+  <p class="msg" data-msg="config"></p>
+</section>
+
+<section class="ch">
+  <h2>5. Special characters <span class="mark" data-step-mark="special_chars"></span></h2>
+  <p>Type this exactly — every accent, symbol, and dash:</p>
+  <div class="special" id="special-show"></div>
+  <div class="row"><input id="special" spellcheck="false" autocomplete="off"> <button id="special-go">Check</button></div>
+  <p class="msg" data-msg="special"></p>
+</section>
+
+<section class="ch">
+  <h2>6. Pick from suggestions <span class="mark" data-step-mark="autocomplete"></span></h2>
+  <p>Set the destination to <span class="val" data-public="city"></span>. Type a few letters and choose it from the
+     suggestion list (click it, or move with the arrow keys and press Enter). Look-alike places exist.</p>
+  <div class="row"><span id="acwrap"><input id="city" role="combobox" aria-autocomplete="list" autocomplete="off" spellcheck="false"><ul id="suggest" role="listbox"></ul></span>
+    <button id="city-go">Confirm destination</button></div>
+  <p class="hint">Chosen: <span id="chosen">—</span></p>
+  <p class="msg" data-msg="city"></p>
+</section>
+
+<section class="ch">
+  <h2>7. Edit deep inside a long text <span class="mark" data-step-mark="deep_edit"></span></h2>
+  <p>In this record list, change record <span class="val" data-public="deep_record"></span>'s status from
+     <code>hold</code> to <code>ready</code>. Change nothing else.</p>
+  <p><textarea id="deep" rows="12" spellcheck="false" wrap="off"></textarea></p>
+  <button id="deep-go">Save records</button>
+  <p class="msg" data-msg="deep"></p>
+</section>
+
+<script src="v3_common.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+let pub = null;
+
+// --- rich text ----------------------------------------------------------------------------------
+function resetEditor() {
+  $("#editor").textContent = pub.rich_text;
+}
+for (const [id, cmd] of [["#b-bold", "bold"], ["#b-italic", "italic"]]) {
+  $(id).addEventListener("mousedown", (e) => e.preventDefault());  // keep the editor's selection
+  $(id).addEventListener("click", () => {
+    $("#editor").focus();
+    document.execCommand(cmd);
+  });
+}
+$("#rich-reset").addEventListener("click", resetEditor);
+function formatting() {
+  const editor = $("#editor");
+  const chars = [];
+  const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT);
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    const style = getComputedStyle(node.parentElement);
+    const bold = parseInt(style.fontWeight, 10) >= 600;
+    const italic = style.fontStyle === "italic" || style.fontStyle === "oblique";
+    for (const ch of node.textContent) chars.push({ ch, bold, italic });
+  }
+  const text = chars.map((c) => c.ch).join("");
+  const out = { text, bold: [], italic: [], mixed: [] };
+  const re = /\S+/g;
+  let m;
+  while ((m = re.exec(text))) {
+    const span = chars.slice(m.index, m.index + m[0].length).filter((c) => /[\p{L}\p{N}]/u.test(c.ch));
+    if (!span.length) continue;
+    const word = m[0].replace(/[.,;:!?]+$/, "");
+    const b = span.filter((c) => c.bold).length, i = span.filter((c) => c.italic).length;
+    if (b === span.length) out.bold.push(word);
+    if (i === span.length) out.italic.push(word);
+    if ((b && b < span.length) || (i && i < span.length)) out.mixed.push(word);
+  }
+  return out;
+}
+$("#rich-go").addEventListener("click", () => V3.act("rich", formatting()));
+
+// --- autocomplete -------------------------------------------------------------------------------
+let picked = "", active = -1, shown = [];
+function drawSuggest() {
+  const ul = $("#suggest");
+  ul.innerHTML = "";
+  shown.forEach((name, i) => {
+    const li = document.createElement("li");
+    li.textContent = name;
+    li.setAttribute("role", "option");
+    if (i === active) li.className = "active";
+    li.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      choose(name);
+    });
+    ul.appendChild(li);
+  });
+  ul.style.display = shown.length ? "block" : "none";
+}
+function choose(name) {
+  picked = name;
+  $("#city").value = name;
+  $("#chosen").textContent = name;
+  shown = [];
+  active = -1;
+  drawSuggest();
+}
+$("#city").addEventListener("input", () => {
+  const q = $("#city").value.trim().toLowerCase();
+  picked = "";
+  $("#chosen").textContent = "—";
+  shown = q.length >= 2 ? pub.cities.filter((c) => c.toLowerCase().includes(q)).slice(0, 6) : [];
+  active = -1;
+  drawSuggest();
+});
+$("#city").addEventListener("keydown", (e) => {
+  if (!shown.length) return;
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+    e.preventDefault();
+    active = (active + (e.key === "ArrowDown" ? 1 : -1) + shown.length) % shown.length;
+    drawSuggest();
+  } else if (e.key === "Enter" && active >= 0) {
+    e.preventDefault();
+    choose(shown[active]);
+  } else if (e.key === "Escape") {
+    shown = [];
+    drawSuggest();
+  }
+});
+$("#city").addEventListener("blur", () => setTimeout(() => { shown = []; drawSuggest(); }, 150));
+$("#city-go").addEventListener("click", () => V3.act("autocomplete", { value: picked || $("#city").value, picked: !!picked }));
+
+// --- the rest -----------------------------------------------------------------------------------
+$("#address-go").addEventListener("click", () => V3.act("multiline", { value: $("#address").value }));
+$("#sentence-go").addEventListener("click", () => V3.act("caret_insert", { value: $("#sentence").value }));
+$("#config-go").addEventListener("click", () => V3.act("line_delete", { value: $("#config").value }));
+$("#special-go").addEventListener("click", () => V3.act("special", { value: $("#special").value }));
+$("#deep-go").addEventListener("click", () => V3.act("deep_edit", { value: $("#deep").value }));
+
+V3.onState((st) => {
+  if (pub) return;
+  pub = st.public;
+  $("#addr").textContent = pub.address.join("\n");
+  $("#sentence").value = pub.sentence;
+  resetEditor();
+  $("#config").value = pub.config.join("\n");
+  $("#special-show").textContent = pub.special;
+  $("#deep").value = pub.deep_lines.join("\n");
+});
+</script>
+</body>
+</html>

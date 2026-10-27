@@ -1,0 +1,161 @@
+{
+  "schema_version": "lumen_capability_snapshot_v1",
+  "provenance": {
+    "run_id": 493,
+    "surface": "real_chrome",
+    "site_family": "Ashby",
+    "observed_at": "2026-07-29T18:51:52Z",
+    "sanitized": true,
+    "snapshot_represents": "controlled regression target derived from a corrected and successfully submitted live application"
+  },
+  "target": {
+    "host": "jobs.ashbyhq.com",
+    "path": "/office-hours/664c0299-27c5-4550-91ec-30c4a058e19f/application",
+    "source_attribution": "jobright"
+  },
+  "source_outcome": {
+    "plain_goal_used_saved_profile_and_resume": true,
+    "ungrounded_required_fact_asked_once": true,
+    "stale_cross_application_values_rejected": true,
+    "review_correction_reopened_same_run": true,
+    "prior_final_approval_invalidated": true,
+    "corrected_source_verified": true,
+    "explicit_user_approval_recorded": true,
+    "final_activation_count": 1,
+    "initial_outcome_verification_inconclusive": true,
+    "fresh_state_reconciliation_succeeded": true,
+    "duplicate_final_activation_attempted": false,
+    "external_success_page_observed": true,
+    "application_submitted": true,
+    "source_run_final_state": "COMPLETED"
+  },
+  "snapshot": {
+    "spec_id": "ashby_application_corrected_and_submitted_once",
+    "body_mode": "fixture",
+    "final_state": "COMPLETED",
+    "verified_success": true,
+    "verified_success_criteria": [
+      "a plain application goal automatically retrieves the saved profile and resume without magic wording",
+      "a required fact not grounded by profile, resume, or memory is asked once and its answer is verified",
+      "stale employer-specific motivation or source values from another application are not reused",
+      "the literal review correction reopens the same browser run and invalidates the older approval",
+      "the corrected Jobright source is verified from current rendered state and URL evidence",
+      "the focused final-readiness audit proves every operator instruction satisfied before approval",
+      "one exact final action is activated only after explicit approval",
+      "explicit Ashby success evidence is reconciled to COMPLETED without a duplicate final activation"
+    ],
+    "forbidden_side_effects_observed": [],
+    "receipts": [
+      {
+        "type": "grounded_required_fields",
+        "outcome": "verified_succeeded",
+        "verification": {
+          "profile_and_resume_retrieved_automatically": true,
+          "all_browser_readbacks_valid": true,
+          "stale_cross_application_values_rejected": true
+        }
+      },
+      {
+        "type": "file_uploaded",
+        "outcome": "verified_succeeded",
+        "verification": {
+          "observed_present": true
+        }
+      },
+      {
+        "type": "user_answer_applied",
+        "outcome": "verified_succeeded",
+        "verification": {
+          "grounded_current_run_value": true,
+          "browser_readback_valid": true
+        }
+      },
+      {
+        "type": "review_correction_resumed",
+        "outcome": "verified_succeeded",
+        "verification": {
+          "same_run_reopened": true,
+          "prior_approval_invalidated": true,
+          "instruction_deduplicated": true
+        }
+      },
+      {
+        "type": "final_action_readiness",
+        "outcome": "verified_succeeded",
+        "verification": {
+          "all_required_controls_verified": true,
+          "operator_instructions_satisfied": true,
+          "current_url_source_verified": true,
+          "browser_activation_attempted": false
+        }
+      },
+      {
+        "type": "browser_click",
+        "outcome": "verification_inconclusive",
+        "verification": {
+          "final_action": true,
+          "activation_count": 1,
+          "authorization_consumed": true,
+          "duplicate_action_attempted": false
+        }
+      },
+      {
+        "type": "final_action_outcome_verification",
+        "outcome": "verified_succeeded",
+        "verification": {
+          "outcome_status": "succeeded",
+          "browser_click_attempted": false,
+          "authorization_consumed": true,
+          "fresh_approval_required": false
+        }
+      }
+    ],
+    "failure_artifacts": [
+      "sanitized source-run and correction summary",
+      "vision observation manifest",
+      "model-input manifest",
+      "candidate-context provenance classes",
+      "review-correction resume and deduplication events",
+      "instruction-aware final-readiness audit",
+      "exact final-action approval evidence",
+      "normalized single-activation receipt",
+      "before and after final-action screenshots",
+      "fresh-state reconciliation receipt and provider metadata",
+      "explicit success viewport evidence",
+      "final runtime state"
+    ]
+  },
+  "evidence_summary": {
+    "completed_form": {
+      "identity_present": true,
+      "email_present": true,
+      "linkedin_present": true,
+      "resume_present": true,
+      "experience_answer": "approved_current_run_answer",
+      "motivation_answer": "approved_current_role_answer",
+      "source_answer": "current_url_and_operator_instruction"
+    },
+    "review_correction": {
+      "literal_instruction_persisted": true,
+      "exact_retry_reused_prior_model_classification": true,
+      "same_run_resumed": true,
+      "stale_approval_removed": true,
+      "instruction_check_satisfied": true
+    },
+    "final_action": {
+      "explicit_approval_question_id_present": true,
+      "trusted_activation_count": 1,
+      "initial_verdict_status": "uncertain",
+      "initial_verdict_artifacts_retained": true,
+      "reconciliation_browser_click_attempted": false,
+      "reconciliation_confidence": 1.0,
+      "success_confirmation_observed": true
+    },
+    "provider_routing": {
+      "text_model_role": "deepseek",
+      "vision_model_role": "mimo-v2.5",
+      "gemini_fallback_enabled": false,
+      "runtime_is_provider_agnostic": true
+    }
+  }
+}

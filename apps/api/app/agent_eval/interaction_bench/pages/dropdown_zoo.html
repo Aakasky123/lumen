@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Reactor configuration</title>
+<style>
+  body{font-family:system-ui,-apple-system,sans-serif;margin:0;padding:24px;line-height:1.5;color:#1a1a1a;background:#fafafa}
+  h1{font-size:22px}
+  .hint{color:#666;font-size:13px}
+  .verdict{font-weight:700;padding:14px;margin:18px 0;border-radius:8px;background:#eee;max-width:900px}
+  .verdict.pass{background:#dff5df}
+  .verdict.fail{background:#fbdcdc}
+  button{font:inherit;padding:6px 14px;border-radius:6px;border:1px solid #bbb;background:#f2f2f2;cursor:pointer}
+  input,select{font:inherit;padding:6px 8px;border:1px solid #bbb;border-radius:6px}
+  #briefing{background:#f2f6fc;border:1px solid #b9cbe4;border-radius:10px;padding:14px;max-width:900px}
+  .row{background:#fff;border:1px solid #d8d8d8;border-radius:10px;padding:14px 18px;margin:12px 0;max-width:900px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .row .label{min-width:190px;font-weight:600}
+  .row .status{margin-left:auto;font-weight:600}
+  .status.ok{color:#1a7f37}
+  .status.bad{color:#b13030}
+  .panel{border:1px solid #bbb;border-radius:6px;background:#fff;max-height:150px;overflow-y:auto;min-width:220px}
+  .panel div{padding:5px 10px;cursor:pointer}
+  .panel div:hover{background:#dbe7ff}
+  .panel div.disabled{color:#aaa;cursor:not-allowed;background:#f7f7f7}
+  .panel .group{font-weight:700;background:#eef1f5;cursor:default}
+  .chips span{display:inline-block;background:#e3ecf9;border:1px solid #b9cbe4;border-radius:14px;padding:2px 10px;margin-right:6px}
+  .chips b{cursor:pointer;margin-left:6px}
+  .combo{position:relative;display:inline-block}
+  .combo .panel{position:absolute;top:100%;left:0;z-index:6}
+</style>
+</head>
+<body>
+<h1>Reactor configuration</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+
+<div id="briefing">
+  <strong>Configuration sheet — set every control to exactly this:</strong>
+  <ul>
+    <li>Shield alloy: <code>Cobalt</code></li>
+    <li>Moderator element: <code>Terbium</code></li>
+    <li>Catalyst: <code>Praseodymium</code> (the in-stock one)</li>
+    <li>Conductor: <code>Ruthenium</code></li>
+    <li>Gas mixture: exactly <code>Argon</code> and <code>Xenon</code>, nothing else</li>
+    <li>Vent element: <code>Radon</code> — from the <em>Noble gases</em> group</li>
+  </ul>
+  <p class="hint">Then run <strong>Validate configuration</strong>. Rows report their state after each validation.</p>
+</div>
+
+<div class="row"><span class="label">1. Shield alloy</span>
+  <select id="d1"><option value="">Choose…</option></select>
+  <span class="status" data-status="d1"></span><span class="mark" data-step-mark="d1"></span></div>
+
+<div class="row"><span class="label">2. Moderator element</span>
+  <button id="d2-toggle">Choose element…</button>
+  <div class="panel" id="d2-panel" style="display:none"></div>
+  <span id="d2-value" class="hint">none</span>
+  <span class="status" data-status="d2"></span><span class="mark" data-step-mark="d2"></span></div>
+
+<div class="row"><span class="label">3. Catalyst</span>
+  <span class="combo"><input id="d3-input" placeholder="Type to filter…" autocomplete="off">
+  <div class="panel" id="d3-panel" style="display:none"></div></span>
+  <span id="d3-value" class="hint">none</span>
+  <span class="status" data-status="d3"></span><span class="mark" data-step-mark="d3"></span></div>
+
+<div class="row"><span class="label">4. Conductor</span>
+  <button id="d4-toggle">Choose conductor…</button>
+  <span id="d4-value" class="hint">none</span>
+  <span class="status" data-status="d4"></span><span class="mark" data-step-mark="d4"></span></div>
+
+<div class="row"><span class="label">5. Gas mixture</span>
+  <button id="d5-add">+ Add gas</button>
+  <div class="panel" id="d5-panel" style="display:none"></div>
+  <span class="chips" id="d5-chips"></span>
+  <span class="status" data-status="d5"></span><span class="mark" data-step-mark="d5"></span></div>
+
+<div class="row"><span class="label">6. Vent element</span>
+  <button id="d6-toggle">Choose vent element…</button>
+  <div class="panel" id="d6-panel" style="display:none"></div>
+  <span id="d6-value" class="hint">none</span>
+  <span class="status" data-status="d6"></span><span class="mark" data-step-mark="d6"></span></div>
+
+<p><button id="validate"><strong>Validate configuration</strong></button> <span class="hint" id="validate-msg"></span></p>
+
+<script>
+window.Bench = (function () {
+  const PAGE = "dropdown-zoo";
+  const TOKEN = "BENCH_PASS dropdown-zoo-5d19e3";
+  const STEPS = ["d1", "d2", "d3", "d4", "d5", "d6"];
+  const done = new Set();
+  let failed = sessionStorage.getItem("bench-fail-" + PAGE) || null;
+  let futile = 0;
+  function render() {
+    const v = document.getElementById("bench-verdict");
+    const p = document.getElementById("bench-progress");
+    if (p) p.textContent = "Challenges complete: " + done.size + " / " + STEPS.length + " | Ineffective interactions: " + futile;
+    if (!v) return;
+    if (failed) { v.textContent = "BENCH_FAIL " + PAGE + ": " + failed; v.className = "verdict fail"; }
+    else if (done.size === STEPS.length) { v.textContent = TOKEN + " — all challenges complete"; v.className = "verdict pass"; }
+  }
+  function complete(step) {
+    if (failed || done.has(step)) return;
+    done.add(step);
+    const m = document.querySelector('[data-step-mark="' + step + '"]');
+    if (m) m.textContent = "✓";
+    render();
+  }
+  function fail(reason) {
+    if (failed) return;
+    failed = reason;
+    sessionStorage.setItem("bench-fail-" + PAGE, reason);
+    render();
+  }
+  window.__benchReport = () => ({ page: PAGE, done: [...done], failed, futile, total: STEPS.length });
+  document.addEventListener("DOMContentLoaded", render);
+  return { complete, fail, has: (s) => done.has(s), futile: () => { futile += 1; render(); } };
+})();
+
+const $ = (sel) => document.querySelector(sel);
+const state = { d1: "", d2: "", d3: "", d4: "", d5: [], d6: null };
+window.__benchDebug = { state };
+
+const ELEMENTS = ["Scandium","Titanium","Vanadium","Chromium","Manganese","Iron","Cobalt","Nickel","Copper","Zinc",
+  "Yttrium","Zirconium","Niobium","Molybdenum","Technetium","Rhodium","Palladium","Silver","Cadmium","Lanthanum",
+  "Cerium","Neodymium","Terbium","Dysprosium","Holmium","Erbium","Thulium","Ytterbium","Lutetium","Hafnium"];
+
+// 1. native select
+ELEMENTS.slice(0, 10).forEach((e) => {
+  const o = document.createElement("option");
+  o.textContent = e;
+  $("#d1").appendChild(o);
+});
+$("#d1").addEventListener("change", () => { state.d1 = $("#d1").value; });
+
+// 2. scrolling listbox
+(function () {
+  const panel = $("#d2-panel");
+  panel.innerHTML = ELEMENTS.map((e) => "<div data-v='" + e + "'>" + e + "</div>").join("");
+  $("#d2-toggle").addEventListener("click", () => {
+    panel.style.display = panel.style.display === "none" ? "block" : "none";
+  });
+  panel.addEventListener("click", (e) => {
+    const v = e.target.getAttribute("data-v");
+    if (!v) return;
+    state.d2 = v;
+    $("#d2-value").textContent = v;
+    panel.style.display = "none";
+  });
+})();
+
+// 3. filter combobox with disabled decoy
+(function () {
+  const input = $("#d3-input");
+  const panel = $("#d3-panel");
+  const OPTIONS = ["Palladium", "Platinum", "Polonium", "Potassium", "Praseodymium (out of stock)|disabled", "Praseodymium", "Promethium"];
+  function show() {
+    const q = input.value.trim().toLowerCase();
+    const matches = OPTIONS.filter((o) => o.toLowerCase().startsWith(q) || !q);
+    panel.innerHTML = matches.map((o) => {
+      const disabled = o.endsWith("|disabled");
+      const label = o.replace("|disabled", "");
+      return "<div class='" + (disabled ? "disabled" : "") + "' data-v='" + (disabled ? "" : label) + "'>" + label + "</div>";
+    }).join("");
+    panel.style.display = matches.length ? "block" : "none";
+  }
+  input.addEventListener("input", show);
+  input.addEventListener("focus", show);
+  panel.addEventListener("click", (e) => {
+    const v = e.target.getAttribute("data-v");
+    if (v === "") { Bench.futile(); return; }
+    if (!v) return;
+    state.d3 = v;
+    $("#d3-value").textContent = v;
+    panel.style.display = "none";
+  });
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".combo")) panel.style.display = "none";
+  });
+})();
+
+// 4. portal-rendered menu
+(function () {
+  let menu = null;
+  $("#d4-toggle").addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (menu) { menu.remove(); menu = null; return; }
+    const r = $("#d4-toggle").getBoundingClientRect();
+    menu = document.createElement("div");
+    menu.className = "panel";
+    menu.style.position = "fixed";
+    menu.style.left = r.left + "px";
+    menu.style.top = r.bottom + 4 + "px";
+    menu.style.zIndex = "30";
+    menu.innerHTML = ["Rhenium", "Rhodium", "Rubidium", "Ruthenium", "Rutherfordium"].map((v) => "<div data-v='" + v + "'>" + v + "</div>").join("");
+    document.body.appendChild(menu);
+    menu.addEventListener("click", (ev) => {
+      const v = ev.target.getAttribute("data-v");
+      if (!v) return;
+      state.d4 = v;
+      $("#d4-value").textContent = v;
+      menu.remove(); menu = null;
+    });
+  });
+  document.addEventListener("click", () => { if (menu) { menu.remove(); menu = null; } });
+})();
+
+// 5. multi-select chips
+(function () {
+  const panel = $("#d5-panel");
+  const GASES = ["Argon", "Helium", "Krypton", "Neon", "Xenon"];
+  panel.innerHTML = GASES.map((g) => "<div data-v='" + g + "'>" + g + "</div>").join("");
+  $("#d5-add").addEventListener("click", () => {
+    panel.style.display = panel.style.display === "none" ? "block" : "none";
+  });
+  panel.addEventListener("click", (e) => {
+    const v = e.target.getAttribute("data-v");
+    if (!v) return;
+    if (!state.d5.includes(v)) state.d5.push(v);
+    panel.style.display = "none";
+    renderChips();
+  });
+  function renderChips() {
+    $("#d5-chips").innerHTML = state.d5.map((g) => "<span>" + g + "<b data-x='" + g + "'>×</b></span>").join("");
+    document.querySelectorAll("[data-x]").forEach((b) =>
+      b.addEventListener("click", () => {
+        state.d5 = state.d5.filter((g) => g !== b.dataset.x);
+        renderChips();
+      })
+    );
+  }
+})();
+
+// 6. grouped menu with wrong-group decoy
+(function () {
+  const panel = $("#d6-panel");
+  panel.innerHTML =
+    "<div class='group'>Alkali metals</div>" +
+    ["Lithium", "Sodium", "Radon", "Caesium"].map((v) => "<div data-v='" + v + "' data-g='Alkali metals'>" + v + "</div>").join("") +
+    "<div class='group'>Noble gases</div>" +
+    ["Neon", "Argon", "Radon", "Xenon"].map((v) => "<div data-v='" + v + "' data-g='Noble gases'>" + v + "</div>").join("");
+  $("#d6-toggle").addEventListener("click", () => {
+    panel.style.display = panel.style.display === "none" ? "block" : "none";
+  });
+  panel.addEventListener("click", (e) => {
+    const v = e.target.getAttribute("data-v");
+    if (!v) return;
+    state.d6 = { value: v, group: e.target.getAttribute("data-g") };
+    $("#d6-value").textContent = v + " (" + state.d6.group + ")";
+    panel.style.display = "none";
+  });
+})();
+
+// validation
+$("#validate").addEventListener("click", () => {
+  const checks = {
+    d1: state.d1 === "Cobalt",
+    d2: state.d2 === "Terbium",
+    d3: state.d3 === "Praseodymium",
+    d4: state.d4 === "Ruthenium",
+    d5: state.d5.length === 2 && state.d5.includes("Argon") && state.d5.includes("Xenon"),
+    d6: !!state.d6 && state.d6.value === "Radon" && state.d6.group === "Noble gases",
+  };
+  let okCount = 0;
+  Object.entries(checks).forEach(([k, ok]) => {
+    const s = document.querySelector("[data-status='" + k + "']");
+    s.textContent = ok ? "✓ correct" : "✗ wrong";
+    s.className = "status " + (ok ? "ok" : "bad");
+    if (ok) { Bench.complete(k); okCount += 1; }
+  });
+  $("#validate-msg").textContent = okCount + " of 6 controls correct.";
+  if (okCount < 6) Bench.futile();
+});
+</script>
+</body>
+</html>

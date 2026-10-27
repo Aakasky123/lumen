@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Checkout</title></head>
+<body>
+  <h1>Checkout</h1>
+  <p id="err">Error: shipping address is incomplete. Edit your address to continue.</p>
+  <button id="fix-address" onclick="document.getElementById('addr-form').style.display='block';">Edit shipping address</button>
+  <button id="continue" onclick="document.getElementById('err').textContent='Error: shipping address is incomplete';">Continue</button>
+  <section id="addr-form" style="display:none">
+    <input id="addr" type="text" aria-label="Shipping address" placeholder="Shipping address">
+    <button id="save" onclick="document.getElementById('status').textContent='Order ready for review.';">Save address</button>
+  </section>
+  <button id="place" onclick="document.getElementById('status').textContent='Order placed';">Place order</button>
+  <p id="status"></p>
+</body>
+</html>

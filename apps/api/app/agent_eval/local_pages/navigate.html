@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Acme — site</title></head>
+<body>
+  <h1>Acme</h1>
+  <p>Welcome to Acme. Find our policies under Legal.</p>
+  <button id="nav-legal" onclick="document.getElementById('legal').style.display='block'">Legal</button>
+  <button id="nav-pricing" onclick="document.getElementById('pricing').style.display='block'">Pricing</button>
+  <section id="legal" style="display:none">
+    <h2>Legal resources</h2>
+    <button id="nav-privacy" onclick="document.getElementById('privacy').style.display='block'">Privacy policy</button>
+    <button id="nav-terms" onclick="document.getElementById('terms').style.display='block'">Terms</button>
+    <section id="privacy" style="display:none"><p id="fact">User data is retained for 24 months after account closure.</p></section>
+    <section id="terms" style="display:none"><p>Terms of service.</p></section>
+  </section>
+  <section id="pricing" style="display:none"><p>Our plans.</p></section>
+</body>
+</html>

@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lumen</title>
+    <link rel="stylesheet" href="sidepanel.css" />
+  </head>
+  <body>
+    <main class="chat-shell">
+      <header class="chat-header">
+        <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="3.6" y="4.2" width="2.7" height="14.7" rx="0.75" />
+          <rect class="shade" x="8.3" y="5.1" width="2.7" height="14.7" rx="0.75" />
+          <rect class="shade" x="13" y="5.1" width="2.7" height="14.7" rx="0.75" />
+          <rect x="17.7" y="4.2" width="2.7" height="14.7" rx="0.75" />
+        </svg>
+        <h1 class="wordmark">Lumen</h1>
+        <span id="connectionBadge" class="connection-badge checking" aria-live="polite">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span id="statusLine">Checking connection</span>
+        </span>
+        <button id="reconnect" class="icon-button" type="button" aria-label="Reconnect" title="Reconnect">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M21 12a9 9 0 0 1-15.4 6.4L3 16" />
+            <path d="M3 16h5v5" />
+            <path d="M3 12A9 9 0 0 1 18.4 5.6L21 8" />
+            <path d="M21 8h-5V3" />
+          </svg>
+        </button>
+      </header>
+
+      <section class="transcript-section" aria-label="Chat transcript">
+        <div id="messages" class="messages" role="log" aria-live="polite" aria-relevant="additions text"></div>
+      </section>
+
+      <section class="composer">
+        <div id="inputError" class="input-error" role="alert"></div>
+        <div class="composer-box">
+          <textarea id="chatInput" rows="1" maxlength="4000" aria-label="Message Lumen" placeholder="Message Lumen…"></textarea>
+          <div class="composer-row">
+            <div id="threadLine" class="thread-line">No active run</div>
+            <button id="send" class="send-button" type="button" aria-label="Send" title="Send" disabled>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 19V5" />
+                <path d="m5 12 7-7 7 7" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
+    <script src="sidepanel.js"></script>
+  </body>
+</html>

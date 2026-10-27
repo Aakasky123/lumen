@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ledgerline Sheets</title>
+<link rel="stylesheet" href="v4_style.css">
+<link rel="stylesheet" href="v6_style.css">
+<style>
+  .email{background:#fff8e6;border:1px solid #e5cf8f;border-radius:6px;padding:6px 8px;font-size:13px;white-space:pre-line}
+  .email .sku{white-space:nowrap;font-weight:600}
+  .sheet{padding:6px 12px 0}
+  .toolbar .muted{margin-left:auto;font-size:12px}
+  table.grid th.chk,table.grid td.chk{width:26px;padding-right:0}
+  table.grid th.num{text-align:right}
+  table.grid th button.sort{all:unset;cursor:pointer;font-weight:600}
+  table.grid th button.sort:focus-visible{outline:2px solid #2b6cb0}
+  table.grid th .ind{color:#2b6cb0;margin-left:3px}
+  table.grid tr.filters th{background:#fff;padding:3px 4px;font-weight:400}
+  table.grid tr.filters input{width:100%;min-width:60px;box-sizing:border-box;font-size:12px;padding:2px 5px}
+  table.grid tr.filters input[aria-invalid=true]{border-color:#c0392b;background:#fff4f2}
+  table.grid td.cell{cursor:cell;outline:none}
+  table.grid td.cell:focus{box-shadow:inset 0 0 0 2px #2b6cb0}
+  table.grid td.cell.editing{padding:0}
+  table.grid td input.cell-edit{width:100%;min-width:70px;box-sizing:border-box;border:0;border-radius:0;padding:5px 8px;font:inherit;outline:2px solid #2b6cb0}
+  table.grid td.act{width:30px;text-align:center}
+  table.grid td.act button{padding:0 8px;font-size:13px}
+  .foot{display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .tabs{display:flex;gap:2px;border-top:1px solid #e3e6ea;background:#f6f8fa;padding:0 10px}
+  .tabs button{border:0;border-radius:0;background:none;padding:7px 14px;font-size:13px;border-top:3px solid transparent}
+  .tabs button[aria-selected=true]{background:#fff;border-top-color:#2b6cb0;font-weight:600}
+</style>
+</head>
+<body data-page="v6_sheet">
+<h1>Ledgerline Sheets</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+<p class="intro">Five independent tasks in one workbook. Each task has its own sheet (tabs under the grid). Edits stay in
+  the page until you press <em>Save sheet</em> on that sheet.</p>
+
+<div class="tasks">
+  <section class="ch">
+    <h2>1. Supplier corrections <span class="mark" data-step-mark="cell_edits"></span></h2>
+    <p>Apply this email to the <strong>Price update</strong> sheet — change exactly those three cells — then press
+       <em>Save sheet</em>.</p>
+    <p class="email" id="c1-email"></p>
+    <p class="msg" data-msg="edits"></p>
+  </section>
+  <section class="ch">
+    <h2>2. Stock value <span class="mark" data-step-mark="filtered_total"></span></h2>
+    <p>On the <strong>Stock value</strong> sheet, what is the total <em>Value</em> of all <strong>Active</strong> items
+       from <span class="val" id="c2-supplier"></span>?</p>
+    <div class="row"><input id="total" size="12" autocomplete="off" data-enter="total-go" aria-label="Total value"> <button id="total-go">Submit total</button></div>
+    <p class="msg" data-msg="total"></p>
+  </section>
+  <section class="ch">
+    <h2>3. Discontinue stale stock <span class="mark" data-step-mark="bulk_status"></span></h2>
+    <p>On the <strong>Discontinue</strong> sheet, set Status to <strong>Discontinued</strong> for every row with Qty
+       <strong>0</strong> and Last ordered <strong>before 2025-01-01</strong>. Change nothing else, then <em>Save sheet</em>.</p>
+    <p class="msg" data-msg="status"></p>
+  </section>
+  <section class="ch">
+    <h2>4. Price rank <span class="mark" data-step-mark="sort_rank"></span></h2>
+    <p>On the <strong>Pricing</strong> sheet, which SKU is the <strong>3rd most expensive</strong> item in the
+       <span class="val" id="c4-category"></span> category?</p>
+    <div class="row"><input id="rank" size="12" autocomplete="off" data-enter="rank-go" aria-label="SKU"> <button id="rank-go">Submit SKU</button></div>
+    <p class="msg" data-msg="rank"></p>
+  </section>
+  <section class="ch">
+    <h2>5. Remove the duplicate <span class="mark" data-step-mark="dedupe_rows"></span></h2>
+    <p>The <strong>Contacts import</strong> sheet has exactly one row that appears twice (identical in every column).
+       Delete one copy — nothing else — and <em>Save sheet</em>.</p>
+    <p class="msg" data-msg="dedupe"></p>
+  </section>
+</div>
+
+<section class="app" aria-label="Spreadsheet">
+  <div class="app-head"><h2>Ledgerline Sheets</h2><span class="muted">Workbook: Warehouse inventory</span></div>
+  <div class="sheet">
+    <div class="toolbar" role="toolbar" aria-label="Sheet actions">
+      <button id="set-status" aria-haspopup="listbox">Set status ▾</button>
+      <button id="save" class="primary">Save sheet</button>
+      <button id="discard">Discard changes</button>
+      <span class="muted">Filters: text contains; numbers and dates also take &gt;x, &lt;x, =x</span>
+    </div>
+    <table class="grid" id="grid"><thead id="head"></thead><tbody id="body"></tbody></table>
+    <div class="foot"><span class="muted" id="status" role="status"></span><div class="pager" id="pager"></div></div>
+  </div>
+  <div class="tabs" role="tablist" aria-label="Sheets" id="tabs"></div>
+</section>
+
+<script src="v3_common.js"></script>
+<script src="v6_kit.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+const { h } = K;
+const PAGE = 12;
+const NUMERIC = new Set(["int", "money", "date"]);
+const amount = (col) => col.type === "int" || col.type === "money";  // right-aligned and summed in the status bar
+const ERRORS = { int: "must be a whole number", money: "must be an amount like 12.50", date: "must be a date like 2025-03-14" };
+const sheets = {}, order = [];
+let cur = null, edit = null, nextId = 1, statuses = [];
+
+// Money is held in cents so sums are exact; Value is Qty × Unit price.
+function load(meta) {
+  return meta.rows.map((r) => {
+    const row = Object.assign({ _id: nextId++ }, r);
+    for (const c of meta.columns) if (c.type === "money" && !c.computed) row[c.key] = Math.round(r[c.key] * 100);
+    return row;
+  });
+}
+const S = () => sheets[cur];
+const get = (row, col) => (col.computed ? row.qty * row.price : row[col.key]);
+function show(col, v) { return col.type === "money" ? K.money(v / 100) : String(v); }
+function raw(col, v) { return col.type === "money" ? (v / 100).toFixed(2) : String(v); }
+function label(row) { return String(row[S().meta.columns[0].key]); }
+
+/** A typed value as the column stores it, or null when it does not parse. */
+function parse(col, text) {
+  const t = String(text).trim();
+  if (col.type === "int") return /^\d[\d,]*$/.test(t) ? parseInt(t.replace(/,/g, ""), 10) : null;
+  if (col.type === "money") { const n = t.replace(/[$,\s]/g, ""); return /^\d+(\.\d{1,2})?$/.test(n) ? Math.round(parseFloat(n) * 100) : null; }
+  if (col.type === "date") {
+    const m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    return m ? `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}` : null;
+  }
+  return t;
+}
+const OPS = { "<": (a, b) => a < b, ">": (a, b) => a > b, "<=": (a, b) => a <= b, ">=": (a, b) => a >= b, "=": (a, b) => a === b };
+/** A number/date filter such as "<2025-01-01" or "=0" as {op, want}; want is null when the value does not parse. */
+function comparison(col, query) {
+  const m = NUMERIC.has(col.type) && query.trim().match(/^(<=|>=|<|>|=)\s*(.*)$/);
+  return m ? { op: m[1], want: parse(col, m[2]) } : null;
+}
+/** Filter test: text "contains"; numbers and dates also take <x, >x, <=x, >=x, =x. */
+function passes(col, row, query) {
+  if (!query.trim()) return true;
+  const v = get(row, col), cmp = comparison(col, query);
+  if (cmp) return cmp.want !== null && OPS[cmp.op](v, cmp.want);
+  return (show(col, v) + " " + raw(col, v)).toLowerCase().includes(query.trim().toLowerCase());
+}
+function visible(sh) {
+  const cols = sh.meta.columns;
+  let list = sh.rows.filter((r) => cols.every((c) => passes(c, r, sh.filters[c.key] || "")));
+  if (sh.sort) {
+    const col = cols.find((c) => c.key === sh.sort.key), dir = sh.sort.dir === "asc" ? 1 : -1;
+    list = list.slice().sort((a, b) => {
+      const x = get(a, col), y = get(b, col);
+      return dir * (typeof x === "number" ? x - y : String(x).localeCompare(String(y), "en", { sensitivity: "base", numeric: true }));
+    });
+  }
+  return list;
+}
+
+// --- grid ----------------------------------------------------------------------------------------
+function drawHead() {
+  const sh = S(), cols = sh.meta.columns;
+  const all = h("input", { type: "checkbox", id: "select-all", "aria-label": "Select all rows matching the filters" });
+  all.addEventListener("click", () => {
+    const list = visible(sh), every = list.length && list.every((r) => sh.selected.has(r._id));
+    list.forEach((r) => (every ? sh.selected.delete(r._id) : sh.selected.add(r._id)));
+    drawBody();
+  });
+  const top = h("tr", {}, h("th", { class: "chk" }, all));
+  const filters = h("tr", { class: "filters" }, h("th", { class: "chk" }));
+  for (const c of cols) {
+    const on = sh.sort && sh.sort.key === c.key;
+    const sortBtn = h("button", { type: "button", class: "sort", title: "Sort by " + c.label },
+      c.label, h("span", { class: "ind", text: on ? (sh.sort.dir === "asc" ? "▲" : "▼") : "" }));
+    sortBtn.addEventListener("click", () => {
+      sh.sort = sh.sort && sh.sort.key === c.key ? { key: c.key, dir: sh.sort.dir === "asc" ? "desc" : "asc" } : { key: c.key, dir: "asc" };
+      drawHead(); drawBody();
+    });
+    top.append(h("th", { class: amount(c) ? "num" : "", "aria-sort": on ? (sh.sort.dir === "asc" ? "ascending" : "descending") : "none" }, sortBtn));
+    const box = h("input", { "aria-label": "Filter " + c.label, autocomplete: "off", placeholder: NUMERIC.has(c.type) ? "=, <, > or text" : "contains" });
+    box.value = sh.filters[c.key] || "";
+    box.addEventListener("input", () => { sh.filters[c.key] = box.value; sh.selected.clear(); sh.page = 1; drawBody(); });
+    filters.append(h("th", {}, box));
+  }
+  top.append(h("th", { class: "act" })); filters.append(h("th", { class: "act" }));
+  $("#head").replaceChildren(top, filters);
+  $("#grid").setAttribute("aria-label", sh.meta.title);
+  $("#set-status").disabled = !cols.some((c) => c.type === "status");
+}
+
+function drawBody() {
+  const sh = S(), cols = sh.meta.columns, list = visible(sh);
+  const pages = Math.max(1, Math.ceil(list.length / PAGE));
+  sh.page = Math.min(sh.page, pages);
+  const shown = list.slice((sh.page - 1) * PAGE, sh.page * PAGE);
+  if (!shown.some((r) => r._id === sh.active.id)) sh.active = { id: shown.length ? shown[0]._id : null, c: sh.active.c };
+  $("#body").replaceChildren(...shown.map((row) => {
+    const pick = h("input", { type: "checkbox", "aria-label": "Select " + label(row) });
+    pick.checked = sh.selected.has(row._id);
+    pick.addEventListener("change", () => { pick.checked ? sh.selected.add(row._id) : sh.selected.delete(row._id); tr.classList.toggle("sel", pick.checked); drawStatus(); });
+    const more = h("button", { type: "button", class: "more", text: "⋯", "aria-label": "Row actions for " + label(row), "aria-haspopup": "listbox" });
+    more.addEventListener("click", () => rowMenu(row, more));
+    const tr = h("tr", { class: sh.selected.has(row._id) ? "sel" : "", dataset: { id: row._id } }, h("td", { class: "chk" }, pick),
+      cols.map((c, ci) => h("td", { class: "cell" + (amount(c) ? " num" : ""), dataset: { c: ci },
+        tabindex: row._id === sh.active.id && ci === sh.active.c ? "0" : "-1", text: show(c, get(row, c)) })),
+      h("td", { class: "act" }, more));
+    tr.addEventListener("contextmenu", (e) => { e.preventDefault(); rowMenu(row, more); });
+    return tr;
+  }));
+  if (!shown.length) $("#body").append(h("tr", {}, h("td", { colspan: String(cols.length + 2), class: "muted", text: "No rows match the filters." })));
+  document.querySelectorAll("#head tr.filters input").forEach((box, i) => {
+    const cmp = comparison(cols[i], box.value);
+    box.setAttribute("aria-invalid", cmp && cmp.want === null ? "true" : "false");
+  });
+  K.pager($("#pager"), list.length, PAGE, sh.page, (n) => { sh.page = n; drawBody(); });
+  const n = list.filter((r) => sh.selected.has(r._id)).length, all = $("#select-all");
+  all.checked = n > 0 && n === list.length;
+  all.indeterminate = n > 0 && n < list.length;
+  drawStatus();
+}
+
+function drawStatus() {
+  const sh = S(), picked = sh.rows.filter((r) => sh.selected.has(r._id));
+  if (!picked.length) {
+    const n = visible(sh).length;
+    $("#status").textContent = `${sh.rows.length} rows` + (n !== sh.rows.length ? ` · ${n} match the filters` : "") + " · none selected";
+    return;
+  }
+  const sums = sh.meta.columns.filter(amount)
+    .map((c) => `${c.label} ${show(c, picked.reduce((s, r) => s + get(r, c), 0))}`);
+  $("#status").textContent = `${picked.length} selected · Sum: ${sums.join(" · ")}`;
+}
+
+function drawTabs() {
+  $("#tabs").replaceChildren(...order.map((id) => h("button", {
+    type: "button", role: "tab", "aria-selected": id === cur ? "true" : "false", title: sheets[id].dirty ? "Unsaved changes" : null,
+    text: sheets[id].meta.title + (sheets[id].dirty ? " •" : ""), onclick: () => openSheet(id),
+  })));
+}
+
+function openSheet(id) {
+  edit = null;
+  K.closeMenu();
+  cur = id;
+  drawTabs(); drawHead(); drawBody();
+}
+function changed() { S().dirty = true; drawTabs(); drawStatus(); }
+
+// --- cells: focus, arrow keys, in-place editing ----------------------------------------------------
+const rowOf = (td) => S().rows.find((r) => r._id === Number(td.parentElement.dataset.id));
+function focusCell(td) {
+  const sh = S();
+  document.querySelectorAll("#body td.cell[tabindex='0']").forEach((x) => (x.tabIndex = -1));
+  td.tabIndex = 0;
+  sh.active = { id: Number(td.parentElement.dataset.id), c: Number(td.dataset.c) };
+  td.focus();
+}
+function cellAt(rowIndex, ci) {
+  const rows = [...$("#body").querySelectorAll("tr[data-id]")];
+  const tr = rows[Math.max(0, Math.min(rows.length - 1, rowIndex))];
+  return tr && tr.querySelector(`td.cell[data-c="${Math.max(0, Math.min(S().meta.columns.length - 1, ci))}"]`);
+}
+function startEdit(td, typed) {
+  const col = S().meta.columns[Number(td.dataset.c)], row = rowOf(td);
+  if (col.computed) return K.toast(col.label + " is calculated: Qty × Unit price.");
+  if (col.type === "status") {
+    return K.menu(td, statuses.map((s) => ({ label: s, value: s })), (v) => {
+      if (row.status !== v) { row.status = v; td.textContent = v; changed(); }
+      focusCell(td);
+    }, { selected: row.status });
+  }
+  const input = h("input", { class: "cell-edit", autocomplete: "off", "aria-label": `${col.label} of ${label(row)}` });
+  input.value = typed === undefined ? raw(col, get(row, col)) : typed;
+  edit = { td, row, col, input };
+  td.classList.add("editing");
+  td.replaceChildren(input);
+  input.focus();
+  if (typed === undefined) input.select(); else input.setSelectionRange(typed.length, typed.length);
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); commit(false); }
+    else if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); finish(td, row, col); focusCell(td); }
+  });
+  input.addEventListener("blur", () => { if (edit && edit.input === input) commit(true); });
+}
+function finish(td, row, col) {
+  edit = null;
+  td.classList.remove("editing");
+  td.textContent = show(col, get(row, col));
+}
+/** Enter keeps an invalid value open for correction; leaving the cell drops it. */
+function commit(leaving) {
+  const { td, row, col, input } = edit;
+  const value = parse(col, input.value);
+  if (value === null || value === "") {
+    K.toast(`${col.label} ${ERRORS[col.type] || "cannot be empty"}.`);
+    if (!leaving) return;
+  } else if (row[col.key] !== value) {
+    row[col.key] = value;
+    changed();
+  }
+  finish(td, row, col);
+  if (!leaving) focusCell(td);
+}
+$("#body").addEventListener("focusin", (e) => { if (e.target.matches("td.cell")) focusCell(e.target); });
+$("#body").addEventListener("dblclick", (e) => { const td = e.target.closest("td.cell"); if (td && !edit) startEdit(td); });
+$("#body").addEventListener("keydown", (e) => {
+  const td = e.target;
+  if (!td.matches || !td.matches("td.cell")) return;
+  const rows = [...$("#body").querySelectorAll("tr[data-id]")], r = rows.indexOf(td.parentElement), c = Number(td.dataset.c);
+  const step = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] }[e.key];
+  if (step) { e.preventDefault(); const next = cellAt(r + step[0], c + step[1]); if (next) focusCell(next); }
+  else if (e.key === "Enter" || e.key === "F2") { e.preventDefault(); startEdit(td); }
+  else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); startEdit(td, e.key); }
+});
+
+// --- rows and toolbar ------------------------------------------------------------------------------
+function rowMenu(row, anchor) {
+  K.menu(anchor, [{ label: "Delete row", value: "delete" }], () => {
+    const sh = S();
+    sh.rows = sh.rows.filter((r) => r !== row);
+    sh.selected.delete(row._id);
+    changed(); drawBody();
+    K.toast("Row deleted.");
+  });
+}
+$("#set-status").addEventListener("click", () => {
+  const sh = S();
+  if (!sh.selected.size) return K.toast("Select rows first.");
+  K.menu($("#set-status"), statuses.map((s) => ({ label: s, value: s })), (v) => {
+    const picked = sh.rows.filter((r) => sh.selected.has(r._id));
+    picked.forEach((r) => (r.status = v));
+    changed(); drawBody();
+    K.toast(`Status set to ${v} on ${picked.length} row${picked.length === 1 ? "" : "s"}.`);
+  });
+});
+$("#save").addEventListener("click", async () => {
+  const sh = S(), cols = sh.meta.columns.filter((c) => !c.computed);
+  const rows = sh.rows.map((r) => Object.fromEntries(cols.map((c) => [c.key, c.type === "money" ? raw(c, r[c.key]) : r[c.key]])));
+  const res = await V3.act("save", { sheet: cur, rows });
+  sh.dirty = false;
+  drawTabs();
+  K.toast(res.msg || "Sheet saved.");
+});
+$("#discard").addEventListener("click", () => {
+  const sh = S();
+  Object.assign(sh, { rows: load(sh.meta), selected: new Set(), dirty: false });
+  drawTabs(); drawBody();
+  K.toast("Changes discarded.");
+});
+$("#total-go").addEventListener("click", () => V3.act("answer", { step: "filtered_total", value: $("#total").value }));
+$("#rank-go").addEventListener("click", () => V3.act("answer", { step: "sort_rank", value: $("#rank").value }));
+
+V3.onState((st) => {
+  if (order.length) return;
+  statuses = st.public.statuses;
+  for (const meta of st.public.sheets) {
+    sheets[meta.id] = { meta, rows: load(meta), filters: {}, sort: null, page: 1, selected: new Set(), active: { id: null, c: 0 }, dirty: false };
+    order.push(meta.id);
+  }
+  const t = st.public.tasks;
+  $("#c1-email").replaceChildren(...t.email.split(/([A-Z]{2}-\d{4})/).map((part, i) => (i % 2 ? h("span", { class: "sku", text: part }) : part)));
+  $("#c2-supplier").textContent = t.supplier;
+  $("#c4-category").textContent = t.category;
+  openSheet(order.includes(st.focus) ? st.focus : order[0]);
+});
+</script>
+</body>
+</html>

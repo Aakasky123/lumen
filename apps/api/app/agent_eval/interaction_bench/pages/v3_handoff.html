@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dispatch handoff</title>
+<style>
+  body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;margin:0;padding:24px;line-height:1.5;color:#1a1a1a;background:#fafafa}
+  h1{font-size:22px;margin:0 0 6px}
+  section.ch{background:#fff;border:1px solid #d8d8d8;border-radius:10px;padding:16px 18px;margin:14px 0;max-width:900px}
+  section.ch.locked{opacity:.45;pointer-events:none}
+  section.ch h2{font-size:16px;margin:0 0 8px}
+  .mark{color:#1a7f37;font-weight:600;margin-left:10px}
+  .hint{color:#666;font-size:13px}
+  .msg{color:#2b4c7e;font-size:14px;margin-left:8px}
+  .verdict{font-weight:700;padding:14px;margin:14px 0;border-radius:8px;background:#eee;max-width:900px}
+  .verdict.pass{background:#dff5df}
+  .verdict.fail{background:#fbdcdc}
+  button{font:inherit;padding:6px 14px;border-radius:6px;border:1px solid #bbb;background:#f2f2f2;cursor:pointer}
+  input{font:inherit;padding:6px 8px;border:1px solid #bbb;border-radius:6px}
+  .val{font-family:ui-monospace,Consolas,monospace;font-weight:700}
+  .intro{max-width:900px}
+</style>
+</head>
+<body data-page="v3_handoff">
+<h1>Dispatch handoff</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+<p class="intro">This dispatch console works together with the <strong>Field Unit</strong>, a desktop application
+that runs in its own window outside the browser. Some values exist only in the Field Unit, others only on this
+page — carry each one across exactly. The Field Unit asks its own questions in native dialogs; answer them on
+their merits.</p>
+
+<section class="ch">
+  <h2>1. Link the Field Unit <span class="mark" data-step-mark="launch_relay"></span></h2>
+  <p>Open the Field Unit, find the work order it has open, and link that work order here.</p>
+  <p><button id="launch">Open Field Unit</button> <span class="msg" data-msg="launch"></span> <span class="msg" data-msg="desktop"></span></p>
+  <p><label>Work order number <input id="wo" autocomplete="off" size="18" data-enter="link"></label>
+     <button id="link">Link work order</button> <span class="msg" data-msg="link"></span></p>
+</section>
+
+<section class="ch locked" data-unlock="launch_relay">
+  <h2>2. Assign the dock <span class="mark" data-step-mark="reverse_relay"></span></h2>
+  <p>Dock code: <span class="val" data-public="dock_code"></span>. Enter it into the Field Unit's
+     <em>Dock code</em> field and press <em>Apply</em> in the Field Unit.</p>
+  <p class="msg" data-msg="dock"></p>
+</section>
+
+<section class="ch locked" data-unlock="reverse_relay">
+  <h2>3. Diagnostics reference <span class="mark" data-step-mark="native_menu"></span></h2>
+  <p>Run diagnostics from the Field Unit's <em>Tools</em> menu and record the reference number it reports.</p>
+  <p><label>Reference <input id="ref" autocomplete="off" size="12" data-enter="ref-go"></label>
+     <button id="ref-go">Record reference</button> <span class="msg" data-msg="reference"></span></p>
+</section>
+
+<section class="ch locked" data-unlock="native_menu">
+  <h2>4. Safe sync <span class="mark" data-step-mark="safe_sync"></span></h2>
+  <p>Sync the Field Unit with dispatch. <strong>The dispatch server copy is authoritative — never overwrite
+     it.</strong> Then confirm the Sync ID the Field Unit shows after a successful sync.</p>
+  <p><label>Sync ID <input id="sync" autocomplete="off" size="12" data-enter="sync-go"></label>
+     <button id="sync-go">Confirm sync</button> <span class="msg" data-msg="sync"></span></p>
+</section>
+
+<section class="ch locked" data-unlock="safe_sync">
+  <h2>5. Seal by clipboard <span class="mark" data-step-mark="paste_relay"></span></h2>
+  <p>Bring the Field Unit's seal number here <strong>by clipboard</strong>: this field accepts only a paste —
+     typed characters are rejected.</p>
+  <p><label>Seal number <input id="seal" autocomplete="off" size="16" data-enter="seal-go"></label>
+     <button id="seal-go">Verify seal</button> <span class="msg" data-msg="seal"></span></p>
+</section>
+
+<script src="v3_common.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+$("#launch").addEventListener("click", () => V3.act("launch"));
+$("#link").addEventListener("click", () => V3.act("link_work_order", { value: $("#wo").value }));
+$("#ref-go").addEventListener("click", () => V3.act("record_reference", { value: $("#ref").value }));
+$("#sync-go").addEventListener("click", () => V3.act("confirm_sync", { value: $("#sync").value }));
+
+// Paste-only field: typed insertions are refused; a paste inserts the clipboard text.
+const seal = $("#seal");
+let viaPaste = false;
+let typedNoticeAt = 0;
+seal.addEventListener("beforeinput", (e) => {
+  const kind = e.inputType || "";
+  if (!kind.startsWith("insert") || kind === "insertFromPaste" || kind === "insertFromDrop") return;
+  e.preventDefault();
+  if (Date.now() - typedNoticeAt > 3000) {
+    typedNoticeAt = Date.now();
+    V3.act("seal_typed");
+  }
+});
+seal.addEventListener("paste", (e) => {
+  const text = ((e.clipboardData || window.clipboardData).getData("text") || "").trim();
+  e.preventDefault();
+  seal.setRangeText(text, seal.selectionStart, seal.selectionEnd, "end");
+  viaPaste = true;
+});
+$("#seal-go").addEventListener("click", () => V3.act("verify_seal", { value: seal.value, via_paste: viaPaste }));
+</script>
+</body>
+</html>

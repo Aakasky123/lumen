@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cargo hold survey</title>
+<style>
+  body{font-family:system-ui,-apple-system,sans-serif;margin:0;padding:24px;line-height:1.5;color:#1a1a1a;background:#fafafa}
+  h1{font-size:22px}
+  section.ch{background:#fff;border:1px solid #d8d8d8;border-radius:10px;padding:18px;margin:18px 0;max-width:900px}
+  section.ch.locked{opacity:.4;pointer-events:none}
+  section.ch h2{font-size:16px;margin:0 0 10px}
+  .mark{color:#1a7f37;font-weight:600;margin-left:10px}
+  .hint{color:#666;font-size:13px}
+  .verdict{font-weight:700;padding:14px;margin:18px 0;border-radius:8px;background:#eee;max-width:900px}
+  .verdict.pass{background:#dff5df}
+  .verdict.fail{background:#fbdcdc}
+  button{font:inherit;padding:6px 14px;border-radius:6px;border:1px solid #bbb;background:#f2f2f2;cursor:pointer}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  input{font:inherit;padding:6px 8px;border:1px solid #bbb;border-radius:6px}
+  .box{overflow-y:auto;border:1px solid #aaa;border-radius:8px;background:repeating-linear-gradient(#fff,#fff 38px,#f4f6f9 38px,#f4f6f9 40px)}
+  #outer{height:360px}
+  #outer .pad{height:1400px;position:relative}
+  #middle{height:300px;position:absolute;top:900px;left:20px;right:20px;background:#fdfdfd}
+  #middle .pad{height:1200px;position:relative}
+  #inner{height:240px;position:absolute;top:700px;left:20px;right:20px;background:#f8fbff}
+  #inner .pad{height:900px;position:relative}
+  #hatch{position:absolute;top:720px;left:24px}
+  .dualwrap{display:flex;gap:18px}
+  .dual{height:240px;flex:1}
+  .dual .pad{height:2200px}
+  #reverse-box{height:240px}
+  #reverse-box .pad{height:1600px;position:relative}
+  #rev-btn{position:absolute;top:1480px;left:24px}
+  #grow-box{height:320px}
+  .grow-row{height:30px;display:flex;align-items:center;gap:14px;padding:0 12px;border-bottom:1px solid #f0f0f0;font-size:14px;box-sizing:border-box}
+</style>
+</head>
+<body>
+<h1>Cargo hold survey</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+
+<section class="ch" id="s-nest">
+  <h2>1. Triple hold <span class="mark" data-step-mark="nest"></span></h2>
+  <p>The access hatch sits three holds deep: scroll the outer hold to reach the middle hold, the
+     middle to reach the inner one, and the inner to the hatch. It arms only after being steadily
+     in view.</p>
+  <div class="box" id="outer"><div class="pad">
+    <p style="position:absolute;top:8px;left:12px" class="hint">Outer hold — descend</p>
+    <div class="box" id="middle"><div class="pad">
+      <p style="position:absolute;top:8px;left:12px" class="hint">Middle hold — keep descending</p>
+      <div class="box" id="inner"><div class="pad">
+        <p style="position:absolute;top:8px;left:12px" class="hint">Inner hold</p>
+        <button id="hatch" disabled>Open access hatch</button>
+      </div></div>
+    </div></div>
+  </div></div>
+</section>
+
+<section class="ch locked" id="s-dual">
+  <h2>2. Twin ballast valves <span class="mark" data-step-mark="dual"></span></h2>
+  <p>Park valve A between <strong>800–860</strong> and valve B between <strong>1200–1270</strong>
+     <em>at the same time</em>, hold both for a second, then engage.</p>
+  <p class="hint">A: <span id="a-read">0</span> (<span id="a-state">out</span>) ·
+     B: <span id="b-read">0</span> (<span id="b-state">out</span>)
+     <button id="dual-engage" disabled style="margin-left:12px">Engage ballast</button></p>
+  <div class="dualwrap">
+    <div class="box dual" id="dual-a"><div class="pad"></div></div>
+    <div class="box dual" id="dual-b"><div class="pad"></div></div>
+  </div>
+</section>
+
+<section class="ch locked" id="s-reverse">
+  <h2>3. Inverted winch <span class="mark" data-step-mark="reverse"></span></h2>
+  <p>This hold's winch is cross-rigged: the wheel works <em>backwards</em> here. Reach the release
+     lever at the bottom of the hold.</p>
+  <div class="box" id="reverse-box"><div class="pad">
+    <p style="position:absolute;top:8px;left:12px" class="hint">Cross-rigged hold — wheel is inverted</p>
+    <button id="rev-btn" disabled>Pull release lever</button>
+  </div></div>
+</section>
+
+<section class="ch locked" id="s-grow">
+  <h2>4. Endless manifest <span class="mark" data-step-mark="needle"></span></h2>
+  <p>Claim <strong>Berth 214</strong>. The manifest keeps growing as you approach its end — the
+     bottom is not where the answer is.</p>
+  <div class="box" id="grow-box"></div>
+  <p class="hint" id="grow-msg">Rows loaded: <span id="grow-count">0</span></p>
+</section>
+
+<script>
+window.Bench = (function () {
+  const PAGE = "scroll-labyrinth";
+  const TOKEN = "BENCH_PASS scroll-labyrinth-e93a51";
+  const STEPS = ["nest", "dual", "reverse", "needle"];
+  const done = new Set();
+  let failed = sessionStorage.getItem("bench-fail-" + PAGE) || null;
+  let futile = 0;
+  function render() {
+    const v = document.getElementById("bench-verdict");
+    const p = document.getElementById("bench-progress");
+    if (p) p.textContent = "Challenges complete: " + done.size + " / " + STEPS.length + " | Ineffective interactions: " + futile;
+    if (!v) return;
+    if (failed) { v.textContent = "BENCH_FAIL " + PAGE + ": " + failed; v.className = "verdict fail"; }
+    else if (done.size === STEPS.length) { v.textContent = TOKEN + " — all challenges complete"; v.className = "verdict pass"; }
+  }
+  function complete(step) {
+    if (failed || done.has(step)) return;
+    done.add(step);
+    const m = document.querySelector('[data-step-mark="' + step + '"]');
+    if (m) m.textContent = "✓ complete";
+    render();
+    if (window.benchOnComplete) window.benchOnComplete(step);
+  }
+  function fail(reason) {
+    if (failed) return;
+    failed = reason;
+    sessionStorage.setItem("bench-fail-" + PAGE, reason);
+    render();
+  }
+  window.__benchReport = () => ({ page: PAGE, done: [...done], failed, futile, total: STEPS.length });
+  document.addEventListener("DOMContentLoaded", render);
+  return { complete, fail, has: (s) => done.has(s), futile: () => { futile += 1; render(); } };
+})();
+
+const $ = (sel) => document.querySelector(sel);
+
+// --- 1. triple-nested holds ---------------------------------------------------------------------
+(function () {
+  const btn = $("#hatch");
+  let dwell = null;
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((e) => {
+      if (e.intersectionRatio >= 0.85) {
+        if (!dwell) dwell = setTimeout(() => { btn.disabled = false; btn.textContent = "Open access hatch (armed)"; }, 500);
+      } else {
+        clearTimeout(dwell); dwell = null;
+        btn.disabled = true; btn.textContent = "Open access hatch";
+      }
+    });
+  }, { root: document.getElementById("inner"), threshold: [0, 0.85, 1] });
+  io.observe(btn);
+  btn.addEventListener("click", () => { if (!btn.disabled) { Bench.complete("nest"); io.disconnect(); } });
+})();
+
+// --- 2. dual scroll bands -----------------------------------------------------------------------
+(function () {
+  const a = $("#dual-a"), b = $("#dual-b");
+  const engage = $("#dual-engage");
+  let dwell = null;
+  function update() {
+    const sa = Math.round(a.scrollTop), sb = Math.round(b.scrollTop);
+    const aIn = sa >= 800 && sa <= 860, bIn = sb >= 1200 && sb <= 1270;
+    $("#a-read").textContent = String(sa);
+    $("#b-read").textContent = String(sb);
+    $("#a-state").textContent = aIn ? "in band" : "out";
+    $("#b-state").textContent = bIn ? "in band" : "out";
+    if (aIn && bIn) {
+      if (!dwell) dwell = setTimeout(() => { engage.disabled = false; }, 1000);
+    } else {
+      clearTimeout(dwell); dwell = null;
+      engage.disabled = true;
+    }
+  }
+  a.addEventListener("scroll", update);
+  b.addEventListener("scroll", update);
+  update();
+  engage.addEventListener("click", () => { if (!engage.disabled) Bench.complete("dual"); });
+})();
+
+// --- 3. inverted wheel --------------------------------------------------------------------------
+(function () {
+  const box = $("#reverse-box");
+  box.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    box.scrollTop -= e.deltaY;
+  }, { passive: false });
+  const btn = $("#rev-btn");
+  let dwell = null;
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((e) => {
+      if (e.intersectionRatio >= 0.9) {
+        if (!dwell) dwell = setTimeout(() => { btn.disabled = false; }, 400);
+      } else {
+        clearTimeout(dwell); dwell = null;
+        btn.disabled = true;
+      }
+    });
+  }, { root: box, threshold: [0, 0.9, 1] });
+  io.observe(btn);
+  btn.addEventListener("click", () => { if (!btn.disabled) Bench.complete("reverse"); });
+})();
+
+// --- 4. auto-growing manifest -------------------------------------------------------------------
+(function () {
+  const box = $("#grow-box");
+  const SPECIAL = { 124: true, 214: true, 241: true, 412: true };
+  let rows = 0;
+  const MAX = 3000;
+  function addRows(n) {
+    const frag = document.createDocumentFragment();
+    for (let i = 0; i < n && rows < MAX; i++) {
+      rows += 1;
+      const div = document.createElement("div");
+      div.className = "grow-row";
+      if (SPECIAL[rows]) {
+        div.innerHTML = "<span>Berth " + rows + "</span><button data-claim='" + rows + "'>Claim</button>";
+      } else {
+        div.innerHTML = "<span>Berth " + rows + "</span><span class='hint'>occupied</span>";
+      }
+      frag.appendChild(div);
+    }
+    box.appendChild(frag);
+    const counter = document.getElementById("grow-count");
+    if (counter) counter.textContent = String(rows);
+  }
+  addRows(300);
+  box.addEventListener("scroll", () => {
+    if (box.scrollTop + box.clientHeight > box.scrollHeight - 300) addRows(80);
+  });
+  box.addEventListener("click", (e) => {
+    const c = e.target.getAttribute && e.target.getAttribute("data-claim");
+    if (!c) return;
+    if (c === "214") { e.target.textContent = "Claimed"; Bench.complete("needle"); }
+    else { Bench.futile(); }
+  });
+})();
+
+// --- sequential unlock --------------------------------------------------------------------------
+window.benchOnComplete = function (step) {
+  const order = { nest: "#s-dual", dual: "#s-reverse", reverse: "#s-grow" };
+  if (order[step]) document.querySelector(order[step]).classList.remove("locked");
+};
+</script>
+</body>
+</html>

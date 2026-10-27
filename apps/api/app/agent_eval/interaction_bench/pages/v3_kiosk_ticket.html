@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Queue ticket</title>
+<style>
+  body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;margin:0;padding:26px;line-height:1.5;color:#1a1a1a;background:#12203a}
+  .card{background:#fff;border-radius:12px;padding:22px 24px;max-width:420px}
+  h1{font-size:20px;margin:0 0 10px}
+  .ticket{font-family:ui-monospace,Consolas,monospace;font-size:30px;font-weight:800;letter-spacing:1px}
+  button{font:inherit;padding:8px 16px;border-radius:6px;border:1px solid #bbb;background:#f2f2f2;cursor:pointer;margin:6px 6px 0 0}
+  .hint{color:#666;font-size:13px}
+</style>
+</head>
+<body data-page="v3_kiosk" data-aux="ticket">
+<div class="card">
+  <h1>Queue ticket</h1>
+  <p id="aux-status" class="hint">Loading…</p>
+  <p>Your ticket: <span class="ticket" id="ticket">—</span></p>
+  <p><button id="take">Take ticket</button><button id="copy" disabled>Copy ticket to clipboard</button></p>
+  <p class="hint" id="msg"></p>
+</div>
+<script src="v3_common.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+let ticket = "";
+function show(t) {
+  ticket = t || "";
+  $("#ticket").textContent = ticket || "—";
+  $("#copy").disabled = !ticket;
+  $("#take").disabled = !!ticket;
+}
+V3.ready.then(async () => {
+  $("#aux-status").textContent = "Press Take ticket to print your number.";
+  const result = await V3.act("ticket_view");
+  if (result.ticket) {
+    show(result.ticket);
+    $("#aux-status").textContent = "Ticket already taken.";
+  }
+});
+$("#take").addEventListener("click", async () => {
+  const result = await V3.act("take_ticket");
+  if (result.ticket) {
+    show(result.ticket);
+    $("#aux-status").textContent = "Ticket printed.";
+  }
+});
+$("#copy").addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText(ticket);
+    V3.act("ticket_copied");
+    $("#msg").textContent = "Copied to the clipboard. Return to the kiosk and import it.";
+  } catch (e) {
+    $("#msg").textContent = "Could not copy automatically (" + ((e && e.name) || e) + "). Select the ticket number and copy it yourself.";
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tempo lab</title>
+<style>
+  body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;margin:0;padding:24px;line-height:1.5;color:#1a1a1a;background:#fafafa}
+  h1{font-size:22px;margin:0 0 6px}
+  section.ch{background:#fff;border:1px solid #d8d8d8;border-radius:10px;padding:16px 18px;margin:14px 0;max-width:900px}
+  section.ch h2{font-size:16px;margin:0 0 8px}
+  .mark{color:#1a7f37;font-weight:600;margin-left:10px}
+  .hint{color:#666;font-size:13px}
+  .msg{color:#2b4c7e;font-size:14px;margin-left:8px}
+  .verdict{font-weight:700;padding:14px;margin:14px 0;border-radius:8px;background:#eee;max-width:900px}
+  .verdict.pass{background:#dff5df}
+  .verdict.fail{background:#fbdcdc}
+  button{font:inherit;padding:6px 14px;border-radius:6px;border:1px solid #bbb;background:#f2f2f2;cursor:pointer}
+  input{font:inherit;padding:6px 8px;border:1px solid #bbb;border-radius:6px}
+  .intro{max-width:900px}
+  #shuffle-row{display:flex;gap:10px;flex-wrap:wrap;min-height:44px;transition:none}
+  #chamber{font-family:ui-monospace,Consolas,monospace;font-size:20px;font-weight:800;padding:6px 12px;border-radius:6px;background:#eef1f5;display:inline-block;min-width:300px}
+  #chamber.ready{background:#d9f7d9;color:#11631f}
+  #gauge{font-family:ui-monospace,Consolas,monospace;font-size:34px;font-weight:800;padding:8px 16px;border-radius:8px;background:#111827;color:#fbbf24;display:inline-block;min-width:260px;text-align:center}
+  #hold-status{font-weight:700}
+  #commit{display:none;background:#1f9d55;color:#fff;border-color:#1f9d55}
+  #hop{display:block;border-radius:10px;cursor:crosshair}
+</style>
+</head>
+<body data-page="v3_tempo">
+<h1>Tempo lab</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+<p class="intro">Everything in this lab changes faster than a screenshot round trip. Each challenge still has something
+that stays true — act on that, not on where things were a moment ago.</p>
+
+<section class="ch">
+  <h2>1. Engage <span class="mark" data-step-mark="fast_shuffle"></span></h2>
+  <p>Press <strong>Engage</strong> three times. The control row reshuffles and moves several times a second; only
+     presses that land on Engage count. Engage presses so far: <b data-public="engage"></b> / 3</p>
+  <div id="shuffle-row"></div>
+  <p class="msg" data-msg="shuffle"></p>
+</section>
+
+<section class="ch">
+  <h2>2. Fire on time <span class="mark" data-step-mark="armed_fire"></span></h2>
+  <p>Fire exactly when the chamber status says it is ready to fire. The ready state lasts half a second and arrives
+     at unpredictable moments; firing at any other time is a misfire.</p>
+  <p><span id="chamber">Chamber: charging…</span> <button id="fire">Fire</button></p>
+  <p class="msg" data-msg="fire"></p>
+</section>
+
+<section class="ch">
+  <h2>3. Watch the gauge <span class="mark" data-step-mark="watch_peak"></span></h2>
+  <p>Press <em>Sample</em>: the gauge shows 24 readings, one every half second, and then clears. Enter the
+     <strong>highest</strong> reading shown during that sample. Samples left: <b data-public="samples_left"></b></p>
+  <p><button id="sample">Sample</button> <span id="gauge">—</span></p>
+  <p><label>Highest reading <input id="peak" autocomplete="off" size="6" data-enter="peak-go"></label>
+     <button id="peak-go">Submit peak</button> <span class="msg" data-msg="peak"></span></p>
+</section>
+
+<section class="ch">
+  <h2>4. Hold still <span class="mark" data-step-mark="idle_hold"></span></h2>
+  <p>Press <em>Hold</em>, then keep completely still: no clicks, key presses, or scrolling anywhere on this page for
+     8 seconds. A commit button then appears for 4 seconds; press it before it goes.</p>
+  <p><button id="hold">Hold</button> <button id="commit">Commit</button> <span id="hold-status"></span></p>
+  <p class="msg" data-msg="hold"></p>
+</section>
+
+<section class="ch">
+  <h2>5. Hit the beacon <span class="mark" data-step-mark="canvas_hop"></span></h2>
+  <p>Hit the <strong>gold beacon</strong> three times. It is painted on the canvas among grey decoys and jumps to a
+     new spot every 1.2 seconds. Hits so far: <b data-public="hits"></b> / 3</p>
+  <canvas id="hop"></canvas>
+  <p class="msg" data-msg="hop"></p>
+</section>
+
+<script src="v3_common.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+let doneSteps = [];
+V3.onState((st) => { doneSteps = st.done; });
+const isDone = (step) => doneSteps.includes(step);
+const rid = () => Math.random().toString(36).slice(2, 8);
+
+// ---- 1. a row that reshuffles and jumps every 350 ms ----------------------------------------
+const LABELS = ["Engage", "Disengage", "Vent", "Purge", "Hold", "Reset"];
+function reshuffle() {
+  const row = $("#shuffle-row");
+  if (isDone("fast_shuffle")) {
+    row.textContent = "Engaged.";
+    return;
+  }
+  const labels = LABELS.slice();
+  for (let i = labels.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [labels[i], labels[j]] = [labels[j], labels[i]];
+  }
+  row.innerHTML = "";
+  row.style.marginLeft = Math.floor(Math.random() * 160) + "px";
+  labels.forEach((label) => {
+    const b = document.createElement("button");
+    b.textContent = label;
+    b.id = "sh-" + rid();
+    b.addEventListener("click", () => V3.act("engage", { label }));
+    row.appendChild(b);
+  });
+}
+setInterval(reshuffle, 350);
+reshuffle();
+
+// ---- 2. a half-second ready window at random moments ----------------------------------------
+let chamber = "charging";
+function paintChamber() {
+  const el = $("#chamber");
+  el.textContent = chamber === "ready" ? "Chamber: READY TO FIRE" : chamber === "cooling" ? "Chamber: cooling…" : "Chamber: charging…";
+  el.className = chamber === "ready" ? "ready" : "";
+}
+function cycle() {
+  chamber = "charging";
+  paintChamber();
+  setTimeout(() => {
+    chamber = "ready";
+    paintChamber();
+    setTimeout(() => {
+      chamber = "cooling";
+      paintChamber();
+      setTimeout(cycle, 1500);
+    }, 500);
+  }, 4000 + Math.random() * 5000);
+}
+cycle();
+$("#fire").addEventListener("click", () => V3.act("fire", { status: chamber }));
+
+// ---- 3. 24 readings, one every 500 ms, then gone ---------------------------------------------
+let sampling = false;
+$("#sample").addEventListener("click", async () => {
+  if (sampling) return;
+  const result = await V3.act("sample");
+  if (!result.readings) return;
+  sampling = true;
+  $("#sample").disabled = true;
+  const readings = result.readings;
+  let i = 0;
+  const gauge = $("#gauge");
+  const show = () => {
+    if (i >= readings.length) {
+      gauge.textContent = "— sampling complete —";
+      sampling = false;
+      $("#sample").disabled = false;
+      return;
+    }
+    gauge.textContent = "#" + (i + 1) + ":  " + readings[i];
+    i += 1;
+    setTimeout(show, result.interval_ms || 500);
+  };
+  show();
+});
+$("#peak-go").addEventListener("click", () => V3.act("submit_peak", { value: $("#peak").value }));
+
+// ---- 4. stillness, then a 4-second commit window --------------------------------------------
+let holding = false;
+let holdStart = 0;
+let commitUntil = 0;
+const HOLD_MS = 8000;
+const COMMIT_MS = 4000;
+$("#hold").addEventListener("click", () => {
+  if (isDone("idle_hold")) return;
+  holding = true;
+  holdStart = performance.now();
+  commitUntil = 0;
+  $("#commit").style.display = "none";
+});
+["pointerdown", "keydown", "wheel"].forEach((type) =>
+  document.addEventListener(
+    type,
+    () => {
+      if (!holding) return;
+      holding = false;
+      $("#hold-status").textContent = "Hold broken — press Hold to start again.";
+      V3.act("hold_broken");
+    },
+    true
+  )
+);
+setInterval(() => {
+  const now = performance.now();
+  if (holding) {
+    const left = HOLD_MS - (now - holdStart);
+    if (left <= 0) {
+      holding = false;
+      commitUntil = now + COMMIT_MS;
+      $("#commit").style.display = "inline-block";
+      $("#hold-status").textContent = "Commit now!";
+    } else {
+      $("#hold-status").textContent = "Holding — stay still: " + (left / 1000).toFixed(1) + " s";
+    }
+  } else if (commitUntil && now > commitUntil) {
+    commitUntil = 0;
+    $("#commit").style.display = "none";
+    $("#hold-status").textContent = "Commit window missed.";
+    V3.act("commit_missed");
+  }
+}, 100);
+$("#commit").addEventListener("click", () => {
+  if (!commitUntil) return;
+  commitUntil = 0;
+  $("#commit").style.display = "none";
+  $("#hold-status").textContent = "Committed.";
+  V3.act("commit_hold", { clean: true });
+});
+
+// ---- 5. a painted beacon that jumps every 1.2 s ---------------------------------------------
+const canvas = $("#hop");
+const ctx = canvas.getContext("2d");
+const W = 720;
+const H = 300;
+const dpr = window.devicePixelRatio || 1;
+canvas.width = W * dpr;
+canvas.height = H * dpr;
+canvas.style.width = W + "px";
+canvas.style.height = H + "px";
+ctx.scale(dpr, dpr);
+let beacon = { x: 0, y: 0 };
+let decoys = [];
+const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+const spot = () => ({ x: 36 + Math.random() * (W - 72), y: 36 + Math.random() * (H - 72) });
+function ring(p, color, width, radius) {
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.stroke();
+}
+function drawHop() {
+  ctx.fillStyle = "#0e1726";
+  ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = "#1c2a3d";
+  ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+  for (let y = 0; y < H; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+  if (isDone("canvas_hop")) {
+    ctx.fillStyle = "#9ae6b4";
+    ctx.font = "bold 22px system-ui";
+    ctx.fillText("Beacon logged.", 24, 40);
+    return;
+  }
+  decoys.forEach((d) => ring(d, "#6b7280", 5, 16));
+  ring(beacon, "#fde68a", 2, 23);
+  ring(beacon, "#facc15", 6, 16);
+  ctx.beginPath();
+  ctx.arc(beacon.x, beacon.y, 5, 0, Math.PI * 2);
+  ctx.fillStyle = "#111111";
+  ctx.fill();
+}
+function place() {
+  beacon = spot();
+  decoys = [];
+  while (decoys.length < 6) {
+    const p = spot();
+    if (dist(p, beacon) > 70 && decoys.every((d) => dist(p, d) > 50)) decoys.push(p);
+  }
+  drawHop();
+}
+setInterval(place, 1200);
+place();
+canvas.addEventListener("click", (e) => {
+  if (isDone("canvas_hop")) return;
+  const r = canvas.getBoundingClientRect();
+  const p = { x: (e.clientX - r.left) * (W / r.width), y: (e.clientY - r.top) * (H / r.height) };
+  if (dist(p, beacon) <= 24) {
+    V3.act("hop_hit");
+    place();
+  } else {
+    V3.act("hop_miss");
+  }
+});
+</script>
+</body>
+</html>

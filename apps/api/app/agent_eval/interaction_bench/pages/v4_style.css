@@ -1,0 +1,23 @@
+/* Interaction Gauntlet generations 4-5 — shared page style (pages stay plain; the challenge is the input). */
+body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;margin:0;padding:24px;line-height:1.5;color:#1a1a1a;background:#fafafa}
+h1{font-size:22px;margin:0 0 6px}
+.intro{max-width:920px}
+section.ch{background:#fff;border:1px solid #d8d8d8;border-radius:10px;padding:16px 18px;margin:14px 0;max-width:920px}
+section.ch.locked{opacity:.45;pointer-events:none}
+section.ch h2{font-size:16px;margin:0 0 8px}
+.mark{color:#1a7f37;font-weight:600;margin-left:10px}
+.hint{color:#666;font-size:13px}
+.msg{color:#2b4c7e;font-size:14px;margin-left:8px}
+p.msg{margin-left:0}
+.verdict{font-weight:700;padding:14px;margin:14px 0;border-radius:8px;background:#eee;max-width:920px}
+.verdict.pass{background:#dff5df}
+.verdict.fail{background:#fbdcdc}
+button{font:inherit;padding:6px 14px;border-radius:6px;border:1px solid #bbb;background:#f2f2f2;cursor:pointer}
+button:disabled{opacity:.5;cursor:default}
+input,select,textarea{font:inherit;padding:6px 8px;border:1px solid #bbb;border-radius:6px}
+.val{font-family:ui-monospace,Consolas,monospace;font-weight:700}
+.path{font-family:ui-monospace,Consolas,monospace;background:#f1f3f5;padding:2px 6px;border-radius:4px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0}
+.box{border:1px solid #ccd3da;border-radius:8px;background:#fbfcfd}
+.pill{display:inline-block;padding:1px 8px;border-radius:999px;background:#eef2f6;font-size:13px}
+.noselect{user-select:none;-webkit-user-select:none}

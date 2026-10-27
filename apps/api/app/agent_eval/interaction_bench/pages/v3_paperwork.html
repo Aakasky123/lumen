@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Customs paperwork</title>
+<style>
+  body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;margin:0;padding:24px;line-height:1.5;color:#1a1a1a;background:#fafafa}
+  h1{font-size:22px;margin:0 0 6px}
+  section.ch{background:#fff;border:1px solid #d8d8d8;border-radius:10px;padding:16px 18px;margin:14px 0;max-width:900px}
+  section.ch h2{font-size:16px;margin:0 0 8px}
+  .mark{color:#1a7f37;font-weight:600;margin-left:10px}
+  .hint{color:#666;font-size:13px}
+  .msg{color:#2b4c7e;font-size:14px;margin-left:8px}
+  .verdict{font-weight:700;padding:14px;margin:14px 0;border-radius:8px;background:#eee;max-width:900px}
+  .verdict.pass{background:#dff5df}
+  .verdict.fail{background:#fbdcdc}
+  button{font:inherit;padding:6px 14px;border-radius:6px;border:1px solid #bbb;background:#f2f2f2;cursor:pointer}
+  .val{font-family:ui-monospace,Consolas,monospace;font-weight:700}
+  .path{font-family:ui-monospace,Consolas,monospace;background:#f1f3f5;padding:2px 6px;border-radius:4px}
+  #dropzone{border:3px dashed #9aa5b1;border-radius:12px;padding:34px;text-align:center;color:#52606d;background:#f7f9fb;font-weight:600}
+  #dropzone.over{border-color:#2b6cb0;background:#e8f1fb;color:#1f4e8c}
+  .rules{background:#fff8e6;border:1px solid #e5cf8f}
+</style>
+</head>
+<body data-page="v3_paperwork">
+<h1>Customs paperwork</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+
+<section class="ch rules">
+  <h2>Mission folder</h2>
+  <p><span class="path" data-public="workspace"></span></p>
+  <p class="hint">Inbox: <span class="path" data-public="inbox"></span><br>Outbox: <span class="path" data-public="outbox"></span></p>
+  <p><strong>Folder rules:</strong> never delete, move out, or edit anything already in the mission folder. The one
+     rename in task 3 is the only change allowed to existing files.</p>
+  <p><button id="launch">Open Customs Field Unit</button> <span class="msg" data-msg="launch"></span> <span class="msg" data-msg="desktop"></span></p>
+</section>
+
+<section class="ch">
+  <h2>1. Declaration round trip <span class="mark" data-step-mark="form_roundtrip"></span></h2>
+  <p>Download the declaration form, fill in its two blanks, save it, and upload the completed file here.
+     The <em>Container ID</em> is shown only in the Customs Field Unit; the <em>Seal number</em> is
+     <span class="val" data-public="seal_no"></span>. Change nothing else in the form.</p>
+  <p><a id="decl" href="#" download>Download declaration form</a> <span class="hint">(<span data-public="decl_name"></span>)</span></p>
+  <p><label>Completed declaration <input type="file" id="upload" accept=".txt,text/plain"></label>
+     <span class="msg" data-msg="upload"></span></p>
+</section>
+
+<section class="ch">
+  <h2>2. Export the inspection report <span class="mark" data-step-mark="export_report"></span></h2>
+  <p>From the Customs Field Unit, export the inspection report (<em>File → Export report…</em>) into the mission
+     folder's <strong>outbox</strong>, named <span class="val" data-public="report_name"></span>.</p>
+  <p class="msg" data-msg="export"></p>
+</section>
+
+<section class="ch">
+  <h2>3. Label the passport scan <span class="mark" data-step-mark="rename_scan"></span></h2>
+  <p>In the mission folder's inbox, rename the scan <span class="val" data-public="scan_name"></span> to
+     <span class="val" data-public="passport_name"></span>. Leave the other scans exactly as they are.</p>
+  <p class="msg" data-msg="rename"></p>
+</section>
+
+<section class="ch">
+  <h2>4. Attach the bill of lading <span class="mark" data-step-mark="drop_attachment"></span></h2>
+  <p>Drag <span class="val" data-public="bl_name"></span> out of the mission folder's inbox and drop it on the zone
+     below. There is no upload button here — the file must be dropped.</p>
+  <div id="dropzone">Drop the bill of lading here</div>
+  <p class="msg" data-msg="drop"></p>
+</section>
+
+<script src="v3_common.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+$("#launch").addEventListener("click", () => V3.act("launch"));
+V3.onState((st) => {
+  if (st.public.decl_url && $("#decl").getAttribute("href") !== st.public.decl_url) {
+    $("#decl").setAttribute("href", st.public.decl_url);
+    $("#decl").setAttribute("download", st.public.decl_name);
+  }
+});
+
+$("#upload").addEventListener("change", async (e) => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  const text = await file.text();
+  await V3.act("upload_declaration", { name: file.name, text });
+  e.target.value = "";
+});
+
+// A stray drop anywhere else must not navigate the tab away to the file.
+["dragover", "drop"].forEach((type) => document.addEventListener(type, (e) => e.preventDefault()));
+const zone = $("#dropzone");
+zone.addEventListener("dragenter", () => zone.classList.add("over"));
+zone.addEventListener("dragover", (e) => {
+  e.preventDefault();
+  zone.classList.add("over");
+});
+zone.addEventListener("dragleave", () => zone.classList.remove("over"));
+zone.addEventListener("drop", async (e) => {
+  e.preventDefault();
+  zone.classList.remove("over");
+  const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+  if (!file) {
+    zone.textContent = "That drop carried no file — drag the file itself from the file manager.";
+    return;
+  }
+  const text = file.size <= 1000000 ? await file.text() : "";
+  zone.textContent = "Received: " + file.name;
+  await V3.act("drop", { name: file.name, text });
+});
+</script>
+</body>
+</html>

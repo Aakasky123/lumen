@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Native app bench</title>
+<link rel="stylesheet" href="v4_style.css">
+</head>
+<body data-page="v4_native">
+<h1>Native app bench</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+<p class="intro">Eight independent challenges, in any order, all inside <strong>Warehouse Manager</strong>, an ordinary
+  desktop app, and its <strong>Truck Loader</strong> window. Its controls are drawn by the app itself: work it by sight
+  with the mouse and keyboard.</p>
+<p><button id="launch">Open Warehouse Manager</button> <span class="msg" data-msg="launch"></span> <span class="msg" data-msg="desktop"></span></p>
+
+<section class="ch">
+  <h2>1. Cascade menu <span class="mark" data-step-mark="cascade_menu"></span></h2>
+  <p>Switch the units to Metric: <em>View → Units → Metric</em>.</p>
+  <p class="msg" data-msg="units"></p>
+</section>
+
+<section class="ch">
+  <h2>2. Right-click menu <span class="mark" data-step-mark="context_menu"></span></h2>
+  <p>Flag crate <span class="val" data-public="flag"></span> for inspection from its right-click menu. Never remove a crate.</p>
+  <p class="msg" data-msg="flag"></p>
+</section>
+
+<section class="ch">
+  <h2>3. Open by double-click <span class="mark" data-step-mark="double_click_open"></span></h2>
+  <p>Open crate <span class="val" data-public="open"></span> (double-click it in the crate list) and press
+     <em>Confirm receipt</em> in its detail window.</p>
+  <p class="msg" data-msg="receipt"></p>
+</section>
+
+<section class="ch">
+  <h2>4. Drag between windows <span class="mark" data-step-mark="cross_window_drag"></span></h2>
+  <p>Drag crate <span class="val" data-public="drag"></span> out of the Warehouse Manager's crate list and drop it on
+     the <strong>Truck Loader</strong> window's cargo bay.</p>
+  <p class="msg" data-msg="truck"></p>
+</section>
+
+<section class="ch">
+  <h2>5. Scroll a long list <span class="mark" data-step-mark="wheel_select"></span></h2>
+  <p>In <em>Manifest lines</em>, select <span class="val" data-public="manifest_target"></span> (scroll the list — it
+     has 300 lines) and press <em>Load line</em>.</p>
+  <p class="msg" data-msg="line"></p>
+</section>
+
+<section class="ch">
+  <h2>6. Select text in a read-only box <span class="mark" data-step-mark="text_select"></span></h2>
+  <p>In the note at the bottom of Warehouse Manager, select exactly <span class="val" data-public="phrase"></span> and
+     press <em>Quote selection</em>.</p>
+  <p class="msg" data-msg="quote"></p>
+</section>
+
+<section class="ch">
+  <h2>7. Keyboard accelerator <span class="mark" data-step-mark="accelerator"></span></h2>
+  <p>Save the manifest with <strong>Ctrl+S</strong> while Warehouse Manager has focus (there is no Save menu item).</p>
+  <p class="msg" data-msg="save"></p>
+</section>
+
+<section class="ch">
+  <h2>8. The Open dialog <span class="mark" data-step-mark="open_dialog"></span></h2>
+  <p>Import <span class="val" data-public="file"></span> with <em>File → Import packing list…</em>. It is in the
+     mission inbox <span class="path" data-public="inbox"></span>; look-alike files sit beside it.</p>
+  <p class="msg" data-msg="import"></p>
+</section>
+
+<script src="v3_common.js"></script>
+<script>
+document.getElementById("launch").addEventListener("click", () => V3.act("launch"));
+</script>
+</body>
+</html>

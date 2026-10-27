@@ -1,0 +1,172 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "api",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "uvicorn",
+        "app.main:app",
+        "--app-dir",
+        "apps/api",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8001"
+      ],
+      "port": 8001
+    },
+    {
+      "name": "api-mac",
+      "runtimeExecutable": ".venv/bin/python",
+      "runtimeArgs": [
+        "-m",
+        "uvicorn",
+        "app.main:app",
+        "--app-dir",
+        "apps/api",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8001"
+      ],
+      "port": 8001
+    },
+    {
+      "name": "api-external-brain",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "uvicorn",
+        "app.main:app",
+        "--app-dir",
+        "apps/api",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8001"
+      ],
+      "env": {
+        "LUMEN_EXTERNAL_BRAIN_DIR": "storage/external_brain"
+      },
+      "port": 8001
+    },
+    {
+      "name": "api-external-brain-gauntlet",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "uvicorn",
+        "app.main:app",
+        "--app-dir",
+        "apps/api",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8001"
+      ],
+      "env": {
+        "LUMEN_EXTERNAL_BRAIN_DIR": "storage/external_brain/gauntlet-v5",
+        "LUMEN_EXTERNAL_BRAIN_PER_RUN": "0"
+      },
+      "port": 8001
+    },
+    {
+      "name": "api-external-brain-v6",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "uvicorn",
+        "app.main:app",
+        "--app-dir",
+        "apps/api",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8001"
+      ],
+      "env": {
+        "LUMEN_EXTERNAL_BRAIN_DIR": "storage/external_brain/v6-sonnet",
+        "LUMEN_EXTERNAL_BRAIN_PER_RUN": "0"
+      },
+      "port": 8001
+    },
+    {
+      "name": "renderer",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "apps/renderer",
+        "run",
+        "dev",
+        "--",
+        "-p",
+        "3000"
+      ],
+      "port": 3000
+    },
+    {
+      "name": "fixture-backend",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "apps/renderer/dev/fixture-backend.mjs"
+      ],
+      "port": 8790
+    },
+    {
+      "name": "extension-preview",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8791",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "apps/extension"
+      ],
+      "port": 8791
+    },
+    {
+      "name": "renderer-fixtures",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "apps/renderer",
+        "run",
+        "dev",
+        "--",
+        "-p",
+        "3001"
+      ],
+      "env": {
+        "API_BACKEND_URL": "http://127.0.0.1:8790",
+        "NEXT_PUBLIC_LUMEN_FIXTURES": "1"
+      },
+      "port": 3001
+    },
+    {
+      "name": "api-v6-orch",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "uvicorn",
+        "app.main:app",
+        "--app-dir",
+        "apps/api",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8011"
+      ],
+      "env": {
+        "DATABASE_URL": "sqlite:///C:/Projects/Lumen/storage/v6-orch.db",
+        "LUMEN_ARTIFACT_ROOT": "C:/Projects/Lumen/storage/artifacts-v6-orch",
+        "LUMEN_REMOTE_PORT": "0",
+        "LUMEN_EXTERNAL_BRAIN_DIR": "storage/external_brain/v6-orch"
+      },
+      "port": 8011
+    }
+  ]
+}

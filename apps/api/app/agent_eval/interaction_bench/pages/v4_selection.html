@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Selection bench</title>
+<link rel="stylesheet" href="v4_style.css">
+<style>
+  .reading{font-size:16px;max-width:760px;background:#f7f9fb;border:1px solid #dde3ea;border-radius:8px;padding:12px 16px}
+  .addr{margin:6px 0}
+  .lb{max-width:460px;user-select:none;outline:none;padding:4px}
+  .lb:focus{box-shadow:0 0 0 3px #bcd3ee}
+  .lb .r{display:flex;gap:18px;padding:4px 10px;border-radius:4px;font-family:ui-monospace,Consolas,monospace;font-size:14px}
+  .lb .r.sel{background:#2b6cb0;color:#fff}
+  .lb .r .st{margin-left:auto;font-family:system-ui,sans-serif}
+  #mboard{position:relative;width:520px;height:300px;background:#f4f6f8;border:1px solid #ccd3da;border-radius:8px;user-select:none;touch-action:none}
+  .tile{position:absolute;width:76px;height:48px;border-radius:6px;background:#9fb7cf;border:2px solid transparent;box-sizing:border-box;font-size:12px;color:#123;display:flex;align-items:center;justify-content:center}
+  .tile.sel{border-color:#d97706;background:#f6c66b}
+  #band{position:absolute;border:1px dashed #2b6cb0;background:rgba(43,108,176,.12);display:none;pointer-events:none}
+  #order{font-family:ui-monospace,Consolas,monospace;font-size:16px;width:260px}
+  .pastebox{font-family:ui-monospace,Consolas,monospace;width:260px}
+</style>
+</head>
+<body data-page="v4_selection">
+<h1>Selection bench</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+<p class="intro">Eight independent challenges, in any order: selecting text and items in every common way, and
+  moving text through the clipboard.</p>
+
+<section class="ch">
+  <h2>1. Drag-select a phrase <span class="mark" data-step-mark="drag_select"></span></h2>
+  <p>Select exactly <span class="val" data-public="phrase"></span> in the paragraph (no extra words or spaces), then
+     press <em>Quote selection</em>.</p>
+  <p class="reading" id="para"></p>
+  <button id="quote-phrase">Quote selection</button>
+  <p class="msg" data-msg="phrase"></p>
+</section>
+
+<section class="ch">
+  <h2>2. Triple-click a paragraph <span class="mark" data-step-mark="triple_click"></span></h2>
+  <p>Select the whole <strong id="which-para"></strong> address with a triple-click, then press <em>Quote paragraph</em>.</p>
+  <div class="reading" id="addrs"></div>
+  <p><button id="quote-para">Quote paragraph</button></p>
+  <p class="msg" data-msg="para"></p>
+</section>
+
+<section class="ch">
+  <h2>3. Select a range <span class="mark" data-step-mark="shift_range"></span></h2>
+  <p>Select every invoice from <span class="val" data-public="range_from"></span> through
+     <span class="val" data-public="range_to"></span> (inclusive) — click the first, Shift+click the last — then apply.</p>
+  <div class="lb box" id="lb-range" tabindex="0"></div>
+  <p><button id="apply-range">Apply selection</button> <span class="hint" id="range-count"></span></p>
+  <p class="msg" data-msg="range"></p>
+</section>
+
+<section class="ch">
+  <h2>4. Select scattered items <span class="mark" data-step-mark="ctrl_set"></span></h2>
+  <p>Select exactly the accounts whose status is <strong>Overdue</strong> — Ctrl+click adds or removes one row — then apply.</p>
+  <div class="lb box" id="lb-set" tabindex="0"></div>
+  <p><button id="apply-set">Apply selection</button> <span class="hint" id="set-count"></span></p>
+  <p class="msg" data-msg="set"></p>
+</section>
+
+<section class="ch">
+  <h2>5. Rubber-band selection <span class="mark" data-step-mark="marquee"></span></h2>
+  <p>Drag a selection rectangle across the board's empty space so that it selects exactly the four tiles of the
+     <span class="val" data-public="corner"></span> block. Start the drag on empty space, not on a tile; each new
+     rectangle replaces the selection.</p>
+  <div id="mboard"><div id="band"></div></div>
+  <p class="msg" data-msg="marquee"></p>
+</section>
+
+<section class="ch">
+  <h2>6. Select part of a field <span class="mark" data-step-mark="keyboard_select"></span></h2>
+  <p>Inside this locked field, select just <span class="val" data-public="order_part"></span> (Shift+arrow keys
+     or the mouse), then press <em>Use selection</em>.</p>
+  <div class="row"><input id="order" class="locked" spellcheck="false" autocomplete="off"> <button id="use-sel">Use selection</button></div>
+  <p class="msg" data-msg="part"></p>
+</section>
+
+<section class="ch">
+  <h2>7. Copy and paste <span class="mark" data-step-mark="copy_paste"></span></h2>
+  <p>Copy the access token and paste it into <em>Token</em>. The Token field accepts pasted text only.</p>
+  <div class="row"><label>Access token <input id="tok-src" class="pastebox locked" spellcheck="false" autocomplete="off"></label></div>
+  <div class="row"><label>Token <input id="tok-dst" class="pastebox" autocomplete="off" spellcheck="false"></label></div>
+  <p class="msg" data-msg="token"></p>
+</section>
+
+<section class="ch">
+  <h2>8. Cut and paste <span class="mark" data-step-mark="cut_paste"></span></h2>
+  <p>Move the transfer code from <em>Draft</em> to <em>Final</em> by cutting it (Ctrl+X) and pasting it: Draft must
+     end up empty. Final accepts pasted text only.</p>
+  <div class="row"><label>Draft <input id="cut-src" class="pastebox" autocomplete="off" spellcheck="false"></label></div>
+  <div class="row"><label>Final <input id="cut-dst" class="pastebox" autocomplete="off" spellcheck="false"></label></div>
+  <p class="msg" data-msg="cut"></p>
+</section>
+
+<script src="v3_common.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+let pub = null;
+const ORD = ["first", "second", "third"];
+
+// --- quoting the current selection: read it before the button press can disturb it ---------------
+function pressRead(btn, fn) {
+  let captured = null;
+  btn.addEventListener("mousedown", () => { captured = fn(); });
+  btn.addEventListener("click", () => {
+    const value = captured || fn();
+    captured = null;
+    value && value.send();
+  });
+}
+pressRead($("#quote-phrase"), () => {
+  const text = String(getSelection());
+  return { send: () => V3.act("quote_phrase", { text }) };
+});
+
+// --- triple click -------------------------------------------------------------------------------
+let lastTriple = null;
+document.addEventListener("click", (e) => {
+  const p = e.target.closest && e.target.closest(".addr");
+  if (p && e.detail >= 3 && V3.trusted(e)) lastTriple = { idx: +p.dataset.idx, at: performance.now() };
+});
+pressRead($("#quote-para"), () => {
+  const text = String(getSelection());
+  const sel = getSelection();
+  const node = sel.anchorNode && (sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentElement);
+  const p = node && node.closest && node.closest(".addr");
+  const triple = !!(lastTriple && p && +p.dataset.idx === lastTriple.idx && performance.now() - lastTriple.at < 60000);
+  return { send: () => V3.act("quote_para", { text, triple }) };
+});
+
+// --- list boxes: click, Shift+click, Ctrl+click, and the keyboard equivalents ---------------------
+function listbox(el, rows, render, countEl) {
+  const selected = new Set();
+  let anchor = -1, cursor = -1;
+  function draw() {
+    el.querySelectorAll(".r").forEach((r, i) => r.classList.toggle("sel", selected.has(i)));
+    countEl.textContent = selected.size + " selected";
+  }
+  rows.forEach((row, i) => {
+    const r = document.createElement("div");
+    r.className = "r";
+    r.dataset.id = row.id;
+    render(r, row);
+    r.addEventListener("mousedown", (e) => {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      el.focus();
+      if (!V3.trusted(e)) return V3.untrusted(el.id);
+      if (e.shiftKey && anchor >= 0) {
+        if (!(e.ctrlKey || e.metaKey)) selected.clear();
+        for (let k = Math.min(anchor, i); k <= Math.max(anchor, i); k++) selected.add(k);
+      } else if (e.ctrlKey || e.metaKey) {
+        selected.has(i) ? selected.delete(i) : selected.add(i);
+        anchor = i;
+      } else {
+        selected.clear();
+        selected.add(i);
+        anchor = i;
+      }
+      cursor = i;
+      draw();
+    });
+    el.appendChild(r);
+  });
+  el.addEventListener("keydown", (e) => {
+    if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+    e.preventDefault();
+    if (!V3.trusted(e)) return;
+    cursor = Math.max(0, Math.min(rows.length - 1, (cursor < 0 ? 0 : cursor + (e.key === "ArrowDown" ? 1 : -1))));
+    if (e.shiftKey && anchor >= 0) {
+      selected.clear();
+      for (let k = Math.min(anchor, cursor); k <= Math.max(anchor, cursor); k++) selected.add(k);
+    } else {
+      selected.clear();
+      selected.add(cursor);
+      anchor = cursor;
+    }
+    draw();
+  });
+  draw();
+  return () => rows.filter((_, i) => selected.has(i)).map((r) => r.id);
+}
+
+// --- rubber band --------------------------------------------------------------------------------
+const TILE_POS = [];
+(function () {
+  const xs = [36, 126, 290, 380], ys = [30, 92, 178, 240];
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) TILE_POS.push([xs[c], ys[r]]);
+})();
+function buildBoard() {
+  const board = $("#mboard");
+  TILE_POS.forEach(([x, y], i) => {
+    const t = document.createElement("div");
+    t.className = "tile";
+    t.dataset.id = "t" + i;
+    t.textContent = "Tile " + (i + 1);
+    t.style.left = x + "px";
+    t.style.top = y + "px";
+    board.appendChild(t);
+  });
+  let start = null;
+  const band = $("#band");
+  board.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0 || e.target.classList.contains("tile")) return;
+    if (!V3.trusted(e)) return V3.untrusted("marquee");
+    const b = board.getBoundingClientRect();
+    start = [e.clientX - b.left, e.clientY - b.top];
+    board.setPointerCapture(e.pointerId);
+    Object.assign(band.style, { display: "block", left: start[0] + "px", top: start[1] + "px", width: "0", height: "0" });
+  });
+  board.addEventListener("pointermove", (e) => {
+    if (!start) return;
+    const b = board.getBoundingClientRect();
+    const x = e.clientX - b.left, y = e.clientY - b.top;
+    Object.assign(band.style, {
+      left: Math.min(x, start[0]) + "px", top: Math.min(y, start[1]) + "px",
+      width: Math.abs(x - start[0]) + "px", height: Math.abs(y - start[1]) + "px",
+    });
+    const rx = [Math.min(x, start[0]), Math.max(x, start[0])], ry = [Math.min(y, start[1]), Math.max(y, start[1])];
+    board.querySelectorAll(".tile").forEach((t, i) => {
+      const [tx, ty] = TILE_POS[i];
+      t.classList.toggle("sel", tx < rx[1] && tx + 76 > rx[0] && ty < ry[1] && ty + 48 > ry[0]);
+    });
+  });
+  board.addEventListener("pointerup", () => {
+    if (!start) return;
+    start = null;
+    band.style.display = "none";
+    const tiles = [...board.querySelectorAll(".tile.sel")].map((t) => t.dataset.id);
+    V3.act("marquee", { tiles });
+  });
+}
+
+// --- locked fields: the caret moves and text selects, but nothing can be changed -----------------
+document.querySelectorAll("input.locked").forEach((input) => {
+  input.addEventListener("beforeinput", (e) => e.preventDefault());
+  input.addEventListener("input", () => {
+    input.value = input.dataset.locked || "";
+  });
+  input.addEventListener("cut", (e) => e.preventDefault());
+});
+
+// --- part of a field ----------------------------------------------------------------------------
+pressRead($("#use-sel"), () => {
+  const f = $("#order");
+  const text = f.value.slice(f.selectionStart, f.selectionEnd);
+  return { send: () => V3.act("use_selection", { text }) };
+});
+
+// --- paste-only fields --------------------------------------------------------------------------
+function pasteOnly(input, onPaste) {
+  let good = "";
+  let lastNag = 0;
+  function nag() {
+    if (performance.now() - lastNag > 2000) {
+      lastNag = performance.now();
+      V3.act("typed_into_paste_only");
+    }
+  }
+  input.addEventListener("beforeinput", (e) => {
+    if (e.inputType === "insertFromPaste" || e.inputType.startsWith("delete")) return;
+    e.preventDefault();
+    nag();
+  });
+  input.addEventListener("input", (e) => {
+    if (e.inputType === "insertFromPaste" || (e.inputType || "").startsWith("delete")) {
+      good = input.value;
+      return;
+    }
+    input.value = good;  // text that was not pasted is refused
+    nag();
+  });
+  input.addEventListener("paste", (e) => {
+    if (!V3.trusted(e)) {
+      e.preventDefault();
+      return V3.untrusted("token");
+    }
+    const text = (e.clipboardData && e.clipboardData.getData("text/plain")) || "";
+    setTimeout(() => onPaste(text), 0);
+  });
+}
+pasteOnly($("#tok-dst"), (text) => V3.act("paste_token", { text }));
+$("#cut-src").addEventListener("cut", (e) => {
+  if (!V3.trusted(e)) return V3.untrusted("cut");
+  const f = $("#cut-src");
+  V3.act("cut", { text: f.value.slice(f.selectionStart, f.selectionEnd) });
+});
+pasteOnly($("#cut-dst"), (text) => V3.act("paste_final", { text, draft: $("#cut-src").value }));
+
+// --- build --------------------------------------------------------------------------------------
+V3.onState((st) => {
+  if (pub) return;
+  pub = st.public;
+  $("#para").textContent = pub.paragraph;
+  $("#which-para").textContent = ORD[pub.para_index];
+  pub.paras.forEach((text, i) => {
+    const p = document.createElement("p");
+    p.className = "addr";
+    p.dataset.idx = i;
+    p.textContent = text;
+    $("#addrs").appendChild(p);
+  });
+  const rangeRows = listbox($("#lb-range"), pub.invoices.map((id) => ({ id })), (r, row) => (r.textContent = row.id), $("#range-count"));
+  $("#apply-range").addEventListener("click", () => V3.act("apply_range", { rows: rangeRows() }));
+  const setRows = listbox(
+    $("#lb-set"),
+    pub.accounts.map((id, i) => ({ id, status: pub.statuses[i] })),
+    (r, row) => { r.innerHTML = "<span></span><span class='st'></span>"; r.children[0].textContent = row.id; r.children[1].textContent = row.status; },
+    $("#set-count"),
+  );
+  $("#apply-set").addEventListener("click", () => V3.act("apply_set", { rows: setRows() }));
+  buildBoard();
+  $("#order").value = $("#order").dataset.locked = pub.order_code;
+  $("#tok-src").value = $("#tok-src").dataset.locked = pub.token;
+  $("#cut-src").value = pub.cut_code;
+});
+</script>
+</body>
+</html>

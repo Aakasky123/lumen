@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pointer bench</title>
+<link rel="stylesheet" href="v4_style.css">
+<style>
+  #grid{display:grid;grid-template-columns:22px repeat(12,18px);gap:2px;user-select:none}
+  #grid .hd{font-size:11px;color:#667;text-align:center;line-height:18px}
+  #grid .cell{width:18px;height:18px;background:#e9edf2;border-radius:2px;cursor:pointer}
+  #grid .cell:hover{background:#cfd8e3}
+  #grid .cell.hit{background:#7fb3e6}
+  #files{display:flex;gap:14px;flex-wrap:wrap;padding:12px;user-select:none}
+  .file{width:104px;text-align:center;padding:8px 4px;border-radius:6px;cursor:default;font-size:12px}
+  .file .ico{width:38px;height:46px;margin:0 auto 6px;background:#d64545;border-radius:3px;color:#fff;font-size:10px;font-weight:700;line-height:46px}
+  .file.sel{background:#d7e6f7;outline:1px solid #8bb4e0}
+  #inbox{max-width:620px;user-select:none}
+  .mail{display:flex;gap:16px;padding:8px 12px;border-bottom:1px solid #e3e6ea;cursor:default}
+  .mail:last-child{border-bottom:0}
+  .mail .who{width:170px;font-weight:600}
+  .mail.ctx{background:#eef4fb}
+  #ctxmenu{position:fixed;display:none;background:#fff;border:1px solid #b9c2cc;border-radius:6px;box-shadow:0 6px 18px rgba(0,0,0,.18);min-width:150px;padding:4px 0;z-index:50}
+  #ctxmenu div{padding:6px 16px;cursor:default}
+  #ctxmenu div:hover{background:#e8f0fa}
+  #ctxmenu .danger{color:#b42318}
+  #ctxmenu hr{border:0;border-top:1px solid #e3e6ea;margin:4px 0}
+  #hold{width:220px;height:46px;font-weight:600;user-select:none;touch-action:none}
+  #holdbar{width:220px;height:10px;background:#e9edf2;border-radius:5px;overflow:hidden;margin-top:6px}
+  #holdfill{height:100%;width:0;background:#2b6cb0}
+  #tierwrap{position:relative;display:inline-block}
+  #tip-icon{display:inline-block;width:22px;height:22px;border-radius:50%;background:#2b4c7e;color:#fff;text-align:center;font-weight:700;line-height:22px;cursor:help;user-select:none}
+  #tip{position:absolute;left:30px;top:-6px;background:#1f2933;color:#fff;padding:6px 10px;border-radius:6px;white-space:nowrap;display:none;font-size:13px}
+  #qty{font-size:22px;font-weight:700;min-width:46px;text-align:center;display:inline-block}
+  .stepper button{width:40px;height:36px;font-size:18px;padding:0}
+</style>
+</head>
+<body data-page="v4_clicks">
+<h1>Pointer bench</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+<p class="intro">Seven independent challenges, in any order. Each needs a different way of using the mouse.</p>
+
+<section class="ch">
+  <h2>1. Pin a cell <span class="mark" data-step-mark="grid_click"></span></h2>
+  <p>Click cell <span class="val" data-public="cell"></span> (columns A–M across the top — there is no column I — and rows 1–10 down the side).</p>
+  <div id="grid"></div>
+  <p class="msg" data-msg="grid"></p>
+</section>
+
+<section class="ch">
+  <h2>2. Open a file <span class="mark" data-step-mark="double_open"></span></h2>
+  <p>Open <span class="val" data-public="file"></span>. Like a desktop file manager, a single click only selects a file;
+     double-click it to open it.</p>
+  <div id="files" class="box"></div>
+  <p class="msg" data-msg="open"></p>
+</section>
+
+<section class="ch">
+  <h2>3. Archive from the context menu <span class="mark" data-step-mark="context_menu"></span></h2>
+  <p>Archive the message from <span class="val" data-public="sender"></span> using that message's context menu
+     (right-click it). Never delete a message.</p>
+  <div id="inbox" class="box"></div>
+  <p class="msg" data-msg="context"></p>
+</section>
+
+<section class="ch">
+  <h2>4. Open in a background tab <span class="mark" data-step-mark="middle_click"></span></h2>
+  <p>Open <a id="notes" href="#">Release notes</a> in a new background tab by clicking it with the
+     <strong>middle mouse button</strong>. This tab stays where it is.</p>
+  <p class="msg" data-msg="middle"></p>
+</section>
+
+<section class="ch">
+  <h2>5. Press and hold <span class="mark" data-step-mark="hold_press"></span></h2>
+  <p>Arm the line: press and hold the button, and release it after between
+     <span class="val" data-public="hold_low"></span> and <span class="val" data-public="hold_high"></span> seconds.</p>
+  <button id="hold">Hold to arm</button>
+  <div id="holdbar"><div id="holdfill"></div></div>
+  <p class="hint">Held: <span id="held">0.0</span> s</p>
+  <p class="msg" data-msg="hold"></p>
+</section>
+
+<section class="ch">
+  <h2>6. Read a tooltip <span class="mark" data-step-mark="hover_reveal"></span></h2>
+  <p>The tier code for this account appears only in the tooltip of the ⓘ icon — rest the pointer on the icon to
+     show it, then enter the code.</p>
+  <p>Account tier <span id="tierwrap"><span id="tip-icon">i</span><span id="tip"></span></span></p>
+  <div class="row"><input id="tier" autocomplete="off" size="10" data-enter="tier-go"> <button id="tier-go">Submit tier code</button></div>
+  <p class="msg" data-msg="tier"></p>
+</section>
+
+<section class="ch">
+  <h2>7. Set a quantity by clicking <span class="mark" data-step-mark="repeat_click"></span></h2>
+  <p>Set the quantity to exactly <span class="val" data-public="qty_target"></span> with the − and + buttons, then
+     confirm. The number cannot be typed.</p>
+  <div class="row stepper"><button id="minus" aria-label="Decrease">−</button><span id="qty">0</span><button id="plus" aria-label="Increase">+</button>
+     <button id="qty-go">Confirm quantity</button></div>
+  <p class="msg" data-msg="qty"></p>
+</section>
+
+<div id="ctxmenu" role="menu"></div>
+
+<script src="v3_common.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+let built = false;
+let qty = 0;
+
+V3.onState((st) => {
+  const p = st.public;
+  if (built) return;
+  built = true;
+  // 1. grid
+  const grid = $("#grid");
+  const cols = "ABCDEFGHJKLM";
+  grid.appendChild(Object.assign(document.createElement("div"), { className: "hd" }));
+  for (const c of cols) grid.appendChild(Object.assign(document.createElement("div"), { className: "hd", textContent: c }));
+  for (let r = 1; r <= 10; r++) {
+    grid.appendChild(Object.assign(document.createElement("div"), { className: "hd", textContent: String(r) }));
+    for (const c of cols) {
+      const cell = document.createElement("div");
+      cell.className = "cell";
+      cell.dataset.cell = c + r;
+      cell.title = "";
+      cell.addEventListener("click", (e) => {
+        if (!V3.trusted(e)) return V3.untrusted("grid");
+        grid.querySelectorAll(".hit").forEach((x) => x.classList.remove("hit"));
+        cell.classList.add("hit");
+        V3.act("grid_click", { cell: cell.dataset.cell });
+      });
+      grid.appendChild(cell);
+    }
+  }
+  // 2. files
+  const files = $("#files");
+  for (const name of p.files) {
+    const el = document.createElement("div");
+    el.className = "file";
+    el.dataset.name = name;
+    el.innerHTML = '<div class="ico">PDF</div>';
+    el.appendChild(document.createTextNode(name));
+    el.addEventListener("click", (e) => {
+      if (!V3.trusted(e)) return;
+      files.querySelectorAll(".sel").forEach((x) => x.classList.remove("sel"));
+      el.classList.add("sel");
+    });
+    el.addEventListener("dblclick", (e) => {
+      if (!V3.trusted(e)) return V3.untrusted("open");
+      V3.act("open_file", { name });
+    });
+    files.appendChild(el);
+  }
+  // 3. inbox + context menu
+  const subjects = ["Quarterly numbers", "Lunch on Friday?", "Contract redlines", "Badge renewal", "Server move window"];
+  const inbox = $("#inbox");
+  p.senders.forEach((who, i) => {
+    const row = document.createElement("div");
+    row.className = "mail";
+    row.dataset.sender = who;
+    row.innerHTML = '<span class="who"></span><span class="subj"></span>';
+    row.querySelector(".who").textContent = who;
+    row.querySelector(".subj").textContent = subjects[i];
+    row.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+      if (!V3.trusted(e)) return V3.untrusted("context");
+      openMenu(row, e.clientX, e.clientY);
+    });
+    inbox.appendChild(row);
+  });
+  // 4. notes link
+  $("#notes").setAttribute("href", "v4_clicks_notes?sid=" + encodeURIComponent(st.sid));
+  $("#qty").textContent = String(p.qty_start);
+  qty = p.qty_start;
+});
+
+// --- context menu -------------------------------------------------------------------------------
+const menu = $("#ctxmenu");
+let menuRow = null;
+function openMenu(row, x, y) {
+  closeMenu();
+  menuRow = row;
+  row.classList.add("ctx");
+  menu.innerHTML = "";
+  for (const item of ["Reply", "Forward", "Archive", "-", "Delete"]) {
+    if (item === "-") {
+      menu.appendChild(document.createElement("hr"));
+      continue;
+    }
+    const el = document.createElement("div");
+    el.textContent = item;
+    el.setAttribute("role", "menuitem");
+    if (item === "Delete") el.className = "danger";
+    el.addEventListener("click", (e) => {
+      if (!V3.trusted(e)) return V3.untrusted("context");
+      const who = menuRow ? menuRow.dataset.sender : "";
+      closeMenu();
+      V3.act("context_action", { sender: who, action: item });
+    });
+    menu.appendChild(el);
+  }
+  menu.style.display = "block";
+  const w = menu.offsetWidth, h = menu.offsetHeight;
+  menu.style.left = Math.min(x, innerWidth - w - 8) + "px";
+  menu.style.top = Math.min(y, innerHeight - h - 8) + "px";
+}
+function closeMenu() {
+  menu.style.display = "none";
+  if (menuRow) menuRow.classList.remove("ctx");
+  menuRow = null;
+}
+document.addEventListener("pointerdown", (e) => { if (!menu.contains(e.target)) closeMenu(); }, true);
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeMenu(); });
+
+// --- middle click -------------------------------------------------------------------------------
+const notes = $("#notes");
+notes.addEventListener("click", (e) => {
+  e.preventDefault();  // left clicks and modifier-clicks do not open it
+  if (e.button === 0 && V3.trusted(e)) V3.act("notes_left_click");
+});
+notes.addEventListener("pointerdown", (e) => {
+  if (e.button === 1 && V3.trusted(e)) V3.act("notes_middle");
+});
+
+// --- press and hold -----------------------------------------------------------------------------
+const hold = $("#hold");
+let holdStart = 0, holdTimer = null;
+function holdTick() {
+  const s = (performance.now() - holdStart) / 1000;
+  $("#held").textContent = s.toFixed(1);
+  $("#holdfill").style.width = Math.min(100, (s / 4) * 100) + "%";
+}
+hold.addEventListener("pointerdown", (e) => {
+  if (e.button !== 0) return;
+  if (!V3.trusted(e)) return V3.untrusted("hold");
+  hold.setPointerCapture(e.pointerId);
+  holdStart = performance.now();
+  holdTimer = setInterval(holdTick, 50);
+});
+function endHold(e, report) {
+  if (!holdTimer) return;
+  clearInterval(holdTimer);
+  holdTimer = null;
+  holdTick();
+  const ms = Math.round(performance.now() - holdStart);
+  if (report) V3.act("hold", { ms });
+}
+hold.addEventListener("pointerup", (e) => endHold(e, true));
+hold.addEventListener("pointercancel", (e) => endHold(e, false));
+hold.addEventListener("contextmenu", (e) => e.preventDefault());
+
+// --- hover tooltip ------------------------------------------------------------------------------
+const icon = $("#tip-icon"), tip = $("#tip");
+let hoverTimer = null, hovering = false;
+icon.addEventListener("pointerenter", (e) => {
+  if (!V3.trusted(e)) return;
+  hovering = true;
+  clearTimeout(hoverTimer);
+  hoverTimer = setTimeout(async () => {
+    if (!hovering) return;
+    const res = await V3.act("hover_tip");
+    if (hovering && res.code) {
+      tip.textContent = "Tier code: " + res.code;
+      tip.style.display = "block";
+    }
+  }, 600);
+});
+icon.addEventListener("pointerleave", () => {
+  hovering = false;
+  clearTimeout(hoverTimer);
+  tip.style.display = "none";
+  tip.textContent = "";
+});
+$("#tier-go").addEventListener("click", () => V3.act("tier_code", { value: $("#tier").value }));
+
+// --- quantity -----------------------------------------------------------------------------------
+function step(delta, e) {
+  if (!V3.trusted(e)) return V3.untrusted("qty");
+  qty = Math.max(0, Math.min(30, qty + delta));
+  $("#qty").textContent = String(qty);
+}
+$("#plus").addEventListener("click", (e) => step(1, e));
+$("#minus").addEventListener("click", (e) => step(-1, e));
+$("#qty-go").addEventListener("click", () => V3.act("quantity", { value: qty }));
+</script>
+</body>
+</html>

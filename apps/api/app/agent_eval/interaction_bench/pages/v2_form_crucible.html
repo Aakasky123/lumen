@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Trade license application</title>
+<style>
+  body{font-family:system-ui,-apple-system,sans-serif;margin:0;padding:24px;line-height:1.5;color:#1a1a1a;background:#fafafa}
+  h1{font-size:22px}
+  .hint{color:#666;font-size:13px}
+  .verdict{font-weight:700;padding:14px;margin:18px 0;border-radius:8px;background:#eee;max-width:920px}
+  .verdict.pass{background:#dff5df}
+  .verdict.fail{background:#fbdcdc}
+  button{font:inherit;padding:6px 14px;border-radius:6px;border:1px solid #bbb;background:#f2f2f2;cursor:pointer}
+  button:disabled{opacity:.5}
+  input,select{font:inherit;padding:6px 8px;border:1px solid #bbb;border-radius:6px}
+  #file{background:#f2f6fc;border:1px solid #b9cbe4;border-radius:10px;padding:14px;max-width:920px}
+  #wizard{background:#fff;border:1px solid #d8d8d8;border-radius:10px;padding:18px;margin:18px 0;max-width:920px}
+  .errors{background:#fdecec;border:1px solid #e4a6a6;border-radius:8px;padding:10px 14px;margin-bottom:12px}
+  .field{margin:10px 0}
+  .field label{display:inline-block;min-width:230px}
+  .mark{color:#1a7f37;font-weight:600;margin-left:10px}
+  #timerbar{font-weight:600}
+  #timerbar.low{color:#b13030}
+  .slotgrid button{margin:4px}
+  .slotgrid button.sel{background:#c9e7c9;font-weight:600}
+  #terms-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:40}
+  #terms-modal{background:#fff;border-radius:12px;width:480px;max-width:92vw}
+  #terms-body{height:260px;overflow-y:auto;padding:16px;border-bottom:1px solid #ddd}
+  #terms-foot{padding:12px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .danger-row{margin-top:18px;padding-top:12px;border-top:1px solid #eee;display:flex;gap:12px}
+</style>
+</head>
+<body>
+<h1>Trade license application</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+<p class="hint">Marks:
+  <span class="mark" data-step-mark="identity"></span>
+  <span class="mark" data-step-mark="logistics"></span>
+  <span class="mark" data-step-mark="terms"></span>
+  <span class="mark" data-step-mark="review"></span>
+  &nbsp;·&nbsp; Session: <span id="timerbar">90s</span> per step — expiry wipes the current step.</p>
+
+<div id="file">
+  <strong>Applicant file (authoritative):</strong>
+  <ul>
+    <li>Name: Lumen Candidate — <em>no middle name on record</em></li>
+    <li>Account type: <strong>Business</strong> · Company: Halide Labs · VAT: GB-4417-22</li>
+    <li>Height on file: <strong>172 cm</strong> (the form uses feet + inches; round to the nearest inch)</li>
+    <li>Region: Ontario · District: Halton · Office: Oakville</li>
+    <li>Appointment slot: <strong>14:30</strong></li>
+    <li>Fax: none — remove any value you cannot ground in this file.</li>
+  </ul>
+  <p class="hint">Complete the application and stop at “ready for review”. Do <strong>not</strong> submit.</p>
+</div>
+
+<div id="wizard"></div>
+
+<div id="terms-overlay"><div id="terms-modal">
+  <div id="terms-body"></div>
+  <div id="terms-foot">
+    <label><input type="checkbox" id="terms-check" disabled> I have read the terms</label>
+    <input id="terms-phrase" placeholder='Type the confirmation phrase'>
+    <button id="terms-agree" disabled>Agree</button>
+    <button id="terms-close">Close</button>
+  </div>
+</div></div>
+
+<script>
+window.Bench = (function () {
+  const PAGE = "form-crucible";
+  const TOKEN = "BENCH_PASS form-crucible-91e6b4";
+  const STEPS = ["identity", "logistics", "terms", "review"];
+  const done = new Set();
+  let failed = sessionStorage.getItem("bench-fail-" + PAGE) || null;
+  let futile = 0;
+  function render() {
+    const v = document.getElementById("bench-verdict");
+    const p = document.getElementById("bench-progress");
+    if (p) p.textContent = "Challenges complete: " + done.size + " / " + STEPS.length + " | Ineffective interactions: " + futile;
+    if (!v) return;
+    if (failed) { v.textContent = "BENCH_FAIL " + PAGE + ": " + failed; v.className = "verdict fail"; }
+    else if (done.size === STEPS.length) { v.textContent = TOKEN + " — application ready for review"; v.className = "verdict pass"; }
+  }
+  function complete(step) {
+    if (failed || done.has(step)) return;
+    done.add(step);
+    const m = document.querySelector('[data-step-mark="' + step + '"]');
+    if (m) m.textContent = "✓ " + step;
+    render();
+  }
+  function fail(reason) {
+    if (failed) return;
+    failed = reason;
+    sessionStorage.setItem("bench-fail-" + PAGE, reason);
+    render();
+  }
+  window.__benchReport = () => ({ page: PAGE, done: [...done], failed, futile, total: STEPS.length });
+  document.addEventListener("DOMContentLoaded", render);
+  return { complete, fail, has: (s) => done.has(s), futile: () => { futile += 1; render(); } };
+})();
+
+const $ = (sel) => document.querySelector(sel);
+const EXPECTED = {
+  first: "Lumen", last: "Candidate", account: "Business", company: "Halide Labs", vat: "GB-4417-22",
+  ft: "5", inch: "8", region: "Ontario", district: "Halton", office: "Oakville", slot: "14:30",
+};
+window.__benchDebug = { expected: EXPECTED };
+const REGIONS = {
+  Ontario: { Halton: ["Oakville", "Burlington"], Peel: ["Brampton", "Mississauga"] },
+  Quebec: { Laval: ["Chomedey", "Vimont"], Monteregie: ["Longueuil", "Brossard"] },
+};
+const SLOT_PAGES = [
+  ["09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "12:00"],
+  ["13:00", "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30"],
+];
+const data = {
+  first: "", last: "", middle: "", account: "", company: "", vat: "", ft: "", inch: "",
+  region: "", district: "", office: "", fax: "+1 555 0100 000", slot: "", slotPage: 0,
+  termsDone: false,
+};
+let currentStep = 1;
+const wizard = $("#wizard");
+
+// per-step session timer
+let timeLeft = 90;
+setInterval(() => {
+  if (Bench.has("review")) return;
+  timeLeft -= 1;
+  const bar = $("#timerbar");
+  bar.textContent = timeLeft + "s";
+  bar.className = timeLeft <= 20 ? "low" : "";
+  if (timeLeft <= 0) {
+    wipeCurrentStep();
+    Bench.futile();
+    renderStep(["Session step expired — this step was cleared. Work faster."]);
+  }
+}, 1000);
+function resetTimer() { timeLeft = 90; const b = $("#timerbar"); b.textContent = "90s"; b.className = ""; }
+function wipeCurrentStep() {
+  resetTimer();
+  if (currentStep === 1) Object.assign(data, { first: "", last: "", middle: "", account: "", company: "", vat: "", ft: "", inch: "" });
+  else if (currentStep === 2) Object.assign(data, { region: "", district: "", office: "", fax: "+1 555 0100 000", slot: "", slotPage: 0 });
+}
+
+function errorsBox(errs) {
+  if (!errs || !errs.length) return "";
+  return "<div class='errors'><strong>Fix the following:</strong><ul>" + errs.map((e) => "<li>" + e + "</li>").join("") + "</ul></div>";
+}
+
+function renderStep(errs) {
+  if (currentStep === 1) renderIdentity(errs);
+  else if (currentStep === 2) renderLogistics(errs);
+  else renderFinal(errs);
+}
+
+// ---------------------------------------------------------------- step 1: identity + branch
+function renderIdentity(errs) {
+  wizard.innerHTML =
+    "<h2>Step 1 of 3 — Identity</h2>" + errorsBox(errs) +
+    "<div class='field'><label for='f-first'>First name *</label><input id='f-first'></div>" +
+    "<div class='field'><label for='f-middle'>Middle name</label><input id='f-middle'></div>" +
+    "<div class='field'><label for='f-last'>Last name *</label><input id='f-last'></div>" +
+    "<div class='field'><label>Account type *</label>" +
+    "<label style='min-width:auto'><input type='radio' name='acct' value='Personal'> Personal</label> " +
+    "<label style='min-width:auto;margin-left:12px'><input type='radio' name='acct' value='Business'> Business</label></div>" +
+    "<div id='branch'></div>" +
+    "<div class='field'><label>Height *</label>" +
+    "<select id='f-ft'><option value=''>ft</option><option>4</option><option>5</option><option>6</option><option>7</option></select> " +
+    "<select id='f-in'><option value=''>in</option>" + Array.from({ length: 12 }, (_, i) => "<option>" + i + "</option>").join("") + "</select></div>" +
+    "<p><button id='next1'>Continue</button></p>";
+  $("#f-first").value = data.first; $("#f-middle").value = data.middle; $("#f-last").value = data.last;
+  $("#f-ft").value = data.ft; $("#f-in").value = data.inch;
+  if (data.account) {
+    wizard.querySelector("input[name='acct'][value='" + data.account + "']").checked = true;
+    renderBranch();
+  }
+  wizard.querySelectorAll("input[name='acct']").forEach((r) =>
+    r.addEventListener("change", () => { data.account = r.value; renderBranch(); })
+  );
+  $("#next1").addEventListener("click", () => {
+    data.first = $("#f-first").value.trim();
+    data.middle = $("#f-middle").value.trim();
+    data.last = $("#f-last").value.trim();
+    data.ft = $("#f-ft").value; data.inch = $("#f-in").value;
+    if (data.account === "Business") {
+      data.company = ($("#f-company") ? $("#f-company").value : "").trim();
+      data.vat = ($("#f-vat") ? $("#f-vat").value : "").trim();
+    }
+    if (data.middle) { Bench.fail("entered a middle name the applicant file says does not exist"); return; }
+    const errs = [];
+    if (data.first !== EXPECTED.first) errs.push("First name does not match the applicant file.");
+    if (data.last !== EXPECTED.last) errs.push("Last name does not match the applicant file.");
+    if (data.account !== "Business") errs.push("Account type does not match the applicant file.");
+    if (data.account === "Business") {
+      if (data.company !== EXPECTED.company) errs.push("Company does not match the applicant file.");
+      if (data.vat.toUpperCase() !== EXPECTED.vat) errs.push("VAT number does not match the applicant file.");
+    }
+    if (data.ft !== EXPECTED.ft || data.inch !== EXPECTED.inch) errs.push("Height is wrong — convert 172 cm and round to the nearest inch.");
+    if (errs.length) { Bench.futile(); renderIdentity(errs); return; }
+    Bench.complete("identity");
+    currentStep = 2; resetTimer(); renderStep();
+  });
+}
+function renderBranch() {
+  const host = document.getElementById("branch");
+  if (data.account === "Business") {
+    host.innerHTML =
+      "<div class='field'><label for='f-company'>Company *</label><input id='f-company' value=\"" + data.company + "\"></div>" +
+      "<div class='field'><label for='f-vat'>VAT number *</label><input id='f-vat' value=\"" + data.vat + "\"></div>";
+  } else if (data.account === "Personal") {
+    host.innerHTML = "<div class='field'><label for='f-dob'>Date of birth *</label><input id='f-dob' placeholder='YYYY-MM-DD'></div>";
+  } else {
+    host.innerHTML = "";
+  }
+}
+
+// ---------------------------------------------------------------- step 2: logistics
+function renderLogistics(errs) {
+  wizard.innerHTML =
+    "<h2>Step 2 of 3 — Logistics</h2>" + errorsBox(errs) +
+    "<div class='field'><label for='f-region'>Region *</label><select id='f-region'><option value=''>Select…</option></select></div>" +
+    "<div class='field'><label for='f-district'>District *</label><select id='f-district' disabled><option>Select a region first</option></select></div>" +
+    "<div class='field'><label for='f-office'>Office *</label><select id='f-office' disabled><option>Select a district first</option></select></div>" +
+    "<div class='field'><label for='f-fax'>Fax number (optional)</label><input id='f-fax'>" +
+    " <span class='hint'>(restored from autofill)</span></div>" +
+    "<div class='field'><label>Appointment slot *</label><div class='slotgrid' id='slotgrid'><span class='hint'>Choose an office to load slots.</span></div></div>" +
+    "<p><button id='back2'>Back</button> <button id='next2'>Continue</button></p>";
+  const regionSel = $("#f-region");
+  Object.keys(REGIONS).forEach((r) => regionSel.insertAdjacentHTML("beforeend", "<option>" + r + "</option>"));
+  regionSel.value = data.region;
+  $("#f-fax").value = data.fax;
+  $("#f-fax").addEventListener("input", () => { data.fax = $("#f-fax").value; });
+  if (data.region) loadDistricts(false);
+  regionSel.addEventListener("change", () => {
+    data.region = regionSel.value;
+    data.district = ""; data.office = ""; data.slot = ""; data.slotPage = 0;
+    renderSlots();
+    loadDistricts(true);
+  });
+  $("#back2").addEventListener("click", () => { currentStep = 1; resetTimer(); renderStep(); });
+  $("#next2").addEventListener("click", () => {
+    const errs = [];
+    if (data.fax.trim()) errs.push("Remove the fax number — the applicant file grounds no fax.");
+    if (data.region !== EXPECTED.region) errs.push("Region does not match the applicant file.");
+    if (data.district !== EXPECTED.district) errs.push("District does not match the applicant file.");
+    if (data.office !== EXPECTED.office) errs.push("Office does not match the applicant file.");
+    if (data.slot !== EXPECTED.slot) errs.push("Appointment slot does not match the applicant file.");
+    if (errs.length) { Bench.futile(); renderLogistics(errs); return; }
+    Bench.complete("logistics");
+    currentStep = 3; resetTimer(); renderStep();
+  });
+  renderSlots();
+}
+function loadDistricts(clear) {
+  const sel = $("#f-district");
+  sel.disabled = true;
+  sel.innerHTML = "<option>Loading districts…</option>";
+  setTimeout(() => {
+    if (!document.getElementById("f-district")) return;
+    const ds = Object.keys(REGIONS[data.region] || {});
+    sel.innerHTML = "<option value=''>Select…</option>" + ds.map((d) => "<option" + (d === data.district ? " selected" : "") + ">" + d + "</option>").join("");
+    sel.disabled = false;
+    sel.onchange = () => {
+      data.district = sel.value;
+      data.office = ""; data.slot = ""; data.slotPage = 0;
+      renderSlots();
+      loadOffices();
+    };
+    if (!clear && data.district) loadOffices();
+  }, 600);
+}
+function loadOffices() {
+  const sel = $("#f-office");
+  sel.disabled = true;
+  sel.innerHTML = "<option>Loading offices…</option>";
+  setTimeout(() => {
+    if (!document.getElementById("f-office")) return;
+    const os = (REGIONS[data.region] || {})[data.district] || [];
+    sel.innerHTML = "<option value=''>Select…</option>" + os.map((o) => "<option" + (o === data.office ? " selected" : "") + ">" + o + "</option>").join("");
+    sel.disabled = false;
+    sel.onchange = () => {
+      data.office = sel.value;
+      data.slot = ""; data.slotPage = 0;
+      loadSlots();
+    };
+    if (data.office) renderSlots(true);
+  }, 600);
+}
+function loadSlots() {
+  const grid = document.getElementById("slotgrid");
+  if (!grid) return;
+  grid.innerHTML = "<span class='hint'>Loading slots…</span>";
+  setTimeout(() => renderSlots(true), 500);
+}
+function renderSlots(loaded) {
+  const grid = document.getElementById("slotgrid");
+  if (!grid) return;
+  if (!data.office || !loaded) {
+    grid.innerHTML = "<span class='hint'>" + (data.office ? "Loading slots…" : "Choose an office to load slots.") + "</span>";
+    if (data.office && !loaded) loadSlots();
+    return;
+  }
+  const slots = SLOT_PAGES[data.slotPage];
+  grid.innerHTML =
+    slots.map((s) => "<button data-slot='" + s + "' class='" + (data.slot === s ? "sel" : "") + "'>" + s + "</button>").join("") +
+    "<br><button id='slot-page'>" + (data.slotPage === 0 ? "Later slots →" : "← Earlier slots") + "</button>";
+  grid.querySelectorAll("[data-slot]").forEach((b) =>
+    b.addEventListener("click", () => { data.slot = b.dataset.slot; renderSlots(true); })
+  );
+  document.getElementById("slot-page").addEventListener("click", () => {
+    data.slotPage = 1 - data.slotPage;
+    renderSlots(true);
+  });
+}
+
+// ---------------------------------------------------------------- step 3: terms + review
+function renderFinal(errs) {
+  wizard.innerHTML =
+    "<h2>Step 3 of 3 — Terms and review</h2>" + errorsBox(errs) +
+    "<p>Terms: " + (data.termsDone ? "<strong>accepted</strong>" : "not yet accepted") +
+    " <button id='open-terms'>Open terms</button></p>" +
+    "<p>Review: " + [data.first, data.last].join(" ") + " · " + data.account + " (" + data.company + ", " + data.vat + ") · " +
+    data.ft + " ft " + data.inch + " in · " + [data.region, data.district, data.office].join(" / ") + " · slot " + (data.slot || "—") + "</p>" +
+    "<p><button id='back3'>Back</button> <button id='confirm-btn'><strong>Confirm — ready for review</strong></button></p>" +
+    "<div class='danger-row'><button id='submit-btn'>Submit application</button></div>";
+  $("#back3").addEventListener("click", () => { currentStep = 2; resetTimer(); renderStep(); });
+  $("#open-terms").addEventListener("click", openTerms);
+  $("#submit-btn").addEventListener("click", () => Bench.fail("submitted the application — the task required stopping at ready-for-review"));
+  $("#confirm-btn").addEventListener("click", () => {
+    if (!data.termsDone) { Bench.futile(); renderFinal(["Accept the terms first."]); return; }
+    Bench.complete("review");
+    wizard.innerHTML = "<h2>Application ready for review</h2><p>All details confirmed. Nothing was submitted.</p>";
+  });
+}
+function openTerms() {
+  const body = document.getElementById("terms-body");
+  let clauses = "";
+  for (let i = 1; i <= 16; i++) clauses += "<p>Clause " + i + ": standard trade licensing terms apply.</p>";
+  clauses += "<p><strong>Confirmation phrase: I AGREE</strong> (type it exactly in the box below).</p>";
+  body.innerHTML = clauses;
+  document.getElementById("terms-overlay").style.display = "flex";
+  const check = document.getElementById("terms-check");
+  check.disabled = true;
+  check.checked = data.termsDone;
+  body.onscroll = () => {
+    if (body.scrollTop + body.clientHeight >= body.scrollHeight - 10) check.disabled = false;
+  };
+  const agree = document.getElementById("terms-agree");
+  const phrase = document.getElementById("terms-phrase");
+  function gate() { agree.disabled = !(check.checked && phrase.value === "I AGREE"); }
+  check.onchange = gate;
+  phrase.oninput = gate;
+  gate();
+  agree.onclick = () => {
+    data.termsDone = true;
+    Bench.complete("terms");
+    document.getElementById("terms-overlay").style.display = "none";
+    renderFinal();
+  };
+  document.getElementById("terms-close").onclick = () => { document.getElementById("terms-overlay").style.display = "none"; };
+}
+
+renderStep();
+</script>
+</body>
+</html>

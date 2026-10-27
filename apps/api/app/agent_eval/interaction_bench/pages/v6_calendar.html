@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Teamtime Calendar</title>
+<link rel="stylesheet" href="v4_style.css">
+<link rel="stylesheet" href="v6_style.css">
+<style>
+  .cal{flex:1;min-width:0}
+  .side{width:310px;flex:none;font-size:13px}
+  .weekbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px}
+  .weekbar button{font-size:13px;padding:3px 10px}
+  .wk{font-weight:600;min-width:150px;text-align:center}
+  .who{display:inline-flex;align-items:center;gap:4px;margin-right:6px}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:2px}
+  .hours{font-size:12px;color:#556;margin:4px 0 8px}
+  #undo{margin-left:auto;color:#556}
+  #undo button{padding:1px 8px;font-size:12px}
+  .week{display:grid;grid-template-columns:44px repeat(5,minmax(0,1fr));border:1px solid #e3e6ea;border-radius:6px;font-size:12px}
+  .dayhead{text-align:center;font-weight:600;padding:4px 0;border-left:1px solid #e3e6ea;border-bottom:1px solid #dfe4ea}
+  .dayhead.today{color:#2b6cb0}
+  .times div{height:52px;box-sizing:border-box;padding:1px 5px 0 0;text-align:right;color:#778;font-size:11px}
+  .col{position:relative;height:520px;border-left:1px solid #e3e6ea}
+  .slot{position:absolute;left:0;right:0;height:26px;border:0;border-top:1px dashed #edf0f3;border-radius:0;background:transparent;padding:0;cursor:pointer}
+  .slot.hour{border-top:1px solid #e1e5ea}
+  .slot:hover,.slot:focus-visible{background:#eef5fd;outline:none}
+  .past{position:absolute;left:0;right:0;top:0;pointer-events:none;background:repeating-linear-gradient(135deg,rgba(100,110,125,.08) 0 6px,transparent 6px 12px)}
+  .ev{position:absolute;z-index:2;box-sizing:border-box;margin:0 1px;padding:0 4px;border-radius:4px;border:1px solid #7aa7d9;background:#dbe9f8;font-size:11px;line-height:1.1;text-align:left;overflow:hidden;cursor:pointer}
+  .ev .et{font-weight:600}
+  .ev .tm{color:#3d5573}
+  .ev.series{background:#e3f3e8;border-color:#86c29a}
+  .ev.invite{background:#fff}
+  .ev.maybe{background:repeating-linear-gradient(135deg,#fff 0 5px,#edf2f8 5px 10px);border-style:dashed}
+  .busy{position:absolute;z-index:1;width:12px;border-radius:3px;color:#fff;font-size:9px;line-height:12px;text-align:center;overflow:hidden;opacity:.85}
+  .tabs{display:flex;gap:4px;margin-bottom:8px}
+  .tabs button{font-size:13px;padding:4px 12px}
+  .tabs button[aria-selected=true]{background:#d7e6f7;border-color:#7aa7d9}
+  .room,.inv{padding:5px 0;border-bottom:1px solid #f0f2f5}
+  .inv .row{margin:4px 0}
+  .inv .row button{font-size:12px;padding:2px 10px}
+  .inv .row button.on{background:#d7e6f7;border-color:#7aa7d9;font-weight:600}
+  .editor h3{margin:0 0 6px;font-size:15px}
+  .editor .pair{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+  .editor .field input{width:100%;box-sizing:border-box}
+  .chips{display:flex;flex-wrap:wrap;gap:3px;align-items:center}
+  .chip button{border:0;background:transparent;padding:0 3px;font-size:12px;line-height:1}
+  .err{color:#b42318;font-size:12px;margin:4px 0}
+</style>
+</head>
+<body data-page="v6_calendar">
+<h1>Teamtime Calendar</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+<p class="intro">Five independent tasks in your team calendar. Now: <strong data-public="now_text"></strong> (New York time).</p>
+
+<div class="tasks">
+  <section class="ch">
+    <h2>1. Find a time <span class="mark" data-step-mark="common_slot"></span></h2>
+    <p>Create “Design review”, 45 minutes, with Ana, Ben and Chloé, at the <strong>earliest</strong> time this week
+       (from the next half hour on) when you and all three are free, inside everyone's working hours.</p>
+    <p class="msg" data-msg="slot"></p>
+  </section>
+  <section class="ch">
+    <h2>2. Book a room <span class="mark" data-step-mark="book_room"></span></h2>
+    <p>“Quarterly planning” has no room. Give it a room that seats everyone invited plus you, has a projector, and is
+       free at that time.</p>
+    <p class="msg" data-msg="room"></p>
+  </section>
+  <section class="ch">
+    <h2>3. Fix an overlap <span class="mark" data-step-mark="fix_overlap"></span></h2>
+    <p>Two of your events overlap on one day. Move the one labeled low priority to your earliest free 30-minute slot
+       after the high-priority one ends, on the same day.</p>
+    <p class="msg" data-msg="overlap"></p>
+  </section>
+  <section class="ch">
+    <h2>4. Cancel one meeting <span class="mark" data-step-mark="cancel_occurrence"></span></h2>
+    <p>Cancel only the “1:1 with Sam” on <strong data-public="cancel_text"></strong>. The weekly series goes on.</p>
+    <p class="msg" data-msg="cancel"></p>
+  </section>
+  <section class="ch">
+    <h2>5. Answer invitations <span class="mark" data-step-mark="answer_invites"></span></h2>
+    <p>Answer the three pending invitations: Accept if it doesn't overlap any of your events, Decline if it does —
+       but Maybe if it is marked optional (that rule wins).</p>
+    <p class="msg" data-msg="invites"></p>
+  </section>
+</div>
+
+<section class="app" aria-label="Calendar">
+  <div class="app-head"><h2>Teamtime</h2><span class="muted">Times are shown in New York time (ET). London is 5 hours ahead of New York this week.</span></div>
+  <div class="panes">
+    <div class="pane cal">
+      <div class="weekbar">
+        <button id="prev">‹ Previous week</button><span class="wk" id="wk"></span><button id="next">Next week ›</button>
+        <button id="this-week">This week</button>
+        <span id="avail">Show busy time:</span>
+        <span id="undo" role="status"></span>
+      </div>
+      <div class="hours" id="hours"></div>
+      <div class="week" id="week" aria-label="Week view"></div>
+    </div>
+    <div class="pane side">
+      <div class="tabs" role="tablist">
+        <button id="tab-rooms" role="tab">Rooms</button><button id="tab-inv" role="tab">Invitations</button>
+      </div>
+      <div id="side-body"></div>
+    </div>
+  </div>
+</section>
+
+<script src="v3_common.js"></script>
+<script src="v6_kit.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+const { h } = K;
+const ROW = 26, FIRST = 8 * 60, LAST = 18 * 60, LANE = 13;
+const COLORS = { ana: "#d9822b", ben: "#7c5cc4", chloe: "#16947f" };
+const RESPONSES = { accept: "Accept", maybe: "Maybe", decline: "Decline" };
+let pub = null, offset = 0, tab = "rooms", draft = null;
+const overlay = new Set();
+
+const hm = (m) => String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0");
+const fmt = (iso, opts) => new Date(iso + "T12:00:00Z").toLocaleDateString("en-US", Object.assign({ timeZone: "UTC" }, opts));
+const dayLabel = (iso) => fmt(iso, { weekday: "short", month: "short", day: "numeric" });
+const span = (it) => hm(it.start) + "–" + hm(it.start + it.duration);
+const px = (m) => (m - FIRST) / 30 * ROW + "px";
+const roomLabel = (r) => `${r.name} — ${r.seats} seats, ${r.equipment.join(", ")}`;
+const person = (id) => pub.people.find((p) => p.id === id);
+function addDays(iso, n) { const d = new Date(iso + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
+function weekDays() { const monday = addDays(pub.week_start, 7 * offset); return [0, 1, 2, 3, 4].map((i) => addDays(monday, i)); }
+function occurs(sr, iso) { return !!sr && new Date(iso + "T12:00:00Z").getUTCDay() === sr.weekday + 1 && iso >= sr.first && !sr.exdates.includes(iso); }
+
+/** Your calendar on one day — events, the 1:1 series, invitations answered Accept or Maybe — laid out so that
+ *  overlapping items share the column side by side. */
+function itemsOn(iso) {
+  const items = pub.events.filter((e) => e.day === iso).map((e) => Object.assign({ key: e.id }, e));
+  if (occurs(pub.series, iso)) items.push(Object.assign({}, pub.series, { key: pub.series.id + ":" + iso, day: iso }));
+  for (const i of pub.invites) if (i.day === iso && (i.response === "accept" || i.response === "maybe")) items.push(Object.assign({ key: i.id }, i));
+  items.sort((a, b) => a.start - b.start || b.duration - a.duration);
+  let group = [], end = -1;
+  const settle = () => {
+    const cols = [];
+    for (const it of group) {
+      let c = cols.findIndex((free) => free <= it.start);
+      if (c < 0) c = cols.push(0) - 1;
+      cols[c] = it.start + it.duration;
+      it.col = c;
+    }
+    for (const it of group) it.cols = cols.length;
+    group = [];
+  };
+  for (const it of items) { if (it.start >= end) settle(); group.push(it); end = Math.max(end, it.start + it.duration); }
+  settle();
+  return items;
+}
+
+// --- week view ------------------------------------------------------------------------------------
+function drawWeek() {
+  const days = weekDays();
+  $("#wk").textContent = fmt(days[0], { month: "short", day: "numeric" }) + " – " + fmt(days[4], { month: "short", day: "numeric", year: "numeric" });
+  const grid = $("#week");
+  grid.innerHTML = "";
+  grid.append(h("div", {}));
+  for (const d of days) grid.append(h("div", { class: "dayhead" + (d === pub.today ? " today" : ""), text: dayLabel(d) }));
+  const times = h("div", { class: "times" });
+  for (let m = FIRST; m < LAST; m += 60) times.append(h("div", { text: hm(m) }));
+  grid.append(times);
+  for (const d of days) grid.append(drawDay(d));
+}
+
+function drawDay(iso) {
+  const col = h("div", { class: "col", dataset: { day: iso } });
+  for (let m = FIRST; m < LAST; m += 30) {
+    col.append(h("button", { type: "button", class: "slot" + (m % 60 ? "" : " hour"), style: { top: px(m) }, dataset: { start: m },
+      "aria-label": `New event ${dayLabel(iso)} ${hm(m)}`, onclick: () => openNew(iso, m) }));
+  }
+  const past = iso < pub.today ? LAST : iso === pub.today ? pub.now : FIRST;
+  if (past > FIRST) col.append(h("div", { class: "past", style: { height: px(Math.min(past, LAST)) } }));
+  pub.coworkers.forEach((c, i) => {
+    if (!overlay.has(c.id)) return;
+    for (const b of pub.busy[c.id].filter((x) => x.day === iso)) {
+      const label = `${c.first} busy ${hm(b.start)}–${hm(b.end)}`;
+      col.append(h("div", { class: "busy", role: "img", title: label, "aria-label": label, text: c.first[0],
+        style: { top: px(b.start), height: (b.end - b.start) / 30 * ROW - 2 + "px", right: (2 - i) * LANE + 1 + "px", background: COLORS[c.id] } }));
+    }
+  });
+  const lanes = overlay.size ? 3 * LANE + 2 : 0;
+  for (const it of itemsOn(iso)) {
+    col.append(h("button", { type: "button", class: "ev " + (it.kind === "invite" && it.response === "maybe" ? "maybe" : it.kind), dataset: { id: it.key },
+      title: `${it.title}, ${span(it)}`, onclick: () => openItem(it),
+      style: { top: px(it.start), height: it.duration / 30 * ROW - 1 + "px",
+        left: `calc((100% - ${lanes}px) * ${it.col} / ${it.cols})`, width: `calc((100% - ${lanes}px) / ${it.cols} - 2px)` } },
+      h("span", { class: "et", text: it.title }), " ", h("span", { class: "tm", text: span(it) })));
+  }
+  return col;
+}
+
+// --- side panel: rooms, invitations, or the event editor -----------------------------------------------
+function drawSide() {
+  const pending = pub.invites.filter((i) => !i.response).length;
+  $("#tab-inv").textContent = "Invitations" + (pending ? ` (${pending})` : "");
+  $("#tab-rooms").setAttribute("aria-selected", String(!draft && tab === "rooms"));
+  $("#tab-inv").setAttribute("aria-selected", String(!draft && tab === "invites"));
+  const box = $("#side-body");
+  box.innerHTML = "";
+  if (draft) drawEditor(box);
+  else if (tab === "rooms") drawRooms(box);
+  else drawInvites(box);
+}
+
+function drawRooms(box) {
+  const days = weekDays();
+  for (const r of pub.rooms) {
+    const taken = pub.bookings.filter((b) => b.room === r.id)
+      .concat(pub.events.filter((e) => e.room === r.id).map((e) => ({ day: e.day, start: e.start, end: e.start + e.duration })))
+      .filter((b) => days.includes(b.day)).sort((a, b) => a.day.localeCompare(b.day) || a.start - b.start);
+    box.append(h("div", { class: "room", dataset: { id: r.id } }, h("strong", { text: r.name }), ` · ${r.seats} seats · ${r.equipment.join(", ")}`,
+      h("div", { class: "muted", text: taken.length ? "Booked: " + taken.map((b) => `${fmt(b.day, { weekday: "short" })} ${hm(b.start)}–${hm(b.end)}`).join(", ") : "Free all week" })));
+  }
+}
+
+function drawInvites(box) {
+  for (const i of pub.invites) {
+    const row = h("div", { class: "row" });
+    for (const [value, label] of Object.entries(RESPONSES)) {
+      row.append(h("button", { type: "button", class: i.response === value ? "on" : "", "aria-pressed": String(i.response === value), text: label,
+        onclick: () => V3.act("respond_invite", { id: i.id, response: value }) }));
+    }
+    row.append(h("span", { class: "muted", text: i.response ? "You chose " + RESPONSES[i.response] : "Awaiting your answer" }));
+    box.append(h("div", { class: "inv", dataset: { id: i.id } }, h("strong", { text: i.title }), i.optional ? h("span", { class: "chip", text: "Optional" }) : "",
+      h("div", { class: "muted", text: `${dayLabel(i.day)} · ${span(i)} · from ${i.organizer}` }), row));
+  }
+}
+
+function drawEditor(box) {
+  const d = draft, readonly = d.kind !== "event";
+  const title = h("input", { id: "ed-title", autocomplete: "off", disabled: readonly });
+  title.value = d.title;
+  title.addEventListener("input", () => { d.title = title.value; });
+  const picker = (id, label) => h("button", { id, "aria-label": label, disabled: readonly });
+  const dayBtn = picker("ed-day", "Day"), startBtn = picker("ed-start", "Start time"), durBtn = picker("ed-dur", "Duration"), roomBtn = picker("ed-room", "Room");
+  const chips = h("div", { class: "chips" });
+  for (const a of d.attendees) {
+    chips.append(h("span", { class: "chip" }, person(a).name, readonly ? "" : h("button", { type: "button", text: "×", "aria-label": "Remove " + person(a).name,
+      onclick: () => { d.attendees = d.attendees.filter((x) => x !== a); drawSide(); } })));
+  }
+  const addBtn = readonly ? null : picker("ed-add", "Add attendee");
+  if (addBtn) chips.append(addBtn);
+  else if (!d.attendees.length) chips.append(h("span", { class: "muted", text: "—" }));
+  box.append(h("div", { class: "editor", role: "form", "aria-label": "Event editor" },
+    h("h3", { text: !d.id ? "New event" : readonly ? "Event details" : "Edit event" }),
+    h("div", { class: "field" }, h("label", { for: "ed-title", text: "Title" }), title),
+    h("div", { class: "pair" },
+      h("div", { class: "field" }, h("span", { text: "Day" }), dayBtn),
+      h("div", { class: "field" }, h("span", { text: "Start (ET)" }), startBtn)),
+    h("div", { class: "field" }, h("span", { text: "Duration" }), durBtn),
+    h("div", { class: "field" }, h("span", { text: "Attendees" }), chips),
+    h("div", { class: "field" }, h("span", { text: "Room" }), roomBtn),
+    d.label ? h("p", { id: "ed-label", text: "Label: " + d.label }) : "",
+    d.note ? h("p", { class: "muted", text: d.note }) : "",
+    h("p", { class: "err", id: "ed-err", role: "alert" }),
+    h("div", { class: "row" },
+      readonly ? "" : h("button", { type: "button", id: "ed-save", class: "primary", text: "Save", onclick: save }),
+      d.id && d.kind !== "invite" ? h("button", { type: "button", id: "ed-delete", class: "danger", text: "Delete", onclick: remove }) : "",
+      h("button", { type: "button", id: "ed-close", text: "Close", onclick: () => { draft = null; drawSide(); } }))));
+  const days = weekDays();
+  K.select(dayBtn, { options: (days.includes(d.day) ? days : [d.day].concat(days)).map((x) => ({ value: x, label: dayLabel(x) })), value: d.day, onChange: (v) => { d.day = v; } });
+  const starts = [];
+  for (let m = FIRST; m < LAST; m += 30) starts.push({ value: m, label: hm(m) });
+  K.select(startBtn, { options: starts, value: d.start, onChange: (v) => { d.start = v; } });
+  K.select(durBtn, { options: [30, 45, 60, 90].map((m) => ({ value: m, label: m + " min" })), value: d.duration, onChange: (v) => { d.duration = v; } });
+  K.select(roomBtn, { options: [{ value: "", label: "No room" }].concat(pub.rooms.map((r) => ({ value: r.id, label: roomLabel(r) }))), value: d.room, onChange: (v) => { d.room = v; } });
+  if (addBtn) {
+    K.select(addBtn, { options: pub.people.filter((p) => !d.attendees.includes(p.id)).map((p) => ({ value: p.id, label: p.name })), value: null,
+      placeholder: "Add attendee…", onChange: (v) => { d.attendees.push(v); drawSide(); } });
+  }
+}
+
+function openNew(day, start) {
+  draft = { kind: "event", title: "", day, start, duration: 30, attendees: [], room: "", label: "" };
+  drawSide();
+  $("#ed-title").focus();
+}
+function openItem(it) {
+  draft = { kind: it.kind, id: it.key, title: it.title, day: it.day, start: it.start, duration: it.duration,
+    attendees: (it.attendees || []).slice(), room: it.room || "", label: it.label || "" };
+  if (it.kind === "series") draft.note = `Organizer: ${it.organizer} · repeats every Monday. Only the organizer can change it.`;
+  if (it.kind === "invite") draft.note = `Invitation from ${it.organizer} · you chose ${RESPONSES[it.response]}. Change it under Invitations.`;
+  drawSide();
+}
+
+async function save() {
+  const d = draft;
+  d.title = $("#ed-title").value;
+  const fields = { title: d.title, day: d.day, start: d.start, duration: d.duration, attendees: d.attendees, room: d.room };
+  const res = d.id ? await V3.act("update_event", Object.assign({ id: d.id }, fields)) : await V3.act("create_event", fields);
+  if (res.applied) { draft = null; drawSide(); }
+  else $("#ed-err").textContent = res.msg || "Could not save the event.";
+}
+async function erase(id, scope) {
+  const res = await V3.act("delete_event", { id, scope });
+  if (res.applied) { draft = null; drawSide(); }
+  else if ($("#ed-err")) $("#ed-err").textContent = res.msg || "";
+}
+function remove() {
+  const d = draft;
+  if (d.kind !== "series") return erase(d.id, "this");
+  K.modal({ title: "Delete recurring event", body: h("p", { text: `“${d.title}” repeats every Monday. Delete only this event, or every event in the series?` }),
+    actions: [{ label: "This event", primary: true, onClick: () => erase(d.id, "this") },
+              { label: "All events in the series", danger: true, onClick: () => erase(d.id, "all") },
+              { label: "Cancel" }] });
+}
+
+function drawUndo() {
+  const box = $("#undo");
+  box.innerHTML = "";
+  if (pub.undo) box.append(`Deleted “${pub.undo.title}” (${dayLabel(pub.undo.day)}) `, h("button", { type: "button", id: "undo-btn", text: "Undo", onclick: () => V3.act("undo") }));
+}
+
+function drawAll() { drawWeek(); drawSide(); drawUndo(); }
+$("#prev").addEventListener("click", () => { offset -= 1; drawAll(); });
+$("#next").addEventListener("click", () => { offset += 1; drawAll(); });
+$("#this-week").addEventListener("click", () => { offset = 0; drawAll(); });
+$("#tab-rooms").addEventListener("click", () => { tab = "rooms"; draft = null; drawSide(); });
+$("#tab-inv").addEventListener("click", () => { tab = "invites"; draft = null; drawSide(); });
+
+V3.onState((st) => {
+  const first = !pub;
+  pub = st.public;
+  if (first) {
+    let anchor = $("#avail");
+    for (const c of pub.coworkers) {
+      const cb = h("input", { type: "checkbox", dataset: { who: c.id } });
+      cb.addEventListener("change", () => { cb.checked ? overlay.add(c.id) : overlay.delete(c.id); drawWeek(); });
+      const label = h("label", { class: "who" }, cb, h("span", { class: "sw", style: { background: COLORS[c.id] } }), c.first);
+      anchor.after(label);
+      anchor = label;
+    }
+    $("#hours").textContent = "Working hours: " + pub.coworkers.map((c) => `${c.first} ${c.hours}`).join(" · ") + ". Busy time is shown for this week.";
+  }
+  drawAll();
+});
+</script>
+</body>
+</html>

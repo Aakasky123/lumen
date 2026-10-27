@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Window management bench</title>
+<link rel="stylesheet" href="v4_style.css">
+</head>
+<body data-page="v4_windows">
+<h1>Window management bench</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+<p class="intro">Seven independent challenges, in any order. Each <em>Open</em> button opens native desktop windows
+  (they may appear behind the browser). The work is done to the windows themselves — move, resize, maximize,
+  minimize, snap, close, and find them. <span class="msg" data-msg="desktop"></span></p>
+
+<section class="ch">
+  <h2>1. Move a window <span class="mark" data-step-mark="move_window"></span></h2>
+  <p>Open the pair, then drag the <strong>Gauge</strong> window by its title bar until it sits entirely inside the
+     dashed frame drawn in the <strong>Dock frame</strong> window.</p>
+  <p><button data-open="dock">Open Gauge and Dock frame</button> <span class="msg" data-msg="open_dock"></span></p>
+  <p class="msg" data-msg="dock"></p>
+</section>
+
+<section class="ch">
+  <h2>2. Resize a window <span class="mark" data-step-mark="resize_window"></span></h2>
+  <p>Resize the <strong>Sizer</strong> window by dragging its edges or corner until its size is inside the target it
+     shows (it displays its own size as you go). Do not maximize it.</p>
+  <p><button data-open="sizer">Open Sizer</button> <span class="msg" data-msg="open_sizer"></span></p>
+  <p class="msg" data-msg="sizer"></p>
+</section>
+
+<section class="ch">
+  <h2>3. Maximize, read, restore <span class="mark" data-step-mark="maximize_restore"></span></h2>
+  <p>The <strong>Ledger</strong> window shows its <em>Total</em> column only when it is (nearly) full-screen. Maximize
+     it, enter the total here, then restore the Ledger to its normal size.</p>
+  <p><button data-open="ledger">Open Ledger</button> <span class="msg" data-msg="open_ledger"></span></p>
+  <div class="row"><input id="total" autocomplete="off" size="14" data-enter="total-go"> <button id="total-go">Record total</button></div>
+  <p class="msg" data-msg="ledger"></p>
+</section>
+
+<section class="ch">
+  <h2>4. Minimize and restore <span class="mark" data-step-mark="minimize_restore"></span></h2>
+  <p>An always-on-top <strong>Chat</strong> window covers the <em>Approve</em> button in the <strong>Inbox</strong>
+     window. Minimize Chat (closing it ends the call), press Approve in the Inbox, then restore the Chat window.</p>
+  <p><button data-open="chat">Open Inbox and Chat</button> <span class="msg" data-msg="open_chat"></span></p>
+  <p class="msg" data-msg="chat"></p>
+</section>
+
+<section class="ch">
+  <h2>5. Snap to half the screen <span class="mark" data-step-mark="snap_half"></span></h2>
+  <p>Snap the <strong>Notes</strong> window to the <span class="val" data-public="snap_side"></span> half of the screen
+     (Windows key + arrow, or drag its title bar against that edge of the screen).</p>
+  <p><button data-open="notes">Open Notes</button> <span class="msg" data-msg="open_notes"></span></p>
+  <p class="msg" data-msg="notes"></p>
+</section>
+
+<section class="ch">
+  <h2>6. Close only the right windows <span class="mark" data-step-mark="close_specific"></span></h2>
+  <p>This opens three <strong>Tip of the day</strong> windows and a <strong>Work log</strong> window that look alike.
+     Close every Tip of the day window and keep the Work log open.</p>
+  <p><button data-open="tips">Open the windows</button> <span class="msg" data-msg="open_tips"></span></p>
+  <p class="msg" data-msg="tips"></p>
+</section>
+
+<section class="ch">
+  <h2>7. Find a buried window <span class="mark" data-step-mark="bring_front"></span></h2>
+  <p>A small <strong>Beacon</strong> window opens completely hidden behind a large <strong>Maintenance overlay</strong>.
+     Bring the Beacon to the front (taskbar, Alt+Tab, or move the overlay aside) and press its Acknowledge button.
+     Do not close the overlay.</p>
+  <p><button data-open="beacon">Open Beacon and overlay</button> <span class="msg" data-msg="open_beacon"></span></p>
+  <p class="msg" data-msg="beacon"></p>
+</section>
+
+<script src="v3_common.js"></script>
+<script>
+document.querySelectorAll("[data-open]").forEach((b) => b.addEventListener("click", () => V3.act("open", { what: b.dataset.open })));
+document.getElementById("total-go").addEventListener("click", () => V3.act("ledger_total", { value: document.getElementById("total").value }));
+</script>
+</body>
+</html>

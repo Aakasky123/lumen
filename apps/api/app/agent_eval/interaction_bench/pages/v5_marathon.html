@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Claims shift</title>
+<link rel="stylesheet" href="v4_style.css">
+<style>
+  #brief{background:#fff8e6;border:1px solid #e5cf8f}
+  #opcode{font-size:22px;font-weight:700;font-family:ui-monospace,Consolas,monospace}
+  table.q{border-collapse:collapse;font-size:14px;width:100%;max-width:700px}
+  table.q td,table.q th{border-bottom:1px solid #e3e6ea;padding:4px 8px;text-align:left}
+  table.q td.id{font-family:ui-monospace,Consolas,monospace}
+  table.q tr.cur{background:#eef4fb}
+  .ok{color:#1a7f37;font-weight:600}
+  ol.table li{margin:3px 0}
+</style>
+</head>
+<body data-page="v5_marathon">
+<h1>Claims shift</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+<p class="intro">Process every claim in the queue. Open each claim in the <strong>Claim Editor</strong> desktop app,
+  look its policy up in <strong>Policy Lookup</strong> (a browser window), apply the decision table, and save the decision
+  and payout in the editor. <strong>A saved claim is final</strong> — QA reviews the batch at each checkpoint, not each
+  save. Then close the batch. It is a long shift; the tools are not perfectly reliable.
+  <span class="msg" data-msg="desktop"></span></p>
+
+<section class="ch" id="brief">
+  <h2>Shift briefing</h2>
+  <div id="brief-body"></div>
+  <p><button id="start">Start shift</button> <span class="msg" data-msg="shift"></span></p>
+</section>
+
+<section class="ch">
+  <h2>Decision table (apply the first rule that fits)</h2>
+  <ol class="table">
+    <li>Policy status is not Active → <strong>Deny</strong>, payout 0.</li>
+    <li>The incident type is not in the policy's coverage → <strong>Deny</strong>, payout 0.</li>
+    <li>Claimed amount over $15,000.00 → <strong>Refer</strong>, payout 0.</li>
+    <li>Otherwise <strong>Approve</strong>, payout = claimed amount − deductible, but never more than the policy limit.</li>
+  </ol>
+</section>
+
+<section class="ch">
+  <h2>Queue <span class="mark" data-step-mark="claims_1_4"></span><span class="mark" data-step-mark="claims_5_8"></span><span class="mark" data-step-mark="claims_9_12"></span><span class="mark" data-step-mark="claims_13_16"></span></h2>
+  <p><button id="lookup">Open Policy Lookup</button> <span class="hint">Saved: <span id="saved">0</span> / 16</span></p>
+  <table class="q" id="queue"><tr><th>Claim</th><th>Claimant</th><th>Status</th><th></th></tr></table>
+  <p class="msg" data-msg="queue"></p>
+  <p class="msg" data-msg="editor"></p>
+  <p class="msg" data-msg="lookup"></p>
+</section>
+
+<section class="ch locked" id="batch-box">
+  <h2>Close the batch <span class="mark" data-step-mark="close_batch"></span></h2>
+  <p>Enter the total of all approved payouts saved this shift.</p>
+  <div class="row"><label>Total approved payout ($) <input id="total" autocomplete="off" size="14"></label> <button id="close">Close batch</button></div>
+  <p class="msg" data-msg="batch"></p>
+</section>
+
+<script src="v3_common.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+$("#start").addEventListener("click", () => V3.act("start_shift"));
+$("#lookup").addEventListener("click", () => window.open("v5_marathon_lookup?sid=" + encodeURIComponent(V3.sid()), "policy_lookup", "width=560,height=620"));
+$("#close").addEventListener("click", () => V3.act("close_batch", { total: $("#total").value }));
+let built = false;
+V3.onState((st) => {
+  const p = st.public;
+  const body = $("#brief-body");
+  if (!p.started) {
+    body.innerHTML = '<p>Your operator code for this shift: <span id="opcode"></span></p><p class="hint">Policy Lookup asks for it if its session expires. It is shown only until the shift starts.</p>';
+    $("#opcode").textContent = p.operator;
+  } else if (!body.dataset.closed) {
+    body.dataset.closed = "1";
+    body.innerHTML = "<p>The shift has started.</p>";
+    $("#start").style.display = "none";
+  }
+  $("#saved").textContent = p.saved;
+  $("#batch-box").classList.toggle("locked", !p.batch_open);
+  const q = $("#queue");
+  if (!built) {
+    built = true;
+    for (const c of p.queue) {
+      const tr = document.createElement("tr");
+      tr.dataset.id = c.id;
+      tr.innerHTML = '<td class="id"></td><td></td><td class="st"></td><td><button>Open in editor</button></td>';
+      tr.cells[0].textContent = c.id;
+      tr.cells[1].textContent = c.claimant;
+      tr.querySelector("button").addEventListener("click", () => V3.act("open_claim", { id: c.id }));
+      q.appendChild(tr);
+    }
+  }
+  for (const c of p.queue) {
+    const tr = q.querySelector(`tr[data-id="${c.id}"]`);
+    tr.querySelector(".st").innerHTML = c.saved ? '<span class="ok">Saved ✓</span>' : "Open";
+    tr.classList.toggle("cur", c.id === p.current);
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tab</title>
+<link rel="stylesheet" href="v4_style.css">
+</head>
+<body data-page="v4_browser" data-aux="tab">
+<h1 id="title">Tab</h1>
+<p id="aux-status" class="hint">Connecting…</p>
+<p id="say"></p>
+<script src="v3_common.js"></script>
+<script>
+const which = new URLSearchParams(location.search).get("which") === "draft" ? "draft" : "promo";
+document.title = which === "draft" ? "Draft report" : "Spring promo!";
+document.getElementById("title").textContent = which === "draft" ? "Draft report (keep open)" : "Spring promo!";
+document.getElementById("say").textContent = which === "draft"
+  ? "Draft report — unsaved. Keep this tab open."
+  : "Limited-time offer. This tab is not needed — close it.";
+V3.ready.then(() => {
+  V3.act("tab_open", { which });
+  document.getElementById("aux-status").textContent = "";
+});
+addEventListener("pageshow", (e) => { if (e.persisted) V3.act("tab_open", { which }); });
+addEventListener("pagehide", () => V3.beacon("tab_hidden", { which }));
+</script>
+</body>
+</html>

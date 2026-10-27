@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Month-end reconciliation</title>
+<link rel="stylesheet" href="v4_style.css">
+<style>
+  table.bank{border-collapse:collapse;font-size:14px;width:100%;max-width:900px}
+  table.bank th,table.bank td{border-bottom:1px solid #e3e6ea;padding:5px 8px;text-align:left}
+  table.bank td.amt{font-family:ui-monospace,Consolas,monospace;text-align:right}
+  table.bank td.n{color:#667;width:28px}
+  table.bank input.inv{font-family:ui-monospace,Consolas,monospace;width:120px}
+  .grid2{display:grid;grid-template-columns:200px 360px;gap:8px 12px;align-items:center}
+</style>
+</head>
+<body data-page="v5_reconcile">
+<h1>Month-end reconciliation</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+<p class="intro">Reconcile June's bank statement against the <span data-public="count"></span> open invoices. The
+  invoices are only in the <strong>Invoice Viewer</strong> desktop app, which shows one invoice at a time.
+  <span class="msg" data-msg="desktop"></span></p>
+<p><button id="viewer">Open Invoice Viewer</button> <span class="msg" data-msg="viewer"></span></p>
+
+<section class="ch">
+  <h2>Rules</h2>
+  <ul>
+    <li>Match each vendor payment to the invoice it pays: same vendor <em>and</em> same amount. Vendor names on the
+        statement are in capitals and sometimes shortened; look-alike vendors exist.</li>
+    <li>A payment from the right vendor whose amount differs from every one of that vendor's invoices pays the
+        invoice it was meant for with the wrong amount: match it to that invoice and tick <em>Discrepancy</em>.</li>
+    <li>Fees, interest, and refunds are not invoice payments — leave them at “— no invoice —”.</li>
+    <li>Invoices that no payment matches are unpaid: list them and their total.</li>
+  </ul>
+</section>
+
+<section class="ch">
+  <h2>Bank statement <span class="mark" data-step-mark="rows_1_5"></span><span class="mark" data-step-mark="rows_6_10"></span><span class="mark" data-step-mark="rows_11_15"></span></h2>
+  <table class="bank" id="bank"><tr><th></th><th>Date</th><th>Description</th><th>Amount</th><th>Matched invoice</th><th>Discrepancy</th></tr></table>
+  <datalist id="invoice-numbers"></datalist>
+  <p class="hint">Type the invoice number a payment matches (suggestions appear as you type); leave it blank for a row that pays no invoice.</p>
+  <p class="hint">Discrepancy flags <span class="mark" data-step-mark="discrepancy"></span></p>
+</section>
+
+<section class="ch">
+  <h2>Unpaid invoices <span class="mark" data-step-mark="unpaid"></span></h2>
+  <div class="grid2">
+    <label for="unpaid">Unpaid invoice numbers</label><input id="unpaid" autocomplete="off" placeholder="INV-0000, INV-0000">
+    <label for="total">Unpaid total ($)</label><input id="total" autocomplete="off" placeholder="0.00">
+  </div>
+</section>
+
+<p><button id="check">Check reconciliation</button> <span class="hint">The check can be run at most 3 times.</span></p>
+<p class="msg" data-msg="check"></p>
+
+<script src="v3_common.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+let pub = null;
+$("#viewer").addEventListener("click", () => V3.act("open_viewer"));
+$("#check").addEventListener("click", () => {
+  const rows = [...document.querySelectorAll("#bank tr[data-row]")].map((tr) => ({
+    invoice: tr.querySelector("input.inv").value.trim(),
+    flag: tr.querySelector("input[type=checkbox]").checked,
+  }));
+  V3.act("check", { rows, unpaid: $("#unpaid").value, unpaid_total: $("#total").value });
+});
+V3.onState((st) => {
+  if (pub) return;
+  pub = st.public;
+  for (const n of pub.invoice_numbers) $("#invoice-numbers").appendChild(new Option(n, n));
+  pub.rows.forEach((row, i) => {
+    const tr = document.createElement("tr");
+    tr.dataset.row = i;
+    tr.innerHTML = '<td class="n"></td><td></td><td></td><td class="amt"></td><td><input class="inv" list="invoice-numbers" autocomplete="off" spellcheck="false" placeholder="no invoice"></td><td><input type="checkbox"></td>';
+    tr.cells[0].textContent = i + 1;
+    tr.cells[1].textContent = row.date;
+    tr.cells[2].textContent = row.desc;
+    tr.cells[3].textContent = row.amount;
+    tr.querySelector("input.inv").setAttribute("aria-label", "Matched invoice for row " + (i + 1));
+    tr.querySelector("input[type=checkbox]").setAttribute("aria-label", "Discrepancy for row " + (i + 1));
+    $("#bank").appendChild(tr);
+  });
+});
+</script>
+</body>
+</html>

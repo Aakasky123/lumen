@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Responder Portal</title>
+<style>
+  body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;margin:0;padding:26px;line-height:1.5;color:#1a1a1a;background:#2a1a12}
+  .card{background:#fff;border-radius:12px;padding:22px 24px;max-width:460px}
+  h1{font-size:20px;margin:0 0 10px}
+  input{font:inherit;padding:6px 8px;border:1px solid #bbb;border-radius:6px}
+  button{font:inherit;padding:6px 14px;border-radius:6px;border:1px solid #bbb;background:#f2f2f2;cursor:pointer}
+  .order{background:#fff4e5;border:1px solid #f0c38b;border-radius:8px;padding:12px;margin-top:12px;font-weight:700}
+  .hint{color:#666;font-size:13px}
+</style>
+</head>
+<body data-page="v3_incident" data-aux="portal">
+<div class="card">
+  <h1>Responder Portal</h1>
+  <p id="aux-status" class="hint">Authenticate with the responder code issued by the Incident Console.</p>
+  <p><label>Responder code <input id="code" autocomplete="off" size="10" data-enter="auth"></label>
+     <button id="auth">Authenticate</button></p>
+  <p class="hint" id="msg"></p>
+  <div class="order" id="order" hidden></div>
+</div>
+<script src="v3_common.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+$("#auth").addEventListener("click", async () => {
+  const result = await V3.act("portal_auth", { code: $("#code").value });
+  $("#msg").textContent = result.ok ? "Authenticated." : result.msg || "Rejected.";
+  if (result.order) {
+    $("#order").hidden = false;
+    $("#order").textContent = "Containment order: " + result.order;
+  }
+});
+</script>
+</body>
+</html>

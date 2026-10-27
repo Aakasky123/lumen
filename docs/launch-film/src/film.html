@@ -1,0 +1,184 @@
+<title>Lumen Launch Film</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+/* Layout: a fixed 1920x1080 stage scaled to the viewer's width; a slim transport bar below it. */
+:root {
+  color-scheme: dark;
+  --bg: #050608;
+  --panel: #0e1014;
+  --ink: #f4f4f6;
+  --ink2: #c7cad1;
+  --mute: #8b909a;
+  --faint: #4b505a;
+  --line: rgba(255, 255, 255, 0.09);
+  --mint: #5ee6bd;
+  --mint2: #3fbf99;
+  --tile: #0d1f1a;
+  --ring: #1c3a31;
+  --blue: #55adff;
+  --blue2: #8ec8ff;
+  --frame: #4fa3ff;
+  --violet: #7c5cff;
+  --amber: #f6aa28;
+  --red: #ff6c78;
+  --display: "Inter Tight", "Inter", "Segoe UI", system-ui, sans-serif;
+  --body: "Inter", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", "Cascadia Mono", Consolas, ui-monospace, monospace;
+}
+html, body { background: var(--bg); color: var(--ink); }
+body { margin: 0; font-family: var(--body); padding-inline: 16px; padding-block: 16px 28px; }
+.player { max-width: 1280px; margin: 0 auto; display: grid; gap: 14px; }
+#viewport { position: relative; width: 100%; aspect-ratio: 16 / 9; max-width: 100%; overflow: hidden; border-radius: 10px; background: #000; box-shadow: 0 30px 80px rgba(0,0,0,.6); }
+#stage { font-feature-settings: "calt" 0, "liga" 0; position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: hidden; transform-origin: 0 0; background: var(--bg); font-family: var(--body); color: var(--ink); -webkit-font-smoothing: antialiased; text-rendering: geometricPrecision; }
+body.render { padding: 0; }
+body.render .player { max-width: none; display: block; }
+body.render #viewport { width: 1920px; height: 1080px; border-radius: 0; box-shadow: none; aspect-ratio: auto; }
+body.render .transport, body.render .chapters, body.render .about, body.render .playbtn { display: none !important; }
+
+/* ---------- global layers ---------- */
+.bg { position: absolute; inset: 0; overflow: hidden; }
+.bg-glow { position: absolute; inset: -10%; background:
+  radial-gradient(1100px 600px at 50% 18%, rgba(94, 230, 189, 0.055), transparent 70%),
+  radial-gradient(900px 700px at 85% 90%, rgba(85, 173, 255, 0.05), transparent 70%),
+  radial-gradient(900px 700px at 10% 85%, rgba(124, 92, 255, 0.035), transparent 70%); }
+.bg-grid { position: absolute; inset: -80px; background-image: radial-gradient(rgba(255,255,255,0.075) 1px, transparent 1.4px); background-size: 40px 40px; }
+#scenes { position: absolute; inset: 0; }
+#stage * { font-variant-ligatures: none; }
+.scene { position: absolute; inset: 0; overflow: hidden; }
+.vignette { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at 50% 46%, transparent 68%, rgba(0,0,0,0.32) 100%); }
+.grain { position: absolute; inset: 0; pointer-events: none; opacity: 0.05; mix-blend-mode: overlay; background-repeat: repeat; }
+.chapter { position: absolute; left: 72px; top: 54px; display: flex; align-items: center; gap: 14px; font: 500 19px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink2); opacity: 0; }
+.chapter b { width: 7px; height: 22px; border-radius: 2px; background: var(--mint); box-shadow: 0 0 14px rgba(94,230,189,.55); }
+.chapter i { position: absolute; left: 21px; right: 0; bottom: -12px; height: 1px; background: linear-gradient(90deg, rgba(94,230,189,.7), rgba(94,230,189,0)); transform-origin: 0 50%; transform: scaleX(0); }
+.captions { position: absolute; left: 50%; bottom: 46px; transform: translateX(-50%); max-width: 1400px; text-align: center; font: 500 34px/1.35 var(--body); color: #fff; padding: 10px 22px; background: rgba(0,0,0,.58); border-radius: 10px; opacity: 0; text-wrap: balance; }
+
+/* ---------- type ---------- */
+.kick { font: 500 19px/1.2 var(--mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--mute); }
+.h1 { font: 600 128px/0.98 var(--display); letter-spacing: -0.045em; text-wrap: balance; }
+.h2 { font: 600 84px/1.02 var(--display); letter-spacing: -0.038em; text-wrap: balance; }
+.h3 { font: 500 52px/1.12 var(--display); letter-spacing: -0.025em; text-wrap: balance; }
+.lead { font: 400 32px/1.4 var(--body); color: var(--ink2); }
+.mono { font-family: var(--mono); }
+.w { display: inline-block; will-change: transform, opacity; }
+.caret { display: inline-block; width: 0.08em; height: 1em; margin-left: 2px; vertical-align: -0.12em; background: currentColor; }
+.mint { color: var(--mint); } .blue { color: var(--blue); } .violet { color: #a996ff; } .amber { color: var(--amber); } .red { color: var(--red); } .dim { color: var(--mute); }
+.abs { position: absolute; }
+
+/* ---------- glass + cards ---------- */
+.glass { background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.018)); border: 1px solid rgba(255,255,255,0.09); border-radius: 20px; box-shadow: 0 30px 90px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06); }
+.tag { display: inline-flex; align-items: center; gap: 10px; padding: 7px 14px; border-radius: 999px; font: 500 19px/1 var(--mono); letter-spacing: 0.02em; border: 1px solid var(--line); color: var(--ink2); background: rgba(255,255,255,0.03); white-space: nowrap; }
+.tag.ok { color: var(--mint); border-color: rgba(94,230,189,.35); background: rgba(94,230,189,.08); }
+.tag.warn { color: var(--amber); border-color: rgba(246,170,40,.35); background: rgba(246,170,40,.08); }
+.tag.bad { color: var(--red); border-color: rgba(255,108,120,.4); background: rgba(255,108,120,.08); }
+.tag.info { color: var(--blue2); border-color: rgba(85,173,255,.4); background: rgba(85,173,255,.08); }
+.tag.vio { color: #b9a9ff; border-color: rgba(124,92,255,.45); background: rgba(124,92,255,.1); }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: currentColor; box-shadow: 0 0 10px currentColor; }
+
+/* ---------- Lumen presence: pointer, pill, frame ---------- */
+.ptr { position: absolute; left: 0; top: 0; width: 0; height: 0; z-index: 60; pointer-events: none; }
+.ptr-arrow { position: absolute; left: -10.5px; top: -5.25px; transform-origin: 10.5px 5.25px; filter: drop-shadow(0 3px 4px rgba(4,16,32,.6)) drop-shadow(0 0 12px rgba(85,173,255,.6)); }
+.ptr-arrow svg { display: block; }
+.ptr-ripple { position: absolute; left: -46px; top: -46px; width: 92px; height: 92px; border-radius: 50%; border: 5px solid rgba(85,173,255,.95); box-shadow: 0 0 32px rgba(85,173,255,.6), inset 0 0 18px rgba(85,173,255,.35); opacity: 0; }
+.ptr-chip { position: absolute; left: 32px; top: 44px; display: flex; align-items: center; gap: 10px; padding: 8px 16px; border-radius: 999px; border: 1.5px solid rgba(125,190,255,.82); background: rgba(8,19,35,.94); color: #f7fbff; font: 650 21px/1 var(--body); white-space: nowrap; opacity: 0; }
+.ptr-chip i { width: 11px; height: 11px; border-radius: 50%; background: var(--blue); box-shadow: 0 0 10px var(--blue); }
+.sysptr { position: absolute; left: 0; top: 0; z-index: 61; pointer-events: none; filter: drop-shadow(0 2px 3px rgba(0,0,0,.6)); }
+.pillwrap { position: absolute; left: 0; right: 0; top: 26px; display: flex; justify-content: center; z-index: 55; pointer-events: none; }
+.pill { --pulse: 0.5; display: inline-flex; align-items: center; gap: 14px; max-width: 1560px; padding: 13px 26px; border-radius: 999px; border: 1.5px solid rgba(125,190,255,.82); background: rgba(8,19,35,.94); color: #f7fbff; font: 600 22px/1.2 var(--body); box-shadow: 0 0 calc(20px + 16px * var(--pulse)) rgba(43,145,255, calc(0.28 + 0.26 * var(--pulse))); opacity: 0; }
+.pill-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--blue); box-shadow: 0 0 calc(6px + 8px * var(--pulse)) var(--blue); flex: none; }
+.pill b { color: var(--blue2); font-weight: 800; flex: none; }
+.pill-msgs { display: inline-grid; min-width: 0; }
+.pill-msg { grid-area: 1 / 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.frame { position: absolute; inset: 0; border: 4px solid rgba(79,163,255,.96); box-shadow: inset 0 0 36px 8px rgba(35,132,255,.55), inset 0 0 90px 4px rgba(49,145,255,.22); pointer-events: none; z-index: 54; }
+
+/* ---------- windows ---------- */
+.win { position: absolute; overflow: hidden; border-radius: 14px; background: #0f1115; border: 1px solid rgba(255,255,255,.09); box-shadow: 0 40px 120px rgba(0,0,0,.62), 0 0 0 1px rgba(0,0,0,.35); }
+.win-bar { height: 50px; display: flex; align-items: center; gap: 14px; padding: 0 16px; background: #17191e; border-bottom: 1px solid rgba(255,255,255,.06); }
+.win-dots { display: flex; gap: 8px; } .win-dots i { width: 12px; height: 12px; border-radius: 50%; background: #2c2f36; }
+.win-url { flex: 1; height: 32px; border-radius: 16px; background: #0b0c0f; color: #a1a1aa; font: 500 17px/32px var(--body); padding: 0 16px; white-space: nowrap; overflow: hidden; }
+.win-url b { color: #e4e4e7; font-weight: 500; }
+.win-tab { height: 34px; padding: 0 14px; border-radius: 9px 9px 0 0; background: #0f1115; color: #e4e4e7; font: 500 16px/34px var(--body); align-self: flex-end; white-space: nowrap; }
+.avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #7c5cff, #55adff); color: #fff; font: 700 13px/32px var(--body); text-align: center; flex: none; }
+.page { position: absolute; left: 0; right: 0; top: 50px; bottom: 0; background: #ffffff; color: #1f2328; overflow: hidden; font-family: var(--body); }
+.nwin { position: absolute; overflow: hidden; border-radius: 8px; background: #e8ecf1; color: #1b2430; border: 1px solid #9aa6b5; box-shadow: 0 30px 90px rgba(0,0,0,.55); font-family: "Segoe UI", var(--body); }
+.nwin-title { height: 40px; display: flex; align-items: center; justify-content: space-between; padding: 0 0 0 14px; background: #f7f9fb; border-bottom: 1px solid #c9d1db; font: 400 17px/40px "Segoe UI", var(--body); color: #1b2430; }
+.nwin-title span.ctl { display: flex; } .nwin-title span.ctl i { width: 46px; height: 40px; display: grid; place-items: center; font-style: normal; color: #44505e; font-size: 15px; }
+.nwin-menu { display: flex; gap: 22px; padding: 6px 14px; font: 400 16px/1.2 "Segoe UI", var(--body); background: #f2f4f7; border-bottom: 1px solid #d6dce4; }
+
+/* ---------- form (job page) ---------- */
+.f-label { font: 600 17px/1.2 var(--body); color: #1f2328; margin-bottom: 8px; }
+.f-label s { text-decoration: none; color: #cf222e; }
+.f-input { position: relative; height: 46px; border: 1.5px solid #d0d7de; border-radius: 8px; background: #fff; font: 400 19px/43px var(--body); color: #1f2328; padding: 0 14px; white-space: nowrap; overflow: hidden; }
+.f-input.focus { border-color: #4f8cff; box-shadow: 0 0 0 4px rgba(79,140,255,.18); }
+.f-input .ph { color: #8c959f; }
+.f-btn { display: inline-block; padding: 12px 22px; border-radius: 8px; background: #1f2328; color: #fff; font: 600 18px/1 var(--body); }
+.f-btn.ghost { background: #f6f8fa; color: #1f2328; border: 1.5px solid #d0d7de; }
+.mark { position: absolute; border: 2px dashed rgba(85,173,255,.9); border-radius: 9px; background: rgba(85,173,255,.06); }
+.mark b { position: absolute; right: -2px; top: -26px; min-width: 26px; height: 24px; padding: 0 6px; border-radius: 6px 6px 0 6px; background: #2b7fff; color: #fff; font: 700 15px/24px var(--mono); text-align: center; }
+
+/* ---------- code ---------- */
+.json { font: 400 22px/1.55 var(--mono); color: #9ca3af; white-space: pre; }
+.jk { color: #8ec8ff; } .js { color: #a7f3d0; } .jn { color: #fcd38a; } .jb { color: #f0abfc; } .jp { color: #6b7280; }
+.jrow { opacity: 0; }
+.hl { border-radius: 6px; box-shadow: 0 0 0 2px rgba(94,230,189,.75), 0 0 24px rgba(94,230,189,.25); background: rgba(94,230,189,.08); }
+
+/* ---------- cockpit (Lumen desktop app) ---------- */
+.cockpit { position: absolute; border-radius: 18px; background: #09090b; border: 1px solid #26262b; box-shadow: 0 40px 120px rgba(0,0,0,.65); overflow: hidden; font-family: var(--body); }
+.qcard { border-radius: 16px; border: 1px solid rgba(246,170,40,.38); background: linear-gradient(180deg, rgba(246,170,40,.10), rgba(246,170,40,.04)); padding: 22px 24px; }
+.acard { border-radius: 16px; border: 1px solid rgba(124,92,255,.45); background: linear-gradient(180deg, rgba(124,92,255,.14), rgba(124,92,255,.05)); padding: 24px 26px; }
+.cbtn { display: inline-flex; align-items: center; gap: 10px; padding: 12px 18px; border-radius: 12px; font: 600 19px/1 var(--body); border: 1px solid #2b2b31; background: #1d1d20; color: #f4f4f6; }
+.cbtn.primary { background: #7c5cff; border-color: #7c5cff; color: #fff; box-shadow: 0 0 0 1px rgba(124,92,255,.35), 0 10px 40px rgba(124,92,255,.22); }
+.cbtn .n { width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; background: rgba(255,255,255,.12); font: 700 14px/1 var(--mono); }
+.composer { border-radius: 16px; background: #121216; border: 1px solid #2b2b31; padding: 16px 18px; }
+.bubble-user { display: inline-block; padding: 14px 18px; border-radius: 16px 16px 6px 16px; background: #7c5cff; color: #fff; font: 500 21px/1.35 var(--body); box-shadow: 0 10px 40px rgba(124,92,255,.25); }
+.spark { width: 34px; height: 34px; border-radius: 10px; background: #222226; display: grid; place-items: center; flex: none; }
+
+/* ---------- player chrome (not rendered into the video) ---------- */
+[hidden] { display: none !important; }
+.playbtn { position: absolute; inset: 0; display: grid; place-items: end center; padding-bottom: 7%; background: linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(0,0,0,.45)); border: 0; cursor: pointer; z-index: 5; color: #fff; }
+.playbtn span { display: inline-flex; align-items: center; gap: 14px; padding: 14px 26px 14px 20px; border-radius: 999px; background: rgba(8,19,35,.88); border: 1.5px solid rgba(125,190,255,.7); font: 600 18px/1 var(--body); box-shadow: 0 0 34px rgba(43,145,255,.35); }
+.playbtn svg { width: 22px; height: 22px; }
+.playbtn:focus-visible, .transport button:focus-visible, .chapters button:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+.transport { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font: 500 14px/1 var(--mono); color: var(--ink2); }
+.transport button { appearance: none; border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 8px; padding: 8px 12px; font: 600 13px/1 var(--body); cursor: pointer; }
+.transport button[aria-pressed="true"] { border-color: rgba(94,230,189,.5); color: var(--mint); }
+.scrub { position: relative; flex: 1 1 240px; min-width: 0; height: 28px; cursor: pointer; touch-action: none; }
+.scrub .track { position: absolute; left: 0; right: 0; top: 12px; height: 4px; border-radius: 2px; background: #22252b; }
+.scrub .fill { position: absolute; left: 0; top: 12px; height: 4px; border-radius: 2px; background: var(--mint); width: 0; }
+.scrub .tick { position: absolute; top: 8px; width: 2px; height: 12px; background: #3a3f47; }
+.time { font-variant-numeric: tabular-nums; min-width: 96px; text-align: right; }
+.chapters { display: flex; flex-wrap: wrap; gap: 8px; }
+.chapters button { appearance: none; border: 1px solid var(--line); background: transparent; color: var(--ink2); border-radius: 999px; padding: 7px 12px; font: 500 13px/1 var(--body); cursor: pointer; }
+.chapters button.on { color: var(--mint); border-color: rgba(94,230,189,.45); background: rgba(94,230,189,.06); }
+.about { font: 400 14px/1.55 var(--body); color: var(--mute); max-width: 72ch; }
+.about b { color: var(--ink2); font-weight: 600; }
+@media (max-width: 560px) { .time { min-width: 0; } .transport { gap: 8px; } }
+</style>
+
+<div class="player">
+  <div id="viewport">
+    <div id="stage"><div id="scenes"></div></div>
+    <button class="playbtn" id="playbtn" type="button" aria-label="Play the film">
+      <span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5z" fill="currentColor"/></svg><b id="playlabel">Play film</b></span>
+    </button>
+  </div>
+  <div class="transport" id="transport">
+    <button id="pp" type="button" aria-label="Play">Play</button>
+    <div class="scrub" id="scrub" role="slider" aria-label="Seek" tabindex="0" aria-valuemin="0"><div class="track"></div><div class="fill" id="fill"></div></div>
+    <span class="time" id="time">0:00 / 4:31</span>
+    <button id="cc" type="button" aria-pressed="false">Captions</button>
+    <button id="fs" type="button">Full screen</button>
+  </div>
+  <nav class="chapters" id="chapters" aria-label="Chapters"></nav>
+  <p class="about"><b>Lumen</b> is a computer-use agent that works in your real Chrome and on your Windows desktop. This film describes the system as it stands on October 1, 2026. Product UI is redrawn from the code; on-screen step thoughts in the cross-surface scene are quoted from a logged benchmark run; sample applicant data is fictional. The narration is a synthetic voice, and the score and sound design were synthesized for this film.</p>
+</div>
+
+<script src="timeline.js"></script>
+<script src="engine.js"></script>
+<script src="scenes_a.js"></script>
+<script src="scenes_b.js"></script>
+<script src="scenes_c.js"></script>
+<script src="scenes_d.js"></script>
+<script src="cues.js"></script>
+<script src="player.js"></script>

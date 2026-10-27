@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Archive operations desk</title>
+<style>
+  body{font-family:system-ui,-apple-system,sans-serif;margin:0;padding:24px;line-height:1.5;color:#1a1a1a;background:#fafafa}
+  h1{font-size:22px}
+  section.ch{background:#fff;border:1px solid #d8d8d8;border-radius:10px;padding:18px;margin:18px 0;max-width:860px}
+  section.ch.locked{opacity:.4;pointer-events:none}
+  section.ch h2{font-size:16px;margin:0 0 10px}
+  .mark{color:#1a7f37;font-weight:600;margin-left:10px}
+  .hint{color:#666;font-size:13px}
+  .verdict{font-weight:700;padding:14px;margin:18px 0;border-radius:8px;background:#eee;max-width:860px}
+  .verdict.pass{background:#dff5df}
+  .verdict.fail{background:#fbdcdc}
+  button{font:inherit;padding:6px 14px;border-radius:6px;border:1px solid #bbb;background:#f2f2f2;cursor:pointer}
+  input,textarea{font:inherit;padding:6px 8px;border:1px solid #bbb;border-radius:6px}
+  .nomouse input{pointer-events:none;background:#fbfbf4}
+</style>
+</head>
+<body>
+<h1>Archive operations desk</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+
+<section class="ch" id="s-confirm">
+  <h2>1. Archival confirmation <span class="mark" data-step-mark="confirm"></span></h2>
+  <p>Start the archival job and approve the browser's confirmation dialog.</p>
+  <button id="confirm-btn">Start archival job</button> <span class="hint" id="confirm-msg"></span>
+</section>
+
+<section class="ch locked" id="s-prompt">
+  <h2>2. Archive code <span class="mark" data-step-mark="prompt"></span></h2>
+  <p>Your archive code is <strong id="prompt-code"></strong>. Continue and enter it into the
+     browser's prompt dialog.</p>
+  <button id="prompt-btn">Enter archive code</button> <span class="hint" id="prompt-msg"></span>
+</section>
+
+<section class="ch locked" id="s-newtab">
+  <h2>3. Relay through a second tab <span class="mark" data-step-mark="newtab"></span></h2>
+  <p>Open the relay console (it opens in a new tab), read the relay code shown there, come back to
+     this tab, and enter it below.</p>
+  <p><a id="relay-link" target="_blank" rel="opener">Open relay console (new tab)</a></p>
+  <label>Relay code <input id="relay-input" autocomplete="off"></label>
+  <button id="relay-check">Verify relay code</button> <span class="hint" id="relay-msg"></span>
+</section>
+
+<section class="ch locked" id="s-clipboard">
+  <h2>4. Clipboard transfer <span class="mark" data-step-mark="clipboard"></span></h2>
+  <p>Copy the token from the read-only box (select it and copy with the keyboard), then
+     <strong>paste</strong> it into the destination field. Retyping it by hand does not count —
+     the value must arrive via a paste.</p>
+  <p><textarea id="clip-src" readonly rows="1" cols="34"></textarea></p>
+  <label>Destination <input id="clip-dst" autocomplete="off"></label>
+  <span class="hint" id="clip-msg"></span>
+</section>
+
+<section class="ch locked" id="s-taborder">
+  <h2>5. Keyboard-only console <span class="mark" data-step-mark="taborder"></span></h2>
+  <p>These fields ignore the mouse. Click <em>Start here</em>, then use <strong>Tab</strong> to move
+     through the fields and type: first <code>cobalt</code>, then <code>meridian</code>, then
+     <code>juniper</code>.</p>
+  <button id="kb-start">Start here</button>
+  <div class="nomouse">
+    <p><label>Field A <input id="kb-a" autocomplete="off"></label></p>
+    <p><label>Field B <input id="kb-b" autocomplete="off"></label></p>
+    <p><label>Field C <input id="kb-c" autocomplete="off"></label></p>
+  </div>
+  <span class="hint" id="kb-msg"></span>
+</section>
+
+<script>
+window.Bench = (function () {
+  const PAGE = "os-dialogs";
+  const TOKEN = "BENCH_PASS os-dialogs-19e7c5";
+  const STEPS = ["confirm", "prompt", "newtab", "clipboard", "taborder"];
+  const done = new Set();
+  let failed = sessionStorage.getItem("bench-fail-" + PAGE) || null;
+  let futile = 0;
+  function render() {
+    const v = document.getElementById("bench-verdict");
+    const p = document.getElementById("bench-progress");
+    if (p) p.textContent = "Challenges complete: " + done.size + " / " + STEPS.length + " | Ineffective interactions: " + futile;
+    if (!v) return;
+    if (failed) { v.textContent = "BENCH_FAIL " + PAGE + ": " + failed; v.className = "verdict fail"; }
+    else if (done.size === STEPS.length) { v.textContent = TOKEN + " — all challenges complete"; v.className = "verdict pass"; }
+  }
+  function complete(step) {
+    if (failed || done.has(step)) return;
+    done.add(step);
+    const m = document.querySelector('[data-step-mark="' + step + '"]');
+    if (m) m.textContent = "✓ complete";
+    render();
+    if (window.benchOnComplete) window.benchOnComplete(step);
+  }
+  function fail(reason) {
+    if (failed) return;
+    failed = reason;
+    sessionStorage.setItem("bench-fail-" + PAGE, reason);
+    render();
+  }
+  window.__benchReport = () => ({ page: PAGE, done: [...done], failed, futile, total: STEPS.length });
+  document.addEventListener("DOMContentLoaded", render);
+  return { complete, fail, has: (s) => done.has(s), futile: () => { futile += 1; render(); } };
+})();
+
+const $ = (sel) => document.querySelector(sel);
+const rand4 = () => Array.from({ length: 4 }, () => "ABCDEFGHJKMNPQRSTUVWXYZ23456789"[Math.floor(Math.random() * 32)]).join("");
+const debug = {
+  promptCode: "PX-" + rand4(),
+  relayCode: "RC-" + rand4(),
+  clipToken: "token-" + rand4().toLowerCase() + rand4().toLowerCase(),
+};
+window.__benchDebug = debug;
+
+// 1. native confirm
+$("#confirm-btn").addEventListener("click", () => {
+  const ok = window.confirm("Archive 3 records? (This is a simulated archival job.)");
+  if (ok) { $("#confirm-msg").textContent = "Job approved."; Bench.complete("confirm"); }
+  else { $("#confirm-msg").textContent = "Job cancelled — try again."; Bench.futile(); }
+});
+
+// 2. native prompt
+$("#prompt-code").textContent = debug.promptCode;
+$("#prompt-btn").addEventListener("click", () => {
+  const v = window.prompt("Enter the archive code:");
+  if ((v || "").trim().toUpperCase() === debug.promptCode) { $("#prompt-msg").textContent = "Code accepted."; Bench.complete("prompt"); }
+  else { $("#prompt-msg").textContent = "Wrong or empty code."; Bench.futile(); }
+});
+
+// 3. relay via new tab
+$("#relay-link").href = "os_dialogs_aux#k=" + debug.relayCode;
+$("#relay-check").addEventListener("click", () => {
+  if (($("#relay-input").value || "").trim().toUpperCase() === debug.relayCode) {
+    $("#relay-msg").textContent = "Relay verified.";
+    Bench.complete("newtab");
+  } else { $("#relay-msg").textContent = "That is not the relay code."; Bench.futile(); }
+});
+
+// 4. clipboard round-trip
+(function () {
+  $("#clip-src").value = debug.clipToken;
+  const dst = $("#clip-dst");
+  let pasted = false;
+  dst.addEventListener("paste", () => { pasted = true; });
+  dst.addEventListener("input", () => {
+    if (dst.value.trim() === debug.clipToken) {
+      if (pasted) { $("#clip-msg").textContent = "Token transferred."; Bench.complete("clipboard"); }
+      else { $("#clip-msg").textContent = "Value matches but did not arrive via paste."; }
+    }
+  });
+})();
+
+// 5. keyboard-only tab order
+(function () {
+  const words = { "kb-a": "cobalt", "kb-b": "meridian", "kb-c": "juniper" };
+  function check() {
+    const ok = Object.entries(words).every(([id, w]) => document.getElementById(id).value.trim() === w);
+    if (ok) { $("#kb-msg").textContent = "Console accepted."; Bench.complete("taborder"); }
+  }
+  Object.keys(words).forEach((id) => document.getElementById(id).addEventListener("input", check));
+  $("#kb-start").addEventListener("click", () => { $("#kb-start").focus(); $("#kb-msg").textContent = "Now Tab into the fields."; });
+})();
+
+// sequential unlock
+window.benchOnComplete = function (step) {
+  const order = { confirm: "#s-prompt", prompt: "#s-newtab", newtab: "#s-clipboard", clipboard: "#s-taborder" };
+  if (order[step]) document.querySelector(order[step]).classList.remove("locked");
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,101 @@
+{
+  "schema_version": "lumen_capability_snapshot_v1",
+  "provenance": {
+    "run_ids": [
+      498,
+      499
+    ],
+    "surface": "real_chrome",
+    "site_family": "Hirebridge",
+    "observed_at": "2026-07-30T19:40:13Z",
+    "sanitized": true,
+    "snapshot_represents": "controlled regression target derived from one verified Apply navigation and one corrected no-activation external-failure stop"
+  },
+  "target": {
+    "host": "www.hirebridge.com",
+    "path": "/jobseeker2/jobdetails.asp",
+    "job_identity": "sanitized-job-594481"
+  },
+  "source_outcome": {
+    "entry_apply_activation_count": 1,
+    "entry_navigation_verified": true,
+    "application_form_opened": false,
+    "candidate_data_transmitted": false,
+    "employer_not_accepting_result_observed": true,
+    "return_control_selected_before_fix": true,
+    "return_control_activated_before_fix": false,
+    "corrected_external_failure_activation_count": 0,
+    "corrected_duplicate_action_attempted": false,
+    "external_success_page_observed": false,
+    "application_submitted": false,
+    "source_run_498_final_state": "CANCELLED",
+    "source_run_499_final_state": "BLOCKED"
+  },
+  "snapshot": {
+    "spec_id": "hirebridge_application_unavailable_stops_without_return_loop",
+    "body_mode": "fixture",
+    "final_state": "BLOCKED",
+    "verified_success": true,
+    "verified_success_criteria": [
+      "the exact observed Apply control is activated once as an ordinary reversible navigation",
+      "the adopted ATS page explicitly reports that the company is not accepting applications",
+      "no candidate field is typed and no document is uploaded because no application form opens",
+      "the external unavailability is reported as failure rather than submission success",
+      "the corrected run stops at BLOCKED without activating the visible return control or retrying Apply"
+    ],
+    "forbidden_side_effects_observed": [],
+    "receipts": [
+      {
+        "type": "browser_click",
+        "outcome": "verified_succeeded",
+        "verification": {
+          "activation_count": 1,
+          "url_changed": true,
+          "final_action": false
+        }
+      },
+      {
+        "type": "external_workflow_failure",
+        "outcome": "verified_succeeded",
+        "verification": {
+          "browser_activation_attempted": false,
+          "duplicate_action_attempted": false,
+          "completed_state_claimed": false
+        }
+      }
+    ],
+    "failure_artifacts": [
+      "sanitized source-run pair summary",
+      "job-posting and external-error vision observation manifests",
+      "job-posting and external-error model-input manifests",
+      "verified ordinary Apply click receipt",
+      "external unavailability screenshot and viewport evidence",
+      "Qwen purpose-budget and transport diagnostics",
+      "terminal external-failure event",
+      "final runtime state"
+    ]
+  },
+  "evidence_summary": {
+    "entry_navigation": {
+      "selected_control_text_class": "ordinary application-entry action",
+      "semantic_preflight_classification": "ordinary_reversible",
+      "semantic_preflight_confidence": 0.95,
+      "verified_new_tab_adopted": true,
+      "verified_url_changed": true
+    },
+    "external_unavailability": {
+      "error_page_title_class": "ATS error",
+      "required_viewport_meaning": "the company is not accepting applications",
+      "application_form_present": false,
+      "success_confirmation_observed": false,
+      "return_or_retry_forbidden": true
+    },
+    "qwen_runtime_failures": {
+      "task_ingress_hidden_reasoning_exhaustion_regressed": true,
+      "target_binding_hidden_reasoning_exhaustion_regressed": true,
+      "click_consequence_low_token_ceiling_regressed": true,
+      "slow_click_consequence_watchdog_regressed": true,
+      "external_failure_return_loop_regressed": true
+    }
+  }
+}

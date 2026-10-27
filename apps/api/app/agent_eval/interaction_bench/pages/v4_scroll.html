@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Scroll and zoom bench</title>
+<link rel="stylesheet" href="v4_style.css">
+<style>
+  #rows{height:260px;overflow-y:auto;max-width:420px}
+  #rows .rw{left:0;right:0;height:34px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;padding:0 12px;border-bottom:1px solid #edf0f3;font-family:ui-monospace,Consolas,monospace}
+  #rows .rw button{padding:2px 10px;font-size:13px}
+  #timeline{overflow-x:auto;overflow-y:hidden;max-width:880px;height:92px}
+  #timeline .ev{top:10px;display:flex;flex-direction:column;align-items:center;gap:6px;width:104px;box-sizing:border-box;padding:10px 0;border-radius:8px;background:#f2f5f9;border:1px solid #dce2e9;font-family:ui-monospace,Consolas,monospace;font-size:13px}
+  #timeline .ev button{padding:2px 10px;font-size:12px}
+  #mapwrap{position:relative;width:640px}
+  #overview{border:1px solid #9aa5b1;border-radius:4px;background:#f7f9f6;flex:none}
+  .legend{font-size:13px;color:#445;line-height:1.7}
+  .sw{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:-1px;margin-right:4px}
+  #map{display:block;border:1px solid #c7d0da;border-radius:8px;cursor:grab;touch-action:none}
+  #map.panning{cursor:grabbing}
+  #zoomtag{position:absolute;right:10px;top:8px;background:rgba(255,255,255,.88);border-radius:6px;padding:2px 8px;font-size:12px;pointer-events:none}
+  #doc{height:360px;overflow-y:auto;max-width:760px;position:relative;outline:none;background:#fff}
+  #doc:focus{box-shadow:0 0 0 3px #bcd3ee}
+  #doc .pg{position:absolute;left:0;right:0;padding:18px 26px;box-sizing:border-box;border-bottom:1px dashed #d5dce4}
+  #doc .pg h4{margin:0 0 8px;font-size:13px;color:#667}
+  #doc .closing{font-size:20px;font-weight:700;font-family:ui-monospace,Consolas,monospace;margin-top:14px}
+</style>
+</head>
+<body data-page="v4_scroll">
+<h1>Scroll and zoom bench</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+<p class="intro">Five independent challenges, in any order. Each needs a different way of moving through content
+  that does not fit on screen.</p>
+
+<section class="ch">
+  <h2>1. Scroll inside a panel <span class="mark" data-step-mark="inner_scroll"></span></h2>
+  <p>Press <em>Pick</em> on row <span class="val" data-public="row_target"></span>. The list scrolls inside its own panel.</p>
+  <div id="rows" class="box"></div>
+  <p class="msg" data-msg="row"></p>
+</section>
+
+<section class="ch">
+  <h2>2. Scroll sideways <span class="mark" data-step-mark="horizontal"></span></h2>
+  <p>Open the event for <span class="val" data-public="quarter"></span> on this timeline. It scrolls horizontally
+     only (Shift + mouse wheel, a horizontal wheel or swipe, or its scrollbar).</p>
+  <div id="timeline" class="box"></div>
+  <p class="msg" data-msg="timeline"></p>
+</section>
+
+<section class="ch">
+  <h2>3. Pan a map <span class="mark" data-step-mark="pan_map"></span></h2>
+  <p>Find flag <span class="val" data-public="flag"></span> on the map and click it. The map is much larger than its
+     window: drag it to pan. The overview below the map shows the whole map — the blue box is the part the window
+     shows, the red dot is flag <span class="val" data-public="flag"></span> — so pan until the box covers the dot.</p>
+  <div id="mapwrap"><canvas id="map" width="640" height="360"></canvas><div id="zoomtag"></div></div>
+  <div class="row"><canvas id="overview" width="180" height="120"></canvas>
+    <div class="legend">Overview of the whole map<br><span class="sw" style="border:2px solid #2b6cb0;border-radius:2px;width:10px;height:8px"></span>what the window shows<br>
+      <span class="sw" style="background:#c0392b"></span>flag <span class="val" data-public="flag"></span><br>
+      <span class="sw" style="background:#f2c230;border:1px solid #7a5a00"></span>the starred building (challenge 4)</div></div>
+  <p class="msg" data-msg="flag"></p>
+</section>
+
+<section class="ch">
+  <h2>4. Zoom in <span class="mark" data-step-mark="zoom_map"></span></h2>
+  <p>On the same map, one building is marked with a gold star (the gold dot on the overview). Pan to it, then zoom in
+     on it — hold <strong>Ctrl</strong> and turn the mouse wheel over the map — until building names appear (3× or
+     more), and enter the starred building's name.</p>
+  <div class="row"><input id="bname" autocomplete="off" size="24" data-enter="bname-go"> <button id="bname-go">Submit name</button></div>
+  <p class="msg" data-msg="building"></p>
+</section>
+
+<section class="ch">
+  <h2>5. Reach the end of a long document <span class="mark" data-step-mark="long_document"></span></h2>
+  <p>This document has <span data-public="pages"></span> pages. Enter the closing code printed on its last page.
+     (Click inside it first: the End key, Page Down, the wheel, and the scrollbar all work.)</p>
+  <div id="doc" class="box" tabindex="0"></div>
+  <div class="row"><input id="ccode" autocomplete="off" size="14" data-enter="ccode-go"> <button id="ccode-go">Submit closing code</button></div>
+  <p class="msg" data-msg="doc"></p>
+</section>
+
+<script src="v3_common.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+let pub = null;
+
+// --- 1 & 2 --------------------------------------------------------------------------------------
+// Both long lists are virtualized, like real ones: only the items near the visible window exist in the page,
+// so the content is reached by scrolling (not by finding text that is not rendered yet).
+function virtualList(box, count, size, horizontal, make) {
+  const spacer = document.createElement("div");
+  spacer.style.position = "relative";
+  spacer.style[horizontal ? "width" : "height"] = count * size + "px";
+  if (horizontal) spacer.style.height = "100%";
+  box.appendChild(spacer);
+  const shown = new Map();
+  function render() {
+    const pos = horizontal ? box.scrollLeft : box.scrollTop;
+    const span = horizontal ? box.clientWidth : box.clientHeight;
+    const first = Math.max(0, Math.floor(pos / size) - 3), last = Math.min(count - 1, Math.ceil((pos + span) / size) + 3);
+    for (const [i, el] of shown) if (i < first || i > last) { el.remove(); shown.delete(i); }
+    for (let i = first; i <= last; i++) {
+      if (shown.has(i)) continue;
+      const el = make(i);
+      el.style.position = "absolute";
+      el.style[horizontal ? "left" : "top"] = i * size + "px";
+      spacer.appendChild(el);
+      shown.set(i, el);
+    }
+  }
+  box.addEventListener("scroll", render);
+  render();
+}
+function buildRows() {
+  virtualList($("#rows"), 300, 34, false, (k) => {
+    const i = k + 1;
+    const r = document.createElement("div");
+    r.className = "rw";
+    r.dataset.row = i;
+    r.innerHTML = "<span></span><button>Pick</button>";
+    r.firstChild.textContent = "Row " + String(i).padStart(3, "0");
+    r.lastChild.addEventListener("click", (e) => {
+      if (!V3.trusted(e)) return V3.untrusted("row");
+      V3.act("pick_row", { row: i });
+    });
+    return r;
+  });
+}
+function buildTimeline() {
+  virtualList($("#timeline"), pub.quarters.length, 110, true, (k) => {
+    const q = pub.quarters[k];
+    const ev = document.createElement("div");
+    ev.className = "ev";
+    ev.dataset.q = q;
+    ev.innerHTML = "<span></span><button>Open</button>";
+    ev.firstChild.textContent = q;
+    ev.lastChild.addEventListener("click", (e) => {
+      if (!V3.trusted(e)) return V3.untrusted("timeline");
+      V3.act("open_event", { quarter: q });
+    });
+    return ev;
+  });
+}
+
+// --- 3 & 4: the map -----------------------------------------------------------------------------
+const W = 2400, H = 1600, VW = 640, VH = 360;
+let ox = 0, oy = 0, zoom = 1;
+let names = null, askedNames = false;  // building names arrive only once the map is really zoomed in
+// Ctrl+wheel anywhere on this page never zooms the browser itself (that zoom would persist per site).
+document.addEventListener("wheel", (e) => { if (e.ctrlKey) e.preventDefault(); }, { passive: false });
+function clampView() {
+  ox = Math.max(0, Math.min(W - VW / zoom, ox));
+  oy = Math.max(0, Math.min(H - VH / zoom, oy));
+}
+function toScreen(x, y) { return [(x - ox) * zoom, (y - oy) * zoom]; }
+function drawStar(g, x, y, r, fill) {
+  g.beginPath();
+  for (let i = 0; i < 10; i++) {
+    const rr = i % 2 ? r * 0.45 : r, a = -Math.PI / 2 + (i * Math.PI) / 5;
+    g.lineTo(x + rr * Math.cos(a), y + rr * Math.sin(a));
+  }
+  g.closePath();
+  g.fillStyle = fill;
+  g.fill();
+  g.strokeStyle = "#7a5a00";
+  g.stroke();
+}
+function drawMap() {
+  const g = $("#map").getContext("2d");
+  g.fillStyle = "#eef3ea";
+  g.fillRect(0, 0, VW, VH);
+  g.strokeStyle = "#d5dfd0";
+  g.lineWidth = 1;
+  for (let x = 0; x <= W; x += 100) {
+    const [sx] = toScreen(x, 0);
+    if (sx >= -1 && sx <= VW + 1) { g.beginPath(); g.moveTo(sx, 0); g.lineTo(sx, VH); g.stroke(); }
+  }
+  for (let y = 0; y <= H; y += 100) {
+    const [, sy] = toScreen(0, y);
+    if (sy >= -1 && sy <= VH + 1) { g.beginPath(); g.moveTo(0, sy); g.lineTo(VW, sy); g.stroke(); }
+  }
+  if (zoom >= 3 && !askedNames) {
+    askedNames = true;
+    V3.act("zoomed", { zoom }).then((res) => {
+      if (res.names) { names = res.names; drawMap(); } else askedNames = false;
+    });
+  }
+  pub.buildings.forEach((b, i) => {
+    const [sx, sy] = toScreen(b.x, b.y);
+    const size = 16 * zoom;
+    g.fillStyle = "#b9c4cf";
+    g.fillRect(sx - size / 2, sy - size / 2, size, size);
+    if (zoom >= 3 && names) {  // labels a person can read at a glance, with a halo against the map
+      g.font = "600 15px Segoe UI, sans-serif";
+      g.textAlign = "center";
+      g.lineWidth = 4;
+      g.strokeStyle = "rgba(255,255,255,.92)";
+      g.strokeText(names[i], sx, sy + size / 2 + 17);
+      g.fillStyle = "#1f2933";
+      g.fillText(names[i], sx, sy + size / 2 + 17);
+    }
+    if (b.star) drawStar(g, sx, sy - size / 2 - 12, 9, "#f2c230");
+  });
+  for (const f of pub.flags) {
+    const [sx, sy] = toScreen(f.x, f.y);
+    if (sx < -40 || sy < -40 || sx > VW + 40 || sy > VH + 40) continue;
+    g.fillStyle = "#c0392b";
+    g.beginPath();
+    g.arc(sx, sy, 9, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = "#1f2933";
+    g.font = "bold 12px Segoe UI, sans-serif";
+    g.textAlign = "left";
+    g.fillText(f.id, sx + 12, sy + 4);
+  }
+  $("#zoomtag").textContent = "Zoom " + zoom.toFixed(1) + "×  ·  hold Ctrl + wheel to zoom";
+  // the overview: the whole map, where the target flag and the starred building are, and what the window shows
+  const o = $("#overview").getContext("2d"), s = 180 / W;
+  o.clearRect(0, 0, 180, 120);
+  const dot = (x, y, fill, stroke) => {
+    o.beginPath();
+    o.arc(x * s, y * s, 4, 0, Math.PI * 2);
+    o.fillStyle = fill;
+    o.fill();
+    if (stroke) { o.strokeStyle = stroke; o.lineWidth = 1; o.stroke(); }
+  };
+  const target = pub.flags.find((f) => f.id === pub.flag);
+  if (target) dot(target.x, target.y, "#c0392b");
+  const starred = pub.buildings.find((b) => b.star);
+  if (starred) dot(starred.x, starred.y, "#f2c230", "#7a5a00");
+  o.strokeStyle = "#2b6cb0";
+  o.lineWidth = 2;
+  o.strokeRect(ox * s + 1, oy * s + 1, Math.max(3, (VW / zoom) * s - 2), Math.max(3, (VH / zoom) * s - 2));
+}
+function buildMap() {
+  const c = $("#map");
+  let drag = null;
+  c.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return;
+    if (!V3.trusted(e)) return V3.untrusted("flag");
+    c.setPointerCapture(e.pointerId);
+    drag = { x: e.clientX, y: e.clientY, ox, oy, moved: false };
+  });
+  c.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (Math.hypot(dx, dy) > 4) drag.moved = true;
+    if (!drag.moved) return;
+    c.classList.add("panning");
+    ox = drag.ox - dx / zoom;
+    oy = drag.oy - dy / zoom;
+    clampView();
+    drawMap();
+  });
+  c.addEventListener("pointerup", (e) => {
+    if (!drag) return;
+    const moved = drag.moved;
+    drag = null;
+    c.classList.remove("panning");
+    if (moved) return;
+    const r = c.getBoundingClientRect();
+    const sx = (e.clientX - r.left) * (VW / r.width), sy = (e.clientY - r.top) * (VH / r.height);
+    let best = null, bestD = 16;
+    for (const f of pub.flags) {
+      const [fx, fy] = toScreen(f.x, f.y);
+      const d = Math.hypot(fx - sx, fy - sy);
+      if (d < bestD) { best = f; bestD = d; }
+    }
+    if (best) V3.act("flag_click", { flag: best.id });
+  });
+  c.addEventListener("wheel", (e) => {
+    if (!e.ctrlKey) return;  // a plain wheel scrolls the page as usual
+    e.preventDefault();
+    if (!V3.trusted(e)) return;
+    const r = c.getBoundingClientRect();
+    const sx = (e.clientX - r.left) * (VW / r.width), sy = (e.clientY - r.top) * (VH / r.height);
+    const wx = ox + sx / zoom, wy = oy + sy / zoom;
+    const delta = e.deltaY * (e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 360 : 1);
+    const factor = Math.max(0.2, Math.min(5, Math.pow(1.25, -delta / 100)));  // one notch = 1.25x
+    zoom = Math.max(1, Math.min(6, zoom * factor));
+    ox = wx - sx / zoom;
+    oy = wy - sy / zoom;
+    clampView();
+    drawMap();
+  }, { passive: false });
+  drawMap();
+}
+
+// --- 5. the long document -----------------------------------------------------------------------
+const PAGE_H = 1100;
+const LOREM = [
+  "The committee reviewed the quarterly logistics figures and noted a steady improvement in on-time departures.",
+  "Inventory turnover rose in every region except the northern depots, where seasonal demand remained flat.",
+  "Several carriers requested updated loading schedules; the operations team will circulate revised slots.",
+  "Maintenance windows for the conveyor lines were moved to weekends to avoid disrupting the morning shifts.",
+];
+let codeShown = "";
+function renderDoc() {
+  const doc = $("#doc");
+  const top = doc.scrollTop, first = Math.max(0, Math.floor(top / PAGE_H) - 1), last = Math.min(pub.pages - 1, Math.floor((top + doc.clientHeight) / PAGE_H) + 1);
+  const keep = new Set();
+  for (let i = first; i <= last; i++) {
+    keep.add(String(i));
+    if (doc.querySelector(`.pg[data-i="${i}"]`)) continue;
+    const pg = document.createElement("div");
+    pg.className = "pg";
+    pg.dataset.i = i;
+    pg.style.top = i * PAGE_H + "px";
+    pg.style.height = PAGE_H + "px";
+    const h4 = document.createElement("h4");
+    h4.textContent = "Page " + (i + 1) + " of " + pub.pages;
+    pg.appendChild(h4);
+    for (let k = 0; k < 6; k++) {
+      const p = document.createElement("p");
+      p.textContent = LOREM[(i + k) % LOREM.length];
+      pg.appendChild(p);
+    }
+    if (i === pub.pages - 1) {  // printed at the foot of the last page, where End lands
+      const c = document.createElement("div");
+      c.className = "closing";
+      Object.assign(c.style, { position: "absolute", left: "26px", bottom: "48px", margin: "0" });
+      c.textContent = codeShown ? "Closing code: " + codeShown : "Closing code: loading…";
+      pg.appendChild(c);
+    }
+    doc.appendChild(pg);
+  }
+  doc.querySelectorAll(".pg").forEach((pg) => { if (!keep.has(pg.dataset.i)) pg.remove(); });
+  const lastPg = doc.querySelector(`.pg[data-i="${pub.pages - 1}"]`);
+  if (lastPg && !codeShown && top + doc.clientHeight > (pub.pages - 1) * PAGE_H + 200) {
+    codeShown = "…";
+    V3.act("doc_end").then((res) => {
+      codeShown = res.code || "";
+      const c = $("#doc .closing");
+      if (c) c.textContent = "Closing code: " + codeShown;
+    });
+  }
+}
+function buildDoc() {
+  const doc = $("#doc");
+  const spacer = document.createElement("div");
+  spacer.style.height = pub.pages * PAGE_H + "px";
+  doc.appendChild(spacer);
+  doc.addEventListener("scroll", renderDoc);
+  renderDoc();
+}
+
+$("#bname-go").addEventListener("click", () => V3.act("building_name", { value: $("#bname").value }));
+$("#ccode-go").addEventListener("click", () => V3.act("closing_code", { value: $("#ccode").value }));
+
+V3.onState((st) => {
+  if (pub) return;
+  pub = st.public;
+  buildRows();
+  buildTimeline();
+  buildMap();
+  buildDoc();
+});
+</script>
+</body>
+</html>

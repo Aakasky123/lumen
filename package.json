@@ -1,0 +1,31 @@
+{
+  "name": "lumen",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "private": true,
+  "workspaces": [
+    "apps/renderer",
+    "apps/desktop"
+  ],
+  "scripts": {
+    "dev": "node scripts/platform-run.mjs dev-start",
+    "restart": "node scripts/platform-run.mjs restart-dev",
+    "renderer:dev": "npm --workspace apps/renderer run dev",
+    "renderer:build": "npm --workspace apps/renderer run build",
+    "desktop:dev": "npm --workspace apps/desktop run dev",
+    "desktop:test": "npm --workspace apps/desktop run test",
+    "desktop:build": "npm --workspace apps/desktop run build",
+    "desktop:build:renderer": "npm --workspace apps/desktop run build:renderer",
+    "desktop:build:api": "npm --workspace apps/desktop run build:api",
+    "desktop:package": "npm --workspace apps/desktop run package",
+    "extension:install": "npm --prefix apps/extension install",
+    "extension:test": "npm --prefix apps/extension test",
+    "api:dev": "node scripts/py.mjs -m uvicorn app.main:app --reload --reload-dir apps/api/app --app-dir apps/api --host 127.0.0.1 --port 8001",
+    "api:test": "node scripts/py.mjs -m pytest apps/api/tests",
+    "api:capability-regressions": "node scripts/py.mjs -m pytest apps/api/tests/test_capability_regression_final_submit.py apps/api/tests/test_capability_regression_field_choice_binding.py apps/api/tests/test_capability_regression_already_satisfied_choice.py apps/api/tests/test_capability_regression_answer_resume.py apps/api/tests/test_capability_regression_greenhouse_application.py apps/api/tests/test_capability_regression_smartrecruiters_application.py apps/api/tests/test_capability_regression_ashby_application.py apps/api/tests/test_capability_regression_hirebridge_application.py -q",
+    "capability-regressions": "npm run api:capability-regressions && npm run extension:test",
+    "api:browser-test": "node scripts/py.mjs -m pytest apps/api/tests/test_agent_eval_harness.py apps/api/tests/test_agent_eval_playwright_body.py apps/api/tests/test_agent_eval_recovery.py apps/api/tests/test_extension_run.py -q",
+    "api:mode-check": "node scripts/py.mjs apps/api/mode_check.py",
+    "api:benchmarks": "node scripts/py.mjs apps/api/app/agent_eval/benchmarks.py"
+  }
+}

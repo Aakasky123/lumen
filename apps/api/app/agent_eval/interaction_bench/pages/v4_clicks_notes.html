@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Release notes</title>
+<link rel="stylesheet" href="v4_style.css">
+</head>
+<body data-page="v4_clicks" data-aux="notes">
+<h1>Release notes</h1>
+<p id="aux-status" class="hint">Connecting…</p>
+<ul>
+  <li>Faster sync for large mailboxes.</li>
+  <li>Context menus now remember the last action.</li>
+  <li>Fixed a crash when a file name contained an emoji.</li>
+</ul>
+<p class="hint">You can close this tab; the pointer bench is in the other tab.</p>
+<script src="v3_common.js"></script>
+<script>
+V3.ready.then(async () => {
+  await V3.act("notes_opened");
+  document.getElementById("aux-status").textContent = "Opened from the pointer bench.";
+});
+</script>
+</body>
+</html>

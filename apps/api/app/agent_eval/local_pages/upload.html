@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Document upload</title></head>
+<body>
+  <h1>Document upload</h1>
+  <p>Attach the requested PDF, then a human will review it.</p>
+  <input id="document" type="file" aria-label="Supporting document"
+         onchange="document.getElementById('status').textContent='Document attached';">
+  <button id="submit" onclick="document.getElementById('status').textContent='Form submitted';">Submit form</button>
+  <p id="status"></p>
+</body>
+</html>

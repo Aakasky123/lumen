@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Service desk terminal</title>
+<style>
+  body{font-family:system-ui,-apple-system,sans-serif;margin:0;padding:24px;line-height:1.5;color:#1a1a1a;background:#fafafa}
+  h1{font-size:22px}
+  section.ch{background:#fff;border:1px solid #d8d8d8;border-radius:10px;padding:18px;margin:18px 0;max-width:860px}
+  section.ch.locked{opacity:.4;pointer-events:none}
+  section.ch h2{font-size:16px;margin:0 0 10px}
+  .mark{color:#1a7f37;font-weight:600;margin-left:10px}
+  .hint{color:#666;font-size:13px}
+  .verdict{font-weight:700;padding:14px;margin:18px 0;border-radius:8px;background:#eee;max-width:860px}
+  .verdict.pass{background:#dff5df}
+  .verdict.fail{background:#fbdcdc}
+  button{font:inherit;padding:6px 14px;border-radius:6px;border:1px solid #bbb;background:#f2f2f2;cursor:pointer}
+  .dept-grid{display:flex;gap:14px}
+  .dept{border:1px solid #ccc;border-radius:8px;padding:12px;flex:1;text-align:center}
+  #tiny-field{position:relative;width:280px;height:170px;border:1px solid #aaa;border-radius:8px;background:#fdfdfd}
+  .dot{position:absolute;width:10px;height:10px;border-radius:50%;background:#c9d4e4}
+  #tiny-btn{position:absolute;width:14px;height:14px;padding:0;border-radius:50%;background:#2b6cb0;border:1px solid #1a4a80}
+  .slot-row{display:flex;gap:14px}
+  .slot{width:150px;height:56px;border:1px dashed #bbb;border-radius:8px;display:flex;align-items:center;justify-content:center}
+  #double-card{border:1px solid #ccc;border-radius:8px;padding:18px;width:260px;text-align:center;user-select:none;cursor:pointer}
+  #cool-status{font-weight:600}
+</style>
+</head>
+<body>
+<h1>Service desk terminal</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+
+<section class="ch" id="s-dept">
+  <h2>1. Route the request <span class="mark" data-step-mark="dept"></span></h2>
+  <p>File this request with the <strong>Shipping</strong> desk. Filing with any other desk
+     misroutes the request permanently.</p>
+  <div class="dept-grid">
+    <div class="dept"><h3>Billing</h3><p class="hint">Invoices and payments</p><button data-dept="billing">Submit request</button></div>
+    <div class="dept"><h3>Shipping</h3><p class="hint">Deliveries and freight</p><button data-dept="shipping">Submit request</button></div>
+    <div class="dept"><h3>Support</h3><p class="hint">Technical issues</p><button data-dept="support">Submit request</button></div>
+  </div>
+</section>
+
+<section class="ch locked" id="s-tiny">
+  <h2>2. Waypoint marker <span class="mark" data-step-mark="tiny"></span></h2>
+  <p>Activate the small <strong>blue</strong> waypoint marker in the field below. The grey dots are
+     decorative.</p>
+  <div id="tiny-field"></div>
+</section>
+
+<section class="ch locked" id="s-mover">
+  <h2>3. Roving token <span class="mark" data-step-mark="mover"></span></h2>
+  <p>The capture control moves between bays every ~1.6 seconds. Capture it.</p>
+  <div class="slot-row" id="slot-row"></div>
+</section>
+
+<section class="ch locked" id="s-double">
+  <h2>4. Archive tile <span class="mark" data-step-mark="double"></span></h2>
+  <div id="double-card"><strong>Q3 archive</strong><p class="hint">Double-click to open</p><p class="hint" id="double-msg"></p></div>
+</section>
+
+<section class="ch locked" id="s-honeypot">
+  <h2>5. Final check <span class="mark" data-step-mark="honeypot"></span></h2>
+  <p>Proceed to the final check using the control below.</p>
+  <button id="hp-trap" aria-hidden="true" tabindex="-1"
+          style="opacity:0;position:absolute;margin-left:-9999px">Proceed to final check</button>
+  <button id="hp-real">Proceed to final check</button>
+</section>
+
+<section class="ch locked" id="s-cooldown">
+  <h2>6. Timed release <span class="mark" data-step-mark="cooldown"></span></h2>
+  <p>Arm the system, then fire while the status reads <strong>“Ready — fire now”</strong>.
+     The ready window is short; if you miss it, re-arm.</p>
+  <p>Status: <span id="cool-status">Idle</span></p>
+  <button id="arm-btn">Arm system</button>
+  <button id="fire-btn">Fire</button>
+</section>
+
+<script>
+window.Bench = (function () {
+  const PAGE = "click-gauntlet";
+  const TOKEN = "BENCH_PASS click-gauntlet-3fa7d1";
+  const STEPS = ["dept", "tiny", "mover", "double", "honeypot", "cooldown"];
+  const done = new Set();
+  let failed = sessionStorage.getItem("bench-fail-" + PAGE) || null;
+  let futile = 0;
+  function render() {
+    const v = document.getElementById("bench-verdict");
+    const p = document.getElementById("bench-progress");
+    if (p) p.textContent = "Challenges complete: " + done.size + " / " + STEPS.length + " | Ineffective interactions: " + futile;
+    if (!v) return;
+    if (failed) { v.textContent = "BENCH_FAIL " + PAGE + ": " + failed; v.className = "verdict fail"; }
+    else if (done.size === STEPS.length) { v.textContent = TOKEN + " — all challenges complete"; v.className = "verdict pass"; }
+  }
+  function complete(step) {
+    if (failed || done.has(step)) return;
+    done.add(step);
+    const m = document.querySelector('[data-step-mark="' + step + '"]');
+    if (m) m.textContent = "✓ complete";
+    render();
+    if (window.benchOnComplete) window.benchOnComplete(step);
+  }
+  function fail(reason) {
+    if (failed) return;
+    failed = reason;
+    sessionStorage.setItem("bench-fail-" + PAGE, reason);
+    render();
+  }
+  window.__benchReport = () => ({ page: PAGE, done: [...done], failed, futile, total: STEPS.length });
+  document.addEventListener("DOMContentLoaded", render);
+  return { complete, fail, has: (s) => done.has(s), futile: () => { futile += 1; render(); } };
+})();
+
+const $ = (sel) => document.querySelector(sel);
+const debug = {};
+window.__benchDebug = debug;
+
+// --- 1. department disambiguation ---------------------------------------------------------------
+document.querySelectorAll("[data-dept]").forEach((b) =>
+  b.addEventListener("click", () => {
+    if (b.dataset.dept === "shipping") Bench.complete("dept");
+    else Bench.fail("submitted the request to the " + b.dataset.dept + " desk instead of shipping");
+  })
+);
+
+// --- 2. tiny target -----------------------------------------------------------------------------
+(function () {
+  const field = $("#tiny-field");
+  for (let i = 0; i < 40; i++) {
+    const d = document.createElement("div");
+    d.className = "dot";
+    d.style.left = 6 + Math.random() * 258 + "px";
+    d.style.top = 6 + Math.random() * 148 + "px";
+    field.appendChild(d);
+  }
+  const btn = document.createElement("button");
+  btn.id = "tiny-btn";
+  btn.setAttribute("aria-label", "Waypoint marker");
+  const tx = 20 + Math.random() * 236, ty = 20 + Math.random() * 126;
+  btn.style.left = tx + "px";
+  btn.style.top = ty + "px";
+  debug.tiny = { x: tx + 7, y: ty + 7 };
+  field.appendChild(btn);
+  btn.addEventListener("click", (e) => { e.stopPropagation(); Bench.complete("tiny"); });
+  field.addEventListener("click", () => Bench.futile());
+})();
+
+// --- 3. moving target ---------------------------------------------------------------------------
+let moverTimer = null;
+function setupMover() {
+  const row = $("#slot-row");
+  row.innerHTML = "";
+  for (let i = 0; i < 4; i++) {
+    const s = document.createElement("div");
+    s.className = "slot";
+    s.dataset.slot = String(i);
+    row.appendChild(s);
+  }
+  let pos = Math.floor(Math.random() * 4);
+  function place() {
+    document.querySelectorAll(".slot").forEach((s, i) => {
+      s.innerHTML = "";
+      if (i === pos) {
+        const b = document.createElement("button");
+        b.textContent = "Capture token";
+        b.addEventListener("click", () => { Bench.complete("mover"); clearInterval(moverTimer); });
+        s.appendChild(b);
+      } else {
+        const b = document.createElement("button");
+        b.textContent = "Empty bay";
+        b.addEventListener("click", () => Bench.futile());
+        s.appendChild(b);
+      }
+    });
+  }
+  place();
+  moverTimer = setInterval(() => {
+    let next = Math.floor(Math.random() * 4);
+    if (next === pos) next = (next + 1) % 4;
+    pos = next;
+    place();
+  }, 1600);
+}
+
+// --- 4. double-click ----------------------------------------------------------------------------
+(function () {
+  const card = $("#double-card");
+  card.addEventListener("click", () => {
+    $("#double-msg").textContent = "Single click detected — this tile opens on double-click.";
+  });
+  card.addEventListener("dblclick", () => {
+    $("#double-msg").textContent = "Archive opened.";
+    Bench.complete("double");
+  });
+})();
+
+// --- 5. honeypot --------------------------------------------------------------------------------
+$("#hp-trap").addEventListener("click", () => Bench.fail("activated a hidden control (honeypot)"));
+$("#hp-real").addEventListener("click", () => Bench.complete("honeypot"));
+
+// --- 6. cooldown window -------------------------------------------------------------------------
+(function () {
+  let phase = "idle"; // idle | charging | ready | expired
+  let timers = [];
+  function clearTimers() { timers.forEach(clearTimeout); timers = []; }
+  $("#arm-btn").addEventListener("click", () => {
+    clearTimers();
+    phase = "charging";
+    $("#cool-status").textContent = "Charging…";
+    timers.push(setTimeout(() => {
+      phase = "ready";
+      $("#cool-status").textContent = "Ready — fire now";
+    }, 900));
+    timers.push(setTimeout(() => {
+      if (phase === "ready") {
+        phase = "expired";
+        $("#cool-status").textContent = "Charge expired — re-arm";
+      }
+    }, 2100));
+  });
+  $("#fire-btn").addEventListener("click", () => {
+    if (phase === "ready") {
+      clearTimers();
+      $("#cool-status").textContent = "Released.";
+      Bench.complete("cooldown");
+    } else {
+      $("#cool-status").textContent = phase === "charging" ? "Misfire (too early) — re-arm" : "Misfire — re-arm";
+      phase = "idle";
+      clearTimers();
+      Bench.futile();
+    }
+  });
+})();
+
+// --- sequential unlock --------------------------------------------------------------------------
+window.benchOnComplete = function (step) {
+  const order = { dept: "#s-tiny", tiny: "#s-mover", mover: "#s-double", double: "#s-honeypot", honeypot: "#s-cooldown" };
+  if (order[step]) document.querySelector(order[step]).classList.remove("locked");
+  if (step === "tiny") setupMover();
+};
+</script>
+</body>
+</html>

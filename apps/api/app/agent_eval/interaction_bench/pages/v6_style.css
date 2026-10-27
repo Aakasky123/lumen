@@ -1,0 +1,41 @@
+/* Interaction Gauntlet generation 6 — app chrome shared by the web-app pages (loaded after v4_style.css). */
+.tasks{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;max-width:1180px}
+.tasks section.ch{margin:0;max-width:none}
+.tasks section.ch p{margin:6px 0}
+section.app{background:#fff;border:1px solid #d8d8d8;border-radius:10px;margin:14px 0;max-width:1180px;overflow:hidden}
+.app-head{display:flex;align-items:center;gap:12px;padding:10px 14px;background:#1f2a37;color:#fff}
+.app-head h2{font-size:15px;margin:0;color:#fff}
+.app-head .muted{color:#b8c2cc;font-size:12px}
+.panes{display:flex;min-height:420px}
+.pane{border-right:1px solid #e3e6ea;padding:10px;box-sizing:border-box}
+.pane:last-child{border-right:0}
+.toolbar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:6px 0}
+.toolbar button,.k-select{font-size:13px;padding:4px 10px}
+.k-select{min-width:120px;text-align:left;background:#fff}
+.k-select::after{content:" ▾";color:#667}
+table.grid{border-collapse:collapse;width:100%;font-size:13px}
+table.grid th,table.grid td{border-bottom:1px solid #edf0f3;padding:5px 8px;text-align:left;white-space:nowrap}
+table.grid th{background:#f6f8fa;font-weight:600;cursor:default;user-select:none}
+table.grid tr.sel td{background:#e8f1fb}
+table.grid td.num{text-align:right;font-family:ui-monospace,Consolas,monospace}
+.chip{display:inline-block;padding:1px 8px;border-radius:999px;background:#eef2f6;font-size:12px;margin:1px 2px}
+.chip.on{background:#d7e6f7}
+.pager{display:flex;gap:8px;align-items:center;justify-content:flex-end;padding:6px 0;font-size:13px}
+.k-pageinfo{color:#556}
+.field{display:flex;flex-direction:column;gap:3px;margin:6px 0;font-size:13px}
+.field input,.field textarea{font-size:14px}
+.formgrid{display:grid;grid-template-columns:repeat(2,minmax(160px,1fr));gap:4px 14px}
+.muted{color:#667;font-size:13px}
+.k-menu{position:absolute;z-index:60;background:#fff;border:1px solid #b9c2cc;border-radius:6px;box-shadow:0 8px 22px rgba(0,0,0,.16);padding:4px 0;max-height:280px;overflow:auto;outline:none}
+.k-opt{padding:5px 14px;cursor:default;font-size:14px;white-space:nowrap}
+.k-opt.active{background:#e8f0fa}
+.k-opt.selected{font-weight:600}
+.k-opt.disabled{color:#aab;cursor:not-allowed}
+.k-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.42);display:flex;align-items:center;justify-content:center;z-index:70}
+.k-modal{background:#fff;border-radius:10px;padding:18px 22px;min-width:340px;max-width:560px;box-shadow:0 12px 32px rgba(0,0,0,.25)}
+.k-modal h3{margin:0 0 10px;font-size:16px}
+.k-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+button.primary{background:#2b6cb0;color:#fff;border-color:#2b6cb0}
+button.danger{background:#fff;color:#b42318;border-color:#e0a5a0}
+.k-toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#1f2933;color:#fff;padding:8px 16px;border-radius:8px;z-index:80;font-size:14px}
+.badge{display:inline-block;min-width:18px;padding:0 6px;border-radius:9px;background:#e3e8ef;font-size:12px;text-align:center}

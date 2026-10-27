@@ -1,0 +1,98 @@
+<!doctype html>
+<!--
+  Side panel preview for design work: loads the real src/sidepanel.{css,js} with a stand-in for the
+  extension runtime (chat, activity, a pending question). Open the file in a browser:
+    sidepanel-preview.html?s=question | choice | offline | empty
+  Not packaged: the manifest and the desktop build only ship manifest.json and src/.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lumen side panel preview</title>
+    <link rel="stylesheet" href="../src/sidepanel.css" />
+  </head>
+  <body>
+    <main class="chat-shell">
+      <header class="chat-header">
+        <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="3.6" y="4.2" width="2.7" height="14.7" rx="0.75" />
+          <rect class="shade" x="8.3" y="5.1" width="2.7" height="14.7" rx="0.75" />
+          <rect class="shade" x="13" y="5.1" width="2.7" height="14.7" rx="0.75" />
+          <rect x="17.7" y="4.2" width="2.7" height="14.7" rx="0.75" />
+        </svg>
+        <h1 class="wordmark">Lumen</h1>
+        <span id="connectionBadge" class="connection-badge checking" aria-live="polite">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span id="statusLine">Checking connection</span>
+        </span>
+        <button id="reconnect" class="icon-button" type="button" aria-label="Reconnect" title="Reconnect">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M21 12a9 9 0 0 1-15.4 6.4L3 16" />
+            <path d="M3 16h5v5" />
+            <path d="M3 12A9 9 0 0 1 18.4 5.6L21 8" />
+            <path d="M21 8h-5V3" />
+          </svg>
+        </button>
+      </header>
+      <section class="transcript-section" aria-label="Chat transcript">
+        <div id="messages" class="messages" role="log" aria-live="polite" aria-relevant="additions text"></div>
+      </section>
+      <section class="composer">
+        <div id="inputError" class="input-error" role="alert"></div>
+        <div class="composer-box">
+          <textarea id="chatInput" rows="1" maxlength="4000" aria-label="Message Lumen" placeholder="Message Lumen…"></textarea>
+          <div class="composer-row">
+            <div id="threadLine" class="thread-line">No active run</div>
+            <button id="send" class="send-button" type="button" aria-label="Send" title="Send" disabled>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5" /><path d="m5 12 7-7 7 7" /></svg>
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
+    <script>
+(function () {
+  const params = new URLSearchParams(location.search);
+  const scenario = params.get("s") || "question";
+  const now = Date.now();
+  const at = (s) => new Date(now - s * 1000).toISOString();
+  const messages = scenario === "empty" ? [] : [
+    { id: 1, role: "user", content: "Apply to the Backend Engineer, Payments role at Stripe: https://boards.greenhouse.io/stripe/jobs/7120543", created_at: at(300) },
+    { id: 2, role: "assistant", content: "On it. I'll work in a new Chrome tab on **boards.greenhouse.io** and check each step before moving on.", created_at: at(295) }
+  ];
+  const pending = scenario === "question" ? {
+    id: 432, status: "pending", question_type: "field_approval",
+    prompt: "Why do you want to work at Stripe?",
+    expected_answer_schema: { task_ids: [1300], fields: [{ id: 1300, label: "Why do you want to work at Stripe?", display_reason: "Drafted from your résumé. Your profile has no stated motivation for Stripe.", required: true, options: [], proposed_answer: "I've spent seven years building payment systems, most recently leading the ledger rewrite at Affirm." }] }
+  } : scenario === "choice" ? {
+    id: 433, status: "pending", question_type: "field_approval", prompt: "How did you hear about this job?",
+    expected_answer_schema: { task_ids: [1301], fields: [{ id: 1301, label: "How did you hear about this job?", required: true, proposed_option: "Company website", options: ["LinkedIn", "Company website", "Referral", "Other"] }] }
+  } : null;
+  const payload = scenario === "empty" ? {} : { run_id: 707, thread_id: 808, phase: "Thinking", title: "Choosing the next browser action", detail: "5s elapsed", severity: "info" };
+  let listener = null;
+  window.chrome = {
+    runtime: {
+      onMessage: { addListener(fn) { listener = fn; } },
+      sendMessage: async (message) => {
+        if (message.type === "LUMEN_PANEL_STATE") return { ok: true, connected: scenario !== "offline", payload };
+        if (message.type === "LUMEN_HUD_CHAT_SYNC") return { ok: true, messages, pending_question: pending, pending_question_loaded: true };
+        if (message.type === "LUMEN_HUD_CHAT_SEND") { messages.push({ id: messages.length + 1, role: "user", content: message.content, created_at: new Date().toISOString() }); return { ok: true }; }
+        return { ok: true };
+      }
+    }
+  };
+  if (scenario !== "empty") {
+    const steps = [
+      { phase: "Observing", title: "Reading the application form", detail: "", severity: "info" },
+      { phase: "Verified", title: "Verified First name", severity: "success" },
+      { phase: "Verified", title: "Verified Email", severity: "success" },
+      { phase: "Needs input", title: "Needs your input: Why do you want to work at Stripe?", detail: "Answer here or in Lumen chat to continue.", severity: "warn" }
+    ];
+    steps.forEach((step, index) => setTimeout(() => listener && listener({ type: "LUMEN_PANEL_UPDATE", payload: { run_id: 707, thread_id: 808, ...step } }), 300 + index * 150));
+  }
+})();
+    </script>
+    <script src="../src/sidepanel.js"></script>
+  </body>
+</html>

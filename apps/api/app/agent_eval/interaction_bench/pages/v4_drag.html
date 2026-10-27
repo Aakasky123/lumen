@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Drag bench</title>
+<link rel="stylesheet" href="v4_style.css">
+<style>
+  .noselect, .noselect *{user-select:none;-webkit-user-select:none}
+  #cards{display:flex;gap:12px;flex-wrap:wrap;margin:8px 0}
+  .card5{width:120px;padding:12px 10px;border:1px solid #b8c3cf;border-radius:8px;background:#fff;cursor:grab;font-family:ui-monospace,Consolas,monospace;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+  .card5.done{opacity:.4}
+  #bin{width:280px;height:90px;border:3px dashed #9aa5b1;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#52606d;font-weight:600;margin-top:10px}
+  #bin.over{border-color:#2b6cb0;background:#e8f1fb}
+  .sortable{list-style:none;margin:0;padding:6px;max-width:300px;touch-action:none}
+  .sortable li{padding:9px 12px;margin:4px 0;background:#fff;border:1px solid #c7d0da;border-radius:6px;cursor:grab;display:flex;gap:10px;align-items:center}
+  .sortable li .grip{color:#9aa5b1;letter-spacing:-2px}
+  .sortable li.dragging{opacity:.85;box-shadow:0 6px 16px rgba(0,0,0,.18);position:relative;z-index:5;cursor:grabbing}
+  .sortable li.lifted{background:#fff7e0;border-color:#d97706}
+  #board{display:flex;gap:14px;touch-action:none}
+  .col{width:210px;background:#eef1f5;border-radius:8px;padding:8px;min-height:220px}
+  .col h3{font-size:13px;margin:2px 4px 8px;color:#445}
+  .kcard{background:#fff;border:1px solid #c7d0da;border-radius:6px;padding:8px 10px;margin:0 0 6px;cursor:grab;font-size:14px}
+  .kcard.ghost{position:fixed;pointer-events:none;width:190px;z-index:30;box-shadow:0 8px 20px rgba(0,0,0,.2)}
+  .kslot{height:34px;border:2px dashed #2b6cb0;border-radius:6px;margin:0 0 6px}
+  #track{position:relative;width:400px;height:6px;background:#d5dce4;border-radius:3px;margin:28px 12px 18px;touch-action:none}
+  #span{position:absolute;top:0;bottom:0;background:#2b6cb0;border-radius:3px}
+  .handle{position:absolute;top:-9px;width:24px;height:24px;margin-left:-12px;border-radius:50%;background:#fff;border:2px solid #2b6cb0;box-sizing:border-box;cursor:grab;outline:none}
+  .handle:focus{box-shadow:0 0 0 4px #bcd3ee}
+  #split{display:flex;width:860px;max-width:100%;height:150px;border:1px solid #c7d0da;border-radius:8px;overflow:hidden;touch-action:none}
+  #pane-l{background:#f2f6fb;display:flex;align-items:center;justify-content:center;font-weight:600;color:#2b4c7e;min-width:0}
+  #divider{width:10px;background:#c7d0da;cursor:col-resize;outline:none;flex:none}
+  #divider:focus,#divider.active{background:#2b6cb0}
+  #pane-r{flex:1;background:#fff;display:flex;align-items:center;justify-content:center;color:#667}
+  #palette,.slot{width:130px;height:64px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;vertical-align:top;margin-right:10px}
+  #palette{border:2px solid #9aa5b1;background:#f7f9fb}
+  .slot{border:2px dashed #9aa5b1;color:#7b8794;font-size:13px}
+  .slot.over{border-color:#2b6cb0;background:#e8f1fb}
+  .tmpl{width:110px;height:46px;border-radius:6px;background:#6d5bd0;color:#fff;font-weight:600;display:flex;align-items:center;justify-content:center;cursor:grab;touch-action:none}
+  .tmpl.ghost{position:fixed;pointer-events:none;z-index:30;opacity:.9}
+  .tmpl .plus{display:none;margin-left:6px;background:#fff;color:#6d5bd0;border-radius:50%;width:18px;height:18px;line-height:18px;text-align:center;font-size:14px}
+  .tmpl.copying .plus{display:inline-block}
+  #lasso{border:1px solid #c7d0da;border-radius:8px;background:#fbfcfd;touch-action:none;cursor:crosshair}
+</style>
+</head>
+<body data-page="v4_drag">
+<h1>Drag bench</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+<p class="intro">Eight independent challenges, in any order. Every one is a different kind of drag.</p>
+
+<section class="ch noselect">
+  <h2>1. Drop into a bin <span class="mark" data-step-mark="html5_drop"></span></h2>
+  <p>Drag the card <span class="val" data-public="card"></span> into the Archive bin.</p>
+  <div id="cards"></div>
+  <div id="bin">Archive bin</div>
+  <p class="msg" data-msg="bin"></p>
+</section>
+
+<section class="ch noselect">
+  <h2>2. Reorder a list <span class="mark" data-step-mark="reorder"></span></h2>
+  <p>Drag the items into this order, top to bottom: <span class="val" id="order-target"></span>. Then check it.</p>
+  <ul class="sortable box" id="reorder"></ul>
+  <button id="order-go">Check order</button>
+  <p class="msg" data-msg="order"></p>
+</section>
+
+<section class="ch noselect">
+  <h2>3. Move a card between columns <span class="mark" data-step-mark="kanban"></span></h2>
+  <p>Move <span class="val" data-public="kanban_move"></span> from Backlog into Review, between
+     <span class="val" data-public="kanban_after"></span> and <span class="val" data-public="kanban_before"></span>.
+     Leave every other card where it is, then save the board.</p>
+  <div id="board"></div>
+  <p><button id="board-go">Save board</button></p>
+  <p class="msg" data-msg="board"></p>
+</section>
+
+<section class="ch noselect">
+  <h2>4. Two-handle range <span class="mark" data-step-mark="dual_slider"></span></h2>
+  <p>Set the range to exactly <span class="val" data-public="range_low"></span> –
+     <span class="val" data-public="range_high"></span> by dragging the two handles (a focused handle also moves
+     by 1 with the arrow keys).</p>
+  <div id="track"><div id="span"></div><div class="handle" id="h-low" tabindex="0" role="slider" aria-label="Minimum"></div><div class="handle" id="h-high" tabindex="0" role="slider" aria-label="Maximum"></div></div>
+  <p>Range: <span class="val" id="range-show"></span> <button id="range-go">Apply range</button></p>
+  <p class="msg" data-msg="range"></p>
+</section>
+
+<section class="ch noselect">
+  <h2>5. Resize panes with a splitter <span class="mark" data-step-mark="splitter"></span></h2>
+  <p>Drag the divider so the left pane is between <span class="val" data-public="split_min"></span> and
+     <span class="val" data-public="split_max"></span> px wide, then lock the layout.</p>
+  <div id="split"><div id="pane-l">Left pane: <span id="split-w"></span> px</div><div id="divider" tabindex="0" role="separator" aria-label="Pane divider"></div><div id="pane-r">Right pane</div></div>
+  <p><button id="split-go">Lock layout</button></p>
+  <p class="msg" data-msg="split"></p>
+</section>
+
+<section class="ch noselect">
+  <h2>6. Copy by dragging <span class="mark" data-step-mark="copy_drag"></span></h2>
+  <p>Put a copy of the Template into slot <span class="val" data-public="copy_slot"></span>: drag it there
+     <strong>while holding Ctrl</strong> (a plain drag moves it out of the palette instead).</p>
+  <div><div id="palette"></div><div class="slot" data-slot="1">Slot 1</div><div class="slot" data-slot="2">Slot 2</div><div class="slot" data-slot="3">Slot 3</div></div>
+  <p><button id="palette-reset">Reset palette</button></p>
+  <p class="msg" data-msg="copy"></p>
+</section>
+
+<section class="ch noselect">
+  <h2>7. Long-press, then drag <span class="mark" data-step-mark="long_press_drag"></span></h2>
+  <p>This list works like a phone: an item lifts only after you press and hold it for about a second without moving.
+     Move <span class="val" data-public="long_target"></span> to the top.</p>
+  <ul class="sortable box" id="longlist"></ul>
+  <p class="msg" data-msg="long"></p>
+</section>
+
+<section class="ch noselect">
+  <h2>8. Lasso <span class="mark" data-step-mark="lasso"></span></h2>
+  <p>Draw one closed loop around the <strong style="color:#c0392b">red star</strong> only — press, draw all the way
+     around it, and release where you started. The blue star must stay outside.</p>
+  <canvas id="lasso" width="640" height="340"></canvas>
+  <p class="msg" data-msg="lasso"></p>
+</section>
+
+<script src="v3_common.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+let pub = null;
+
+// --- 1. HTML5 drag and drop ---------------------------------------------------------------------
+function buildCards() {
+  for (const id of pub.cards) {
+    const c = document.createElement("div");
+    c.className = "card5";
+    c.draggable = true;
+    c.dataset.card = id;
+    c.textContent = id;
+    c.addEventListener("dragstart", (e) => {
+      e.dataTransfer.setData("text/plain", id);
+      e.dataTransfer.effectAllowed = "move";
+    });
+    $("#cards").appendChild(c);
+  }
+  const bin = $("#bin");
+  bin.addEventListener("dragover", (e) => { e.preventDefault(); bin.classList.add("over"); });
+  bin.addEventListener("dragleave", () => bin.classList.remove("over"));
+  bin.addEventListener("drop", async (e) => {
+    e.preventDefault();
+    bin.classList.remove("over");
+    if (!V3.trusted(e)) return V3.untrusted("bin");
+    const id = e.dataTransfer.getData("text/plain");
+    const res = await V3.act("drop_bin", { card: id });
+    if (res.ok) document.querySelector(`.card5[data-card="${id}"]`).classList.add("done");
+  });
+}
+document.addEventListener("dragover", (e) => e.preventDefault());
+document.addEventListener("drop", (e) => e.preventDefault());
+
+// --- 2 & 7. sortable lists (pointer events) -----------------------------------------------------
+function sortable(ul, items, opts) {
+  ul.innerHTML = "";
+  for (const name of items) {
+    const li = document.createElement("li");
+    li.dataset.name = name;
+    li.innerHTML = '<span class="grip">⋮⋮</span><span></span>';
+    li.children[1].textContent = name;
+    ul.appendChild(li);
+  }
+  let drag = null;
+  ul.addEventListener("pointerdown", (e) => {
+    const li = e.target.closest("li");
+    if (!li || e.button !== 0) return;
+    if (!V3.trusted(e)) return V3.untrusted(opts.key);
+    e.preventDefault();
+    ul.setPointerCapture(e.pointerId);
+    drag = { li, startY: e.clientY, startX: e.clientX, live: !opts.longPress, timer: null };
+    if (opts.longPress) {
+      drag.timer = setTimeout(() => {
+        if (!drag) return;
+        drag.live = true;
+        li.classList.add("lifted");
+      }, opts.longPress);
+    } else {
+      li.classList.add("dragging");
+    }
+  });
+  ul.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    if (!drag.live) {
+      if (Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY) > 6) {
+        clearTimeout(drag.timer);
+        drag = null;
+        if (opts.onEarlyMove) opts.onEarlyMove();
+      }
+      return;
+    }
+    const { li } = drag;
+    li.classList.add("dragging");
+    const siblings = [...ul.children].filter((x) => x !== li);
+    let before = null;
+    for (const s of siblings) {
+      const r = s.getBoundingClientRect();
+      if (e.clientY < r.top + r.height / 2) { before = s; break; }
+    }
+    if (before !== li.nextSibling) ul.insertBefore(li, before);
+  });
+  function end(e, cancelled) {
+    if (!drag) return;
+    clearTimeout(drag.timer);
+    const { li, live } = drag;
+    drag = null;
+    li.classList.remove("dragging", "lifted");
+    if (live && !cancelled && opts.onDrop) opts.onDrop([...ul.children].map((x) => x.dataset.name));
+  }
+  ul.addEventListener("pointerup", (e) => end(e, false));
+  ul.addEventListener("pointercancel", (e) => end(e, true));
+  return () => [...ul.children].map((x) => x.dataset.name);
+}
+
+// --- 3. kanban ----------------------------------------------------------------------------------
+function buildBoard() {
+  const board = $("#board");
+  for (const col of ["Backlog", "Doing", "Review"]) {
+    const div = document.createElement("div");
+    div.className = "col";
+    div.dataset.col = col;
+    div.innerHTML = "<h3></h3>";
+    div.firstChild.textContent = col;
+    for (const name of pub.kanban[col]) {
+      const c = document.createElement("div");
+      c.className = "kcard";
+      c.dataset.name = name;
+      c.textContent = name;
+      div.appendChild(c);
+    }
+    board.appendChild(div);
+  }
+  let drag = null;
+  board.addEventListener("pointerdown", (e) => {
+    const card = e.target.closest(".kcard");
+    if (!card || e.button !== 0) return;
+    if (!V3.trusted(e)) return V3.untrusted("board");
+    e.preventDefault();
+    board.setPointerCapture(e.pointerId);
+    const r = card.getBoundingClientRect();
+    const ghost = card.cloneNode(true);
+    ghost.classList.add("ghost");
+    document.body.appendChild(ghost);
+    const slot = document.createElement("div");
+    slot.className = "kslot";
+    card.replaceWith(slot);
+    drag = { card, ghost, slot, dx: e.clientX - r.left, dy: e.clientY - r.top };
+    move(e);
+  });
+  function move(e) {
+    if (!drag) return;
+    drag.ghost.style.left = e.clientX - drag.dx + "px";
+    drag.ghost.style.top = e.clientY - drag.dy + "px";
+    const col = [...board.querySelectorAll(".col")].find((c) => {
+      const r = c.getBoundingClientRect();
+      return e.clientX >= r.left && e.clientX <= r.right;
+    });
+    if (!col) return;
+    const cards = [...col.querySelectorAll(".kcard")];
+    let before = null;
+    for (const c of cards) {
+      const r = c.getBoundingClientRect();
+      if (e.clientY < r.top + r.height / 2) { before = c; break; }
+    }
+    if (before) col.insertBefore(drag.slot, before);
+    else col.appendChild(drag.slot);
+  }
+  board.addEventListener("pointermove", move);
+  function end() {
+    if (!drag) return;
+    drag.slot.replaceWith(drag.card);
+    drag.ghost.remove();
+    drag = null;
+  }
+  board.addEventListener("pointerup", end);
+  board.addEventListener("pointercancel", end);
+  $("#board-go").addEventListener("click", () => {
+    const out = {};
+    board.querySelectorAll(".col").forEach((c) => (out[c.dataset.col] = [...c.querySelectorAll(".kcard")].map((x) => x.dataset.name)));
+    V3.act("save_board", { board: out });
+  });
+}
+
+// --- 4. dual slider -----------------------------------------------------------------------------
+let low = 20, high = 80;
+function drawRange() {
+  $("#h-low").style.left = low * 4 + "px";
+  $("#h-high").style.left = high * 4 + "px";
+  $("#span").style.left = low * 4 + "px";
+  $("#span").style.width = (high - low) * 4 + "px";
+  $("#range-show").textContent = low + " – " + high;
+  $("#h-low").setAttribute("aria-valuenow", low);
+  $("#h-high").setAttribute("aria-valuenow", high);
+}
+function buildSlider() {
+  for (const [id, which] of [["#h-low", "low"], ["#h-high", "high"]]) {
+    const h = $(id);
+    h.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0) return;
+      if (!V3.trusted(e)) return V3.untrusted("range");
+      e.preventDefault();
+      h.focus();
+      h.setPointerCapture(e.pointerId);
+      h.dataset.drag = "1";
+    });
+    h.addEventListener("pointermove", (e) => {
+      if (!h.dataset.drag) return;
+      const r = $("#track").getBoundingClientRect();
+      const v = Math.round(((e.clientX - r.left) / r.width) * 100);
+      if (which === "low") low = Math.max(0, Math.min(high - 1, v));
+      else high = Math.min(100, Math.max(low + 1, v));
+      drawRange();
+    });
+    const stop = () => delete h.dataset.drag;
+    h.addEventListener("pointerup", stop);
+    h.addEventListener("pointercancel", stop);
+    h.addEventListener("keydown", (e) => {
+      const d = { ArrowLeft: -1, ArrowDown: -1, ArrowRight: 1, ArrowUp: 1 }[e.key];
+      if (!d) return;
+      e.preventDefault();
+      if (!V3.trusted(e)) return;
+      if (which === "low") low = Math.max(0, Math.min(high - 1, low + d));
+      else high = Math.min(100, Math.max(low + 1, high + d));
+      drawRange();
+    });
+  }
+  drawRange();
+  $("#range-go").addEventListener("click", () => V3.act("apply_range", { low, high }));
+}
+
+// --- 5. splitter --------------------------------------------------------------------------------
+let leftW = 200;
+function drawSplit() {
+  $("#pane-l").style.width = leftW + "px";
+  $("#split-w").textContent = Math.round(leftW);
+}
+function buildSplitter() {
+  const d = $("#divider");
+  d.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return;
+    if (!V3.trusted(e)) return V3.untrusted("split");
+    e.preventDefault();
+    d.focus();
+    d.setPointerCapture(e.pointerId);
+    d.classList.add("active");
+    d.dataset.off = e.clientX - (d.getBoundingClientRect().left);
+  });
+  d.addEventListener("pointermove", (e) => {
+    if (!d.classList.contains("active")) return;
+    const r = $("#split").getBoundingClientRect();
+    leftW = Math.max(120, Math.min(r.width - 140, e.clientX - r.left - Number(d.dataset.off || 0)));
+    drawSplit();
+  });
+  const stop = () => d.classList.remove("active");
+  d.addEventListener("pointerup", stop);
+  d.addEventListener("pointercancel", stop);
+  d.addEventListener("keydown", (e) => {
+    const step = { ArrowLeft: -1, ArrowRight: 1 }[e.key];
+    if (!step) return;
+    e.preventDefault();
+    if (!V3.trusted(e)) return;
+    leftW = Math.max(120, Math.min($("#split").getBoundingClientRect().width - 140, leftW + step * (e.shiftKey ? 10 : 1)));
+    drawSplit();
+  });
+  drawSplit();
+  $("#split-go").addEventListener("click", () => V3.act("lock_layout", { width: $("#pane-l").getBoundingClientRect().width }));
+}
+
+// --- 6. copy-drag -------------------------------------------------------------------------------
+function template() {
+  const t = document.createElement("div");
+  t.className = "tmpl";
+  t.innerHTML = "Template<span class='plus'>+</span>";
+  return t;
+}
+function resetPalette() {
+  $("#palette").innerHTML = "";
+  $("#palette").appendChild(template());
+  document.querySelectorAll(".slot").forEach((s) => (s.textContent = "Slot " + s.dataset.slot));
+}
+function buildCopy() {
+  resetPalette();
+  let drag = null;
+  $("#palette").addEventListener("pointerdown", (e) => {
+    const t = e.target.closest(".tmpl");
+    if (!t || e.button !== 0) return;
+    if (!V3.trusted(e)) return V3.untrusted("copy");
+    e.preventDefault();
+    $("#palette").setPointerCapture(e.pointerId);
+    const ghost = template();
+    ghost.classList.add("ghost");
+    document.body.appendChild(ghost);
+    drag = { t, ghost };
+    move(e);
+  });
+  function slotAt(e) {
+    return [...document.querySelectorAll(".slot")].find((s) => {
+      const r = s.getBoundingClientRect();
+      return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+    });
+  }
+  function move(e) {
+    if (!drag) return;
+    drag.ghost.style.left = e.clientX - 55 + "px";
+    drag.ghost.style.top = e.clientY - 23 + "px";
+    drag.ghost.classList.toggle("copying", e.ctrlKey);
+    document.querySelectorAll(".slot").forEach((s) => s.classList.toggle("over", s === slotAt(e)));
+  }
+  $("#palette").addEventListener("pointermove", move);
+  $("#palette").addEventListener("pointerup", (e) => {
+    if (!drag) return;
+    const slot = slotAt(e);
+    drag.ghost.remove();
+    document.querySelectorAll(".slot").forEach((s) => s.classList.remove("over"));
+    const copied = e.ctrlKey;
+    drag = null;
+    if (!slot) return;
+    slot.innerHTML = "";
+    slot.appendChild(template());
+    if (!copied) $("#palette").innerHTML = "";
+    V3.act("copy_drag", { slot: +slot.dataset.slot, copied, palette_kept: !!$("#palette .tmpl") });
+  });
+  $("#palette-reset").addEventListener("click", resetPalette);
+}
+
+// --- 8. lasso -----------------------------------------------------------------------------------
+function star(g, x, y, color) {
+  g.beginPath();
+  for (let i = 0; i < 10; i++) {
+    const r = i % 2 ? 8 : 19, a = -Math.PI / 2 + (i * Math.PI) / 5;
+    g.lineTo(x + r * Math.cos(a), y + r * Math.sin(a));
+  }
+  g.closePath();
+  g.fillStyle = color;
+  g.fill();
+}
+function drawLasso(points) {
+  const c = $("#lasso"), g = c.getContext("2d");
+  g.clearRect(0, 0, c.width, c.height);
+  star(g, pub.red[0], pub.red[1], "#c0392b");
+  star(g, pub.blue[0], pub.blue[1], "#2563eb");
+  if (points && points.length > 1) {
+    g.beginPath();
+    g.moveTo(points[0][0], points[0][1]);
+    for (const p of points) g.lineTo(p[0], p[1]);
+    g.strokeStyle = "#111";
+    g.lineWidth = 2;
+    g.stroke();
+  }
+}
+function buildLasso() {
+  const c = $("#lasso");
+  let pts = null;
+  const at = (e) => {
+    const r = c.getBoundingClientRect();
+    return [Math.round(((e.clientX - r.left) * c.width) / r.width), Math.round(((e.clientY - r.top) * c.height) / r.height)];
+  };
+  c.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return;
+    if (!V3.trusted(e)) return V3.untrusted("lasso");
+    e.preventDefault();
+    c.setPointerCapture(e.pointerId);
+    pts = [at(e)];
+    drawLasso(pts);
+  });
+  c.addEventListener("pointermove", (e) => {
+    if (!pts) return;
+    const p = at(e), last = pts[pts.length - 1];
+    if (Math.hypot(p[0] - last[0], p[1] - last[1]) >= 3) pts.push(p);
+    drawLasso(pts);
+  });
+  c.addEventListener("pointerup", (e) => {
+    if (!pts) return;
+    pts.push(at(e));
+    const done = pts;
+    pts = null;
+    V3.act("lasso", { points: done });
+  });
+  drawLasso(null);
+}
+
+// --- build --------------------------------------------------------------------------------------
+let lastEarly = 0;
+V3.onState((st) => {
+  if (pub) return;
+  pub = st.public;
+  buildCards();
+  $("#order-target").textContent = pub.order_target.join(", ");
+  const order = sortable($("#reorder"), pub.order_start, { key: "order" });
+  $("#order-go").addEventListener("click", () => V3.act("check_order", { order: order() }));
+  buildBoard();
+  buildSlider();
+  buildSplitter();
+  buildCopy();
+  sortable($("#longlist"), pub.long_items, {
+    key: "long",
+    longPress: 900,
+    onDrop: (names) => V3.act("long_press_order", { order: names }),
+    onEarlyMove: () => {
+      if (performance.now() - lastEarly > 3000) {
+        lastEarly = performance.now();
+        V3.act("drag_attempt", { key: "long", what: "early_move", msg: "The item never lifted — press and hold it still until it lifts, then drag." });
+      }
+    },
+  });
+  buildLasso();
+});
+</script>
+</body>
+</html>

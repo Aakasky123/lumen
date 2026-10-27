@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Records intake station</title>
+<style>
+  body{font-family:system-ui,-apple-system,sans-serif;margin:0;padding:24px;line-height:1.5;color:#1a1a1a;background:#fafafa}
+  h1{font-size:22px}
+  section.ch{background:#fff;border:1px solid #d8d8d8;border-radius:10px;padding:18px;margin:18px 0;max-width:860px}
+  section.ch.locked{opacity:.4;pointer-events:none}
+  section.ch h2{font-size:16px;margin:0 0 10px}
+  .mark{color:#1a7f37;font-weight:600;margin-left:10px}
+  .hint{color:#666;font-size:13px}
+  .verdict{font-weight:700;padding:14px;margin:18px 0;border-radius:8px;background:#eee;max-width:860px}
+  .verdict.pass{background:#dff5df}
+  .verdict.fail{background:#fbdcdc}
+  button{font:inherit;padding:6px 14px;border-radius:6px;border:1px solid #bbb;background:#f2f2f2;cursor:pointer}
+  input{font:inherit;padding:6px 8px;border:1px solid #bbb;border-radius:6px;min-width:280px}
+  #briefing{background:#f2f6fc;border:1px solid #b9cbe4;border-radius:10px;padding:14px;max-width:860px}
+  #editable{border:1px solid #bbb;border-radius:6px;min-height:44px;padding:8px;max-width:640px;background:#fff}
+  .sugg{border:1px solid #bbb;border-radius:6px;max-width:280px;background:#fff;position:absolute;z-index:5}
+  .sugg div{padding:5px 10px}
+  .sugg div.hl{background:#dbe7ff}
+  #listbox{border:1px solid #bbb;border-radius:6px;max-width:280px;background:#fff;outline-offset:2px}
+  #listbox div{padding:5px 10px;pointer-events:none}
+  #listbox div.hl{background:#dbe7ff}
+  #listbox div.sel{background:#c9e7c9;font-weight:600}
+</style>
+</head>
+<body>
+<h1>Records intake station</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+
+<div id="briefing">
+  <strong>Intake briefing — enter these values exactly:</strong>
+  <ul>
+    <li>Contact phone: <code>202-555-0137</code></li>
+    <li>Registrant name: <code>Dr. Îngrid O'Malley-Šmith</code></li>
+    <li>Access code: <code id="brief-code"></code></li>
+    <li>Dictation sentence: <code>The quick "brown" fox—famously—jumps over 3 lazy dogs.</code></li>
+    <li>Field office: <code>Aurora Basin</code></li>
+    <li>Channel key: <code>delta-7</code></li>
+    <li>Radio option: <code>Option Sierra</code></li>
+  </ul>
+</div>
+
+<section class="ch" id="s-mask">
+  <h2>1. Contact phone <span class="mark" data-step-mark="mask"></span></h2>
+  <p class="hint">This field reformats itself while you type.</p>
+  <input id="phone" placeholder="(___) ___-____" autocomplete="off">
+</section>
+
+<section class="ch locked" id="s-unicode">
+  <h2>2. Registrant name <span class="mark" data-step-mark="unicode"></span></h2>
+  <p class="hint">Exact spelling required, including accents.</p>
+  <input id="name" autocomplete="off"> <button id="name-check">Check name</button> <span class="hint" id="name-msg"></span>
+</section>
+
+<section class="ch locked" id="s-lossy">
+  <h2>3. Access code <span class="mark" data-step-mark="lossy"></span></h2>
+  <p class="hint">This terminal's keyboard link is unreliable — some keystrokes are dropped in
+     transit. Make sure the field finally holds the exact access code.</p>
+  <input id="lossy" autocomplete="off"> <button id="lossy-check">Check code</button> <span class="hint" id="lossy-msg"></span>
+</section>
+
+<section class="ch locked" id="s-editable">
+  <h2>4. Dictation <span class="mark" data-step-mark="editable"></span></h2>
+  <p class="hint">Type the dictation sentence exactly (punctuation matters) into the editor below.</p>
+  <div id="editable" contenteditable="true"></div>
+  <p><button id="editable-check">Check dictation</button> <span class="hint" id="editable-msg"></span></p>
+</section>
+
+<section class="ch locked" id="s-thief">
+  <h2>5. Field office <span class="mark" data-step-mark="thief"></span></h2>
+  <p class="hint">This field offers aggressive suggestions. Pressing Enter inserts the highlighted
+     suggestion. Save with the button.</p>
+  <div style="position:relative">
+    <input id="thief" autocomplete="off">
+    <div class="sugg" id="thief-sugg" style="display:none"></div>
+  </div>
+  <p><button id="thief-save">Save location</button> <span class="hint" id="thief-msg"></span></p>
+</section>
+
+<section class="ch locked" id="s-volatile">
+  <h2>6. Channel key <span class="mark" data-step-mark="volatile"></span></h2>
+  <p class="hint">This field discards its value when it loses focus unless you commit it with
+     <strong>Enter</strong> first.</p>
+  <input id="volatile" autocomplete="off"> <span class="hint" id="volatile-msg"></span>
+</section>
+
+<section class="ch locked" id="s-keyboard">
+  <h2>7. Radio option <span class="mark" data-step-mark="keyboard"></span></h2>
+  <p class="hint">This selector ignores the mouse. Focus it, use Arrow keys, and press Enter.</p>
+  <div id="listbox" tabindex="0" role="listbox" aria-label="Radio option"></div>
+  <p class="hint" id="listbox-msg"></p>
+</section>
+
+<script>
+window.Bench = (function () {
+  const PAGE = "type-gauntlet";
+  const TOKEN = "BENCH_PASS type-gauntlet-a85e29";
+  const STEPS = ["mask", "unicode", "lossy", "editable", "thief", "volatile", "keyboard"];
+  const done = new Set();
+  let failed = sessionStorage.getItem("bench-fail-" + PAGE) || null;
+  let futile = 0;
+  function render() {
+    const v = document.getElementById("bench-verdict");
+    const p = document.getElementById("bench-progress");
+    if (p) p.textContent = "Challenges complete: " + done.size + " / " + STEPS.length + " | Ineffective interactions: " + futile;
+    if (!v) return;
+    if (failed) { v.textContent = "BENCH_FAIL " + PAGE + ": " + failed; v.className = "verdict fail"; }
+    else if (done.size === STEPS.length) { v.textContent = TOKEN + " — all challenges complete"; v.className = "verdict pass"; }
+  }
+  function complete(step) {
+    if (failed || done.has(step)) return;
+    done.add(step);
+    const m = document.querySelector('[data-step-mark="' + step + '"]');
+    if (m) m.textContent = "✓ complete";
+    render();
+    if (window.benchOnComplete) window.benchOnComplete(step);
+  }
+  function fail(reason) {
+    if (failed) return;
+    failed = reason;
+    sessionStorage.setItem("bench-fail-" + PAGE, reason);
+    render();
+  }
+  window.__benchReport = () => ({ page: PAGE, done: [...done], failed, futile, total: STEPS.length });
+  document.addEventListener("DOMContentLoaded", render);
+  return { complete, fail, has: (s) => done.has(s), futile: () => { futile += 1; render(); } };
+})();
+
+const $ = (sel) => document.querySelector(sel);
+const CODE_CHARS = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789";
+const debug = {
+  code: Array.from({ length: 8 }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join(""),
+  name: "Dr. Îngrid O'Malley-Šmith",
+  sentence: 'The quick "brown" fox—famously—jumps over 3 lazy dogs.',
+};
+window.__benchDebug = debug;
+$("#brief-code").textContent = debug.code;
+
+// --- 1. input mask ------------------------------------------------------------------------------
+(function () {
+  const el = $("#phone");
+  el.addEventListener("input", () => {
+    const d = el.value.replace(/\D/g, "").slice(0, 10);
+    el.value = d.length > 6 ? "(" + d.slice(0, 3) + ") " + d.slice(3, 6) + "-" + d.slice(6)
+      : d.length > 3 ? "(" + d.slice(0, 3) + ") " + d.slice(3)
+      : d;
+    if (d === "2025550137") Bench.complete("mask");
+  });
+})();
+
+// --- 2. unicode-exact name ----------------------------------------------------------------------
+$("#name-check").addEventListener("click", () => {
+  if ($("#name").value === debug.name) { $("#name-msg").textContent = "Name accepted."; Bench.complete("unicode"); }
+  else { $("#name-msg").textContent = "Name does not match the briefing exactly."; Bench.futile(); }
+});
+
+// --- 3. lossy keyboard --------------------------------------------------------------------------
+(function () {
+  const el = $("#lossy");
+  let count = 0;
+  el.addEventListener("beforeinput", (e) => {
+    if (e.inputType === "insertText" && e.data) {
+      count += 1;
+      if (count % 4 === 0) e.preventDefault();
+    }
+  });
+  el.addEventListener("paste", (e) => e.preventDefault());
+  $("#lossy-check").addEventListener("click", () => {
+    if (el.value === debug.code) { $("#lossy-msg").textContent = "Code accepted."; Bench.complete("lossy"); }
+    else { $("#lossy-msg").textContent = "Field holds “" + el.value + "” — not the access code."; Bench.futile(); }
+  });
+})();
+
+// --- 4. contenteditable exact sentence ----------------------------------------------------------
+$("#editable-check").addEventListener("click", () => {
+  const text = ($("#editable").innerText || "").replace(/ /g, " ").replace(/\s+/g, " ").trim();
+  if (text === debug.sentence) { $("#editable-msg").textContent = "Dictation accepted."; Bench.complete("editable"); }
+  else { $("#editable-msg").textContent = "Dictation does not match exactly."; Bench.futile(); }
+});
+
+// --- 5. suggestion thief ------------------------------------------------------------------------
+(function () {
+  const el = $("#thief");
+  const box = $("#thief-sugg");
+  const OPTIONS = ["Austin Ridge", "Auckland Bay", "Aurora Heights", "Aurora Basin", "Autumn Vale"];
+  let visible = [];
+  let hl = 0;
+  function renderSugg() {
+    if (!visible.length) { box.style.display = "none"; return; }
+    box.style.display = "block";
+    box.innerHTML = visible.map((s, i) => "<div class='" + (i === hl ? "hl" : "") + "'>" + s + "</div>").join("");
+  }
+  el.addEventListener("input", () => {
+    const q = el.value.trim().toLowerCase();
+    visible = q.length >= 2 ? OPTIONS.filter((o) => o.toLowerCase().startsWith(q)) : [];
+    hl = 0;
+    renderSugg();
+  });
+  el.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && visible.length) {
+      e.preventDefault();
+      el.value = visible[hl];
+      visible = [];
+      renderSugg();
+    } else if (e.key === "ArrowDown" && visible.length) { e.preventDefault(); hl = (hl + 1) % visible.length; renderSugg(); }
+    else if (e.key === "ArrowUp" && visible.length) { e.preventDefault(); hl = (hl - 1 + visible.length) % visible.length; renderSugg(); }
+    else if (e.key === "Escape") { visible = []; renderSugg(); }
+  });
+  el.addEventListener("blur", () => setTimeout(() => { visible = []; renderSugg(); }, 100));
+  $("#thief-save").addEventListener("click", () => {
+    if (el.value === "Aurora Basin") { $("#thief-msg").textContent = "Location saved."; Bench.complete("thief"); }
+    else { $("#thief-msg").textContent = "Saved value “" + el.value + "” is not the requested field office."; Bench.futile(); }
+  });
+})();
+
+// --- 6. volatile field --------------------------------------------------------------------------
+(function () {
+  const el = $("#volatile");
+  let committed = null;
+  el.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      committed = el.value;
+      $("#volatile-msg").textContent = "Committed: “" + committed + "”";
+      if (committed === "delta-7") Bench.complete("volatile");
+      else Bench.futile();
+    }
+  });
+  el.addEventListener("blur", () => {
+    if (el.value !== committed) {
+      el.value = "";
+      $("#volatile-msg").textContent = committed === null ? "Uncommitted value discarded." : "Reverted to committed value.";
+      if (committed !== null) el.value = committed;
+    }
+  });
+})();
+
+// --- 7. keyboard-only listbox -------------------------------------------------------------------
+(function () {
+  const lb = $("#listbox");
+  const OPTIONS = ["Option Alpha", "Option Bravo", "Option Delta", "Option Sierra", "Option Tango", "Option Victor", "Option Zulu"];
+  let hl = 0, sel = -1;
+  function renderLb() {
+    lb.innerHTML = OPTIONS.map((o, i) =>
+      "<div class='" + (i === sel ? "sel" : i === hl ? "hl" : "") + "' role='option'>" + o + "</div>"
+    ).join("");
+  }
+  lb.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowDown") { e.preventDefault(); hl = Math.min(OPTIONS.length - 1, hl + 1); renderLb(); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); hl = Math.max(0, hl - 1); renderLb(); }
+    else if (e.key === "Enter") {
+      e.preventDefault();
+      sel = hl;
+      renderLb();
+      if (OPTIONS[sel] === "Option Sierra") { $("#listbox-msg").textContent = "Selected: Option Sierra"; Bench.complete("keyboard"); }
+      else { $("#listbox-msg").textContent = "Selected: " + OPTIONS[sel]; Bench.futile(); }
+    }
+  });
+  lb.addEventListener("click", () => { $("#listbox-msg").textContent = "The mouse does nothing here — use the keyboard."; Bench.futile(); });
+  renderLb();
+})();
+
+// --- sequential unlock --------------------------------------------------------------------------
+window.benchOnComplete = function (step) {
+  const order = { mask: "#s-unicode", unicode: "#s-lossy", lossy: "#s-editable", editable: "#s-thief", thief: "#s-volatile", volatile: "#s-keyboard" };
+  if (order[step]) document.querySelector(order[step]).classList.remove("locked");
+};
+</script>
+</body>
+</html>

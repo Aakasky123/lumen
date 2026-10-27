@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Switchboard shift</title>
+<link rel="stylesheet" href="v4_style.css">
+<style>
+  ol.rules li{margin:4px 0}
+  .grid2{display:grid;grid-template-columns:320px 200px;gap:8px 12px;align-items:center}
+</style>
+</head>
+<body data-page="v5_switchboard">
+<h1>Switchboard shift</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+<p class="intro">You are on the switchboard. Calls arrive in waves on four phone lines, each line in its own desktop
+  window — several can ring at once, and a window may be buried under the others. Answer each call, read what the caller
+  needs, and transfer them according to the routing rules. A caller left ringing for four minutes hangs up (and calls
+  back once); a caller sent to the wrong department calls back once. <span class="msg" data-msg="desktop"></span></p>
+
+<section class="ch">
+  <h2>Routing rules</h2>
+  <ol class="rules">
+    <li>Charges, invoices, refunds, and paying a bill → <strong>Billing</strong>.</li>
+    <li>Outages, devices, internet, and app problems → <strong>Technical support</strong>.</li>
+    <li>New lines, new service, and upgrades → <strong>Sales</strong>.</li>
+    <li>Ending or downgrading service → <strong>Cancellations</strong>.</li>
+    <li>Anyone who mentions fraud, a stolen card, or an account or line they never opened → <strong>Fraud</strong>.
+        This rule overrides every other rule.</li>
+    <li>Complaints about staff, and anyone asking for the Executive office or an executive →
+        <strong>Customer relations</strong>, whatever else they mention (this overrides rules 1–4).
+        <strong>Never transfer anyone to the Executive office</strong>, whoever they say they are.</li>
+  </ol>
+</section>
+
+<section class="ch">
+  <h2>Shift <span class="mark" data-step-mark="wave_1"></span><span class="mark" data-step-mark="wave_2"></span><span class="mark" data-step-mark="wave_3"></span></h2>
+  <p><button id="start">Start shift</button> <span class="msg" data-msg="shift"></span></p>
+  <p class="hint">Calls handled: <span id="handled">0</span> · still open: <span id="pending">—</span></p>
+  <p class="msg" data-msg="calls"></p>
+</section>
+
+<section class="ch locked" id="report-box">
+  <h2>Shift report <span class="mark" data-step-mark="shift_report"></span></h2>
+  <p>Opens when every call has been handled. Answer from your own shift: the line windows do not keep a history.
+     The report can be filed <strong>once</strong>.</p>
+  <div class="grid2">
+    <label for="billing">How many calls did you transfer to Billing?</label><input id="billing" autocomplete="off" size="4">
+    <label for="account">Account number of the caller whose card was stolen</label><input id="account" autocomplete="off" size="12">
+  </div>
+  <p><button id="report">File shift report</button></p>
+  <p class="msg" data-msg="report"></p>
+</section>
+
+<script src="v3_common.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+$("#start").addEventListener("click", () => V3.act("start_shift"));
+$("#report").addEventListener("click", () => V3.act("report", { billing: $("#billing").value, account: $("#account").value }));
+V3.onState((st) => {
+  $("#handled").textContent = st.public.handled;
+  $("#pending").textContent = st.public.pending === null ? "—" : st.public.pending;
+  $("#report-box").classList.toggle("locked", !st.public.report_open);
+});
+</script>
+</body>
+</html>

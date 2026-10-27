@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Signal intake terminal</title>
+<style>
+  body{font-family:system-ui,-apple-system,sans-serif;margin:0;padding:24px;line-height:1.5;color:#1a1a1a;background:#fafafa}
+  h1{font-size:22px}
+  section.ch{background:#fff;border:1px solid #d8d8d8;border-radius:10px;padding:18px;margin:18px 0;max-width:900px}
+  section.ch.locked{opacity:.4;pointer-events:none}
+  section.ch h2{font-size:16px;margin:0 0 10px}
+  .mark{color:#1a7f37;font-weight:600;margin-left:10px}
+  .hint{color:#666;font-size:13px}
+  .verdict{font-weight:700;padding:14px;margin:18px 0;border-radius:8px;background:#eee;max-width:900px}
+  .verdict.pass{background:#dff5df}
+  .verdict.fail{background:#fbdcdc}
+  button{font:inherit;padding:6px 14px;border-radius:6px;border:1px solid #bbb;background:#f2f2f2;cursor:pointer}
+  input,textarea{font:inherit;padding:6px 8px;border:1px solid #bbb;border-radius:6px}
+  #decoy-wrap{background:#eef2f8;border:1px solid #c4cfe0;border-radius:8px;padding:8px 12px;margin-bottom:10px}
+  #marathon-text{background:#f6f6f6;border:1px solid #ddd;border-radius:8px;padding:10px 14px;font-size:14px}
+  textarea{width:95%;max-width:820px}
+</style>
+</head>
+<body>
+<h1>Signal intake terminal</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+
+<section class="ch" id="s-stolen">
+  <h2>1. Focus thief <span class="mark" data-step-mark="stolen"></span></h2>
+  <div id="decoy-wrap"><label>Quick search <input id="decoy" placeholder="search…" autocomplete="off"></label>
+    <span class="hint">(this box aggressively steals focus)</span></div>
+  <p>Enter the callsign <code>horizon-42</code> into the entry field and commit it. A background
+     process steals keyboard focus a few times after you start —
+     <span id="steal-status">3 interruptions remaining</span>.</p>
+  <label>Entry field <input id="stolen" autocomplete="off"></label>
+  <button id="stolen-commit">Commit entry</button>
+  <span class="hint" id="stolen-msg"></span>
+</section>
+
+<section class="ch locked" id="s-mirror">
+  <h2>2. Mirror buffer <span class="mark" data-step-mark="mirror"></span></h2>
+  <p>This buffer writes backwards: every character you type is inserted at the <em>front</em>.
+     Make the field read exactly <code>signal-9</code>, then check.</p>
+  <label>Mirror buffer <input id="mirror" autocomplete="off"></label>
+  <button id="mirror-check">Check buffer</button>
+  <span class="hint" id="mirror-msg"></span>
+</section>
+
+<section class="ch locked" id="s-throttle">
+  <h2>3. Cold relay <span class="mark" data-step-mark="throttle"></span></h2>
+  <p>This relay drops keystrokes that arrive faster than <strong>90 ms</strong> apart. Enter
+     <code>steady-hands</code>; pasting is disabled.</p>
+  <label>Cold relay <input id="throttle" autocomplete="off"></label>
+  <button id="throttle-check">Check relay</button>
+  <span class="hint" id="throttle-msg"></span>
+</section>
+
+<section class="ch locked" id="s-checksum">
+  <h2>4. Checksum entry <span class="mark" data-step-mark="checksum"></span></h2>
+  <p>Transmission code: <strong id="chk-code"></strong>. Enter the code followed by a dash and its
+     checksum digit — the checksum is <em>the sum of every digit in the code, modulo 10</em>.
+     Example: for <code>AB12-34</code> the entry is <code>AB12-34-0</code> (1+2+3+4 = 10 → 0).</p>
+  <label>Code + checksum <input id="chk-in" autocomplete="off"></label>
+  <button id="chk-go">Verify</button>
+  <span class="hint" id="chk-msg"></span>
+</section>
+
+<section class="ch locked" id="s-marathon">
+  <h2>5. Dictation marathon <span class="mark" data-step-mark="marathon"></span></h2>
+  <p>Transcribe the log entry below into the terminal, exactly — punctuation, dashes, quotes,
+     capitalization. Pasting is disabled.</p>
+  <div id="marathon-text"></div>
+  <p><textarea id="marathon" rows="5" autocomplete="off"></textarea></p>
+  <button id="marathon-check">Check transcription</button>
+  <span class="hint" id="marathon-msg"></span>
+</section>
+
+<script>
+window.Bench = (function () {
+  const PAGE = "type-inferno";
+  const TOKEN = "BENCH_PASS type-inferno-58c9d3";
+  const STEPS = ["stolen", "mirror", "throttle", "checksum", "marathon"];
+  const done = new Set();
+  let failed = sessionStorage.getItem("bench-fail-" + PAGE) || null;
+  let futile = 0;
+  function render() {
+    const v = document.getElementById("bench-verdict");
+    const p = document.getElementById("bench-progress");
+    if (p) p.textContent = "Challenges complete: " + done.size + " / " + STEPS.length + " | Ineffective interactions: " + futile;
+    if (!v) return;
+    if (failed) { v.textContent = "BENCH_FAIL " + PAGE + ": " + failed; v.className = "verdict fail"; }
+    else if (done.size === STEPS.length) { v.textContent = TOKEN + " — all challenges complete"; v.className = "verdict pass"; }
+  }
+  function complete(step) {
+    if (failed || done.has(step)) return;
+    done.add(step);
+    const m = document.querySelector('[data-step-mark="' + step + '"]');
+    if (m) m.textContent = "✓ complete";
+    render();
+    if (window.benchOnComplete) window.benchOnComplete(step);
+  }
+  function fail(reason) {
+    if (failed) return;
+    failed = reason;
+    sessionStorage.setItem("bench-fail-" + PAGE, reason);
+    render();
+  }
+  window.__benchReport = () => ({ page: PAGE, done: [...done], failed, futile, total: STEPS.length });
+  document.addEventListener("DOMContentLoaded", render);
+  return { complete, fail, has: (s) => done.has(s), futile: () => { futile += 1; render(); } };
+})();
+
+const $ = (sel) => document.querySelector(sel);
+const MARATHON =
+  'Meridian survey 7 began at dawn; the crew logged 14 anomalies — most near the eastern ridge — ' +
+  'and filed their "final" report before the fog closed in. Nothing else moved on the plateau, ' +
+  'yet every instrument disagreed about why.';
+function makeChkCode() {
+  const L = "ABCDEFGHJKMNPQRSTUVWXYZ";
+  const d = () => Math.floor(Math.random() * 10);
+  const digits = [d(), d(), d(), d()];
+  const code = L[Math.floor(Math.random() * 23)] + L[Math.floor(Math.random() * 23)] + digits[0] + digits[1] + "-" + digits[2] + digits[3];
+  return { code, checksum: digits.reduce((a, b) => a + b, 0) % 10 };
+}
+const debug = { chk: makeChkCode(), marathon: MARATHON };
+window.__benchDebug = debug;
+$("#chk-code").textContent = debug.chk.code;
+document.getElementById("marathon-text").textContent = MARATHON;
+
+// 1. focus thief
+(function () {
+  const target = $("#stolen");
+  const decoy = $("#decoy");
+  let steals = 3;
+  let armed = false;
+  target.addEventListener("focus", () => {
+    if (armed || steals <= 0) return;
+    armed = true;
+    for (let i = 1; i <= 3; i++) {
+      setTimeout(() => {
+        if (steals <= 0) return;
+        steals -= 1;
+        decoy.focus();
+        $("#steal-status").textContent = steals + " interruption" + (steals === 1 ? "" : "s") + " remaining";
+        if (steals === 0) $("#steal-status").textContent = "focus suppressor disabled";
+      }, i * 1800);
+    }
+  });
+  $("#stolen-commit").addEventListener("click", () => {
+    if (target.value === "horizon-42") { $("#stolen-msg").textContent = "Callsign committed."; Bench.complete("stolen"); }
+    else { $("#stolen-msg").textContent = "Field holds “" + target.value + "” — not the callsign."; Bench.futile(); }
+  });
+})();
+
+// 2. mirror buffer — inserts at the front
+(function () {
+  const el = $("#mirror");
+  el.addEventListener("beforeinput", (e) => {
+    if (e.inputType === "insertText" && e.data) {
+      e.preventDefault();
+      el.value = e.data + el.value;
+    } else if (e.inputType === "insertFromPaste") {
+      e.preventDefault();
+      Bench.futile();
+    }
+  });
+  $("#mirror-check").addEventListener("click", () => {
+    if (el.value === "signal-9") { $("#mirror-msg").textContent = "Buffer aligned."; Bench.complete("mirror"); }
+    else { $("#mirror-msg").textContent = "Buffer reads “" + el.value + "”."; Bench.futile(); }
+  });
+})();
+
+// 3. throttled keys
+(function () {
+  const el = $("#throttle");
+  let last = 0;
+  el.addEventListener("beforeinput", (e) => {
+    if (e.inputType === "insertFromPaste") { e.preventDefault(); Bench.futile(); return; }
+    if (e.inputType === "insertText" && e.data) {
+      const now = performance.now();
+      if (now - last < 90) { e.preventDefault(); return; }
+      last = now;
+    }
+  });
+  $("#throttle-check").addEventListener("click", () => {
+    if (el.value === "steady-hands") { $("#throttle-msg").textContent = "Relay accepted."; Bench.complete("throttle"); }
+    else { $("#throttle-msg").textContent = "Relay holds “" + el.value + "”."; Bench.futile(); }
+  });
+})();
+
+// 4. checksum
+$("#chk-go").addEventListener("click", () => {
+  const expected = debug.chk.code + "-" + debug.chk.checksum;
+  if (($("#chk-in").value || "").trim().toUpperCase() === expected) {
+    $("#chk-msg").textContent = "Checksum verified.";
+    Bench.complete("checksum");
+  } else { $("#chk-msg").textContent = "Rejected — recompute the checksum."; Bench.futile(); }
+});
+
+// 5. marathon
+(function () {
+  const el = $("#marathon");
+  el.addEventListener("paste", (e) => { e.preventDefault(); Bench.futile(); $("#marathon-msg").textContent = "Pasting is disabled here."; });
+  $("#marathon-check").addEventListener("click", () => {
+    const norm = (s) => s.replace(/ /g, " ").replace(/\r\n/g, "\n").trim();
+    if (norm(el.value) === MARATHON) { $("#marathon-msg").textContent = "Transcription accepted."; Bench.complete("marathon"); }
+    else { $("#marathon-msg").textContent = "Transcription differs from the log entry."; Bench.futile(); }
+  });
+})();
+
+// sequential unlock
+window.benchOnComplete = function (step) {
+  const order = { stolen: "#s-mirror", mirror: "#s-throttle", throttle: "#s-checksum", checksum: "#s-marathon" };
+  if (order[step]) document.querySelector(order[step]).classList.remove("locked");
+};
+</script>
+</body>
+</html>

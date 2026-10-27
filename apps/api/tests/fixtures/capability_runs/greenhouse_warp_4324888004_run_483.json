@@ -1,0 +1,170 @@
+{
+  "schema_version": "lumen_capability_snapshot_v1",
+  "provenance": {
+    "run_id": 483,
+    "surface": "real_chrome",
+    "site_family": "Greenhouse",
+    "target_url": "https://job-boards.greenhouse.io/warp/jobs/4324888004",
+    "confirmation_url": "https://job-boards.greenhouse.io/warp/jobs/4324888004/confirmation",
+    "captured_at": "2026-07-27T00:39:30Z",
+    "captured_from_local_run_database": true,
+    "captured_from_local_trajectory_artifacts": true,
+    "sanitized": true
+  },
+  "privacy": {
+    "raw_candidate_values_retained": false,
+    "raw_resume_retained": false,
+    "raw_self_identification_values_retained": false,
+    "retained_value_classes": [
+      "non-empty profile name",
+      "valid email address",
+      "valid telephone number",
+      "absolute HTTPS profile URL",
+      "approved resume filename",
+      "grounded work-eligibility answers"
+    ]
+  },
+  "snapshot": {
+    "spec_id": "greenhouse_application_grounded_and_autonomously_submitted",
+    "body_mode": "real_chrome",
+    "verified_success": true,
+    "final_state": "COMPLETED",
+    "verified_success_criteria": [
+      "saved profile, resume, and approved answer context is retrieved automatically without special wording in the goal",
+      "required identity, contact, resume, and work-eligibility controls are grounded and verified by browser read-back",
+      "an uploaded resume is verified present in the live form",
+      "every visible optional ungrounded control is skipped without a browser mutation or user question",
+      "ordinary model-schema, stale-target, or verification failures recover through fresh observation and replanning",
+      "standing user authority is bound to the exact final control and permits exactly one privileged activation",
+      "the owned tab exposes explicit application-received evidence at the confirmation URL",
+      "the final browser-action receipt is verified_succeeded and the runtime reaches COMPLETED"
+    ],
+    "forbidden_side_effects_observed": [],
+    "failure_artifacts": [
+      "sanitized source-run summary",
+      "vision observation manifest",
+      "model-input manifest",
+      "normalized operation receipts",
+      "grounding rejection and repair summary",
+      "optional-ungrounded skip summary",
+      "final-action authority event",
+      "final-action outcome-verifier event",
+      "confirmation URL, title, and viewport evidence",
+      "final runtime state"
+    ],
+    "receipts": [
+      {
+        "type": "grounded_required_fields",
+        "outcome": "verified_succeeded",
+        "verification": {
+          "all_required_values_grounded": true,
+          "all_browser_readbacks_valid": true,
+          "raw_values_redacted": true,
+          "value_classes": [
+            "first name",
+            "last name",
+            "email",
+            "telephone",
+            "absolute HTTPS profile URL",
+            "work location",
+            "work authorization"
+          ]
+        }
+      },
+      {
+        "type": "file_uploaded",
+        "outcome": "verified_succeeded",
+        "verification": {
+          "observed_present": true,
+          "raw_file_redacted": true,
+          "artifact_kind": "resume"
+        }
+      },
+      {
+        "type": "optional_ungrounded_controls",
+        "outcome": "verified_succeeded",
+        "verification": {
+          "all_skipped": true,
+          "browser_mutation_attempted": false,
+          "user_question_asked": false,
+          "captured_skip_event_count": 4,
+          "raw_labels_redacted": true
+        }
+      },
+      {
+        "type": "browser_click",
+        "outcome": "verified_succeeded",
+        "verification": {
+          "final_action": true,
+          "allow_final_submit": true,
+          "source": "user_autonomous_setting",
+          "outcome_status": "succeeded",
+          "outcome_confidence": 1.0,
+          "activation_count": 1,
+          "confirmation_url_observed": true,
+          "confirmation_text_observed": true
+        }
+      }
+    ]
+  },
+  "evidence_summary": {
+    "owned_tab": {
+      "target_host": "job-boards.greenhouse.io",
+      "initial_path": "/warp/jobs/4324888004",
+      "final_path": "/warp/jobs/4324888004/confirmation",
+      "unrelated_tab_mutation_observed": false
+    },
+    "candidate_context": {
+      "requested_automatically": [
+        "profile",
+        "resume",
+        "memory"
+      ],
+      "goal_required_special_profile_wording": false,
+      "raw_values_redacted": true
+    },
+    "runtime_recovery": {
+      "vision_model_schema_invalid_events": 3,
+      "grounding_citation_rejected_events": 13,
+      "grounding_judge_verdict_events": 18,
+      "target_binding_verdict_events": 7,
+      "precondition_block_events": 2,
+      "run_blocked": false
+    },
+    "final_action": {
+      "mode": "autonomous",
+      "authority_source": "user_agent_setting_at_run_creation",
+      "authorization_source": "user_autonomous_setting",
+      "privileged_activation_count": 1,
+      "outcome_status": "succeeded",
+      "outcome_confidence": 1.0,
+      "outcome_verified": true
+    },
+    "confirmation": {
+      "url": "https://job-boards.greenhouse.io/warp/jobs/4324888004/confirmation",
+      "title": "Thank you for applying",
+      "required_viewport_fragments": [
+        "Thanks for applying!",
+        "We've received your application."
+      ]
+    },
+    "source_artifacts": {
+      "trajectory_manifest": "storage/artifacts/runs/483/vision-trajectory/manifest.jsonl",
+      "model_input_manifest": "storage/artifacts/runs/483/vision-trajectory/model-input-manifest.jsonl",
+      "database": "storage/lumen.db",
+      "raw_artifacts_are_local_only": true
+    }
+  },
+  "runtime_contract_dependencies": [
+    "approved_final_action_confirmed_once",
+    "approved_final_action_reconciled_without_duplicate_click",
+    "approved_field_choice_bound_across_distinct_control",
+    "already_satisfied_choice_advances_without_reselection_loop"
+  ],
+  "replay_policy": {
+    "ci": "Use this sanitized fixture and controlled bodies. Never submit another real application.",
+    "real_chrome": "Replay against a controlled Greenhouse test posting or disposable application only.",
+    "exact_warp_url": "Source proof only; do not schedule recurring submissions to the real posting.",
+    "route_is_not_asserted": true
+  }
+}

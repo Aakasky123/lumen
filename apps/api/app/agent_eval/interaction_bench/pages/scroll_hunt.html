@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ledger explorer</title>
+<style>
+  body{font-family:system-ui,-apple-system,sans-serif;margin:0;padding:24px;line-height:1.5;color:#1a1a1a;background:#fafafa}
+  h1{font-size:22px}
+  .hint{color:#666;font-size:13px}
+  .verdict{font-weight:700;padding:14px;margin:18px 0;border-radius:8px;background:#eee;max-width:860px}
+  .verdict.pass{background:#dff5df}
+  .verdict.fail{background:#fbdcdc}
+  button{font:inherit;padding:4px 10px;border-radius:6px;border:1px solid #bbb;background:#f2f2f2;cursor:pointer}
+  input{font:inherit;padding:6px 8px;border:1px solid #bbb;border-radius:6px}
+  #verify-bar{position:sticky;top:0;background:#fff;border:1px solid #ccc;border-radius:8px;padding:12px;z-index:10;max-width:836px;margin-bottom:12px}
+  #list{height:400px;overflow-y:auto;border:1px solid #aaa;border-radius:8px;max-width:860px;background:#fff;position:relative}
+  #spacer{position:relative}
+  .row{position:absolute;left:0;right:0;height:36px;display:flex;align-items:center;gap:14px;padding:0 12px;border-bottom:1px solid #f0f0f0;font-size:14px;box-sizing:border-box}
+  .row.loading{color:#999;font-style:italic}
+  .row .id{width:180px;font-variant-numeric:tabular-nums}
+  .mark{color:#1a7f37;font-weight:600;margin-left:10px}
+</style>
+</head>
+<body>
+<h1>Ledger explorer</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+
+<p>This ledger has <strong>600 entries</strong> that load in pages as you scroll. Find
+<strong>Ledger entry LX-437</strong>, reveal its amount, and verify it in the bar below —
+exactly as displayed (for example <code>842.19</code>). Beware of lookalike entries.</p>
+<p class="hint">Progress markers:
+  <span class="mark" data-step-mark="reach"></span>
+  <span class="mark" data-step-mark="reveal"></span>
+  <span class="mark" data-step-mark="verify"></span>
+</p>
+
+<div id="verify-bar">
+  <label>Amount for LX-437 <input id="amount-input" placeholder="0.00"></label>
+  <button id="verify-btn">Verify amount</button>
+  <span class="hint" id="verify-msg"></span>
+</div>
+
+<div id="list"><div id="spacer"></div></div>
+
+<script>
+window.Bench = (function () {
+  const PAGE = "scroll-hunt";
+  const TOKEN = "BENCH_PASS scroll-hunt-6c08be";
+  const STEPS = ["reach", "reveal", "verify"];
+  const done = new Set();
+  let failed = sessionStorage.getItem("bench-fail-" + PAGE) || null;
+  let futile = 0;
+  function render() {
+    const v = document.getElementById("bench-verdict");
+    const p = document.getElementById("bench-progress");
+    if (p) p.textContent = "Challenges complete: " + done.size + " / " + STEPS.length + " | Ineffective interactions: " + futile;
+    if (!v) return;
+    if (failed) { v.textContent = "BENCH_FAIL " + PAGE + ": " + failed; v.className = "verdict fail"; }
+    else if (done.size === STEPS.length) { v.textContent = TOKEN + " — all challenges complete"; v.className = "verdict pass"; }
+  }
+  function complete(step) {
+    if (failed || done.has(step)) return;
+    done.add(step);
+    const m = document.querySelector('[data-step-mark="' + step + '"]');
+    if (m) m.textContent = "✓ " + step;
+    render();
+  }
+  function fail(reason) {
+    if (failed) return;
+    failed = reason;
+    sessionStorage.setItem("bench-fail-" + PAGE, reason);
+    render();
+  }
+  window.__benchReport = () => ({ page: PAGE, done: [...done], failed, futile, total: STEPS.length });
+  document.addEventListener("DOMContentLoaded", render);
+  return { complete, fail, has: (s) => done.has(s), futile: () => { futile += 1; render(); } };
+})();
+
+const TOTAL = 600, ROW_H = 36, BATCH = 40;
+const TARGET_ROW = 437;
+const SPECIAL = { 347: "LX-347", 437: "LX-437", 473: "LX-473" };
+const amounts = {
+  347: (100 + Math.random() * 900).toFixed(2),
+  437: (100 + Math.random() * 900).toFixed(2),
+  473: (100 + Math.random() * 900).toFixed(2),
+};
+window.__benchDebug = { targetAmount: amounts[437], targetRow: TARGET_ROW };
+
+const loaded = new Set();
+const pending = new Set();
+const revealed = new Set();
+const list = document.getElementById("list");
+const spacer = document.getElementById("spacer");
+spacer.style.height = TOTAL * ROW_H + "px";
+
+function requestBatch(b) {
+  if (loaded.has(b) || pending.has(b)) return;
+  pending.add(b);
+  setTimeout(() => { pending.delete(b); loaded.add(b); renderRows(); }, 450);
+}
+
+function rowLabel(i) {
+  return SPECIAL[i] ? "Ledger entry " + SPECIAL[i] : "Ledger entry LG-" + String(i).padStart(3, "0");
+}
+
+function renderRows() {
+  const first = Math.max(0, Math.floor(list.scrollTop / ROW_H) - 6);
+  const last = Math.min(TOTAL - 1, Math.ceil((list.scrollTop + list.clientHeight) / ROW_H) + 6);
+  spacer.innerHTML = "";
+  for (let i = first; i <= last; i++) {
+    const b = Math.floor(i / BATCH);
+    const row = document.createElement("div");
+    row.style.top = i * ROW_H + "px";
+    if (!loaded.has(b)) {
+      requestBatch(b);
+      row.className = "row loading";
+      row.textContent = "Loading page " + (b + 1) + "…";
+    } else {
+      row.className = "row";
+      let right = "";
+      if (SPECIAL[i]) {
+        right = revealed.has(i)
+          ? "<span>Amount: <strong>$" + amounts[i] + "</strong></span>"
+          : "<button data-reveal='" + i + "'>Reveal amount</button>";
+      } else {
+        right = "<span class='hint'>routine entry</span>";
+      }
+      row.innerHTML = "<span class='id'>" + rowLabel(i) + "</span>" + right;
+      if (i === TARGET_ROW) Bench.complete("reach");
+    }
+    spacer.appendChild(row);
+  }
+}
+
+list.addEventListener("scroll", renderRows);
+spacer.addEventListener("click", (e) => {
+  const r = e.target.getAttribute && e.target.getAttribute("data-reveal");
+  if (!r) return;
+  const i = parseInt(r, 10);
+  revealed.add(i);
+  if (i === TARGET_ROW) Bench.complete("reveal");
+  else Bench.futile();
+  renderRows();
+});
+renderRows();
+
+document.getElementById("verify-btn").addEventListener("click", () => {
+  const raw = (document.getElementById("amount-input").value || "").replace(/[$,\s]/g, "");
+  if (!revealed.has(TARGET_ROW)) {
+    document.getElementById("verify-msg").textContent = "Reveal the LX-437 amount first.";
+    Bench.futile();
+    return;
+  }
+  if (raw === amounts[TARGET_ROW]) {
+    document.getElementById("verify-msg").textContent = "Verified.";
+    Bench.complete("verify");
+  } else {
+    document.getElementById("verify-msg").textContent = "That does not match LX-437.";
+    Bench.futile();
+  }
+});
+</script>
+</body>
+</html>

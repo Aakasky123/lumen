@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Harbor Mail</title>
+<link rel="stylesheet" href="v4_style.css">
+<link rel="stylesheet" href="v6_style.css">
+<style>
+  .folders{width:190px;flex:none}
+  .folder{display:flex;justify-content:space-between;padding:5px 8px;border-radius:6px;cursor:pointer;font-size:14px}
+  .folder.on{background:#e8f1fb;font-weight:600}
+  .list{width:430px;flex:none}
+  .mrow{display:flex;gap:8px;align-items:flex-start;padding:6px 6px;border-bottom:1px solid #f0f2f5;font-size:13px;cursor:pointer}
+  .mrow.open{background:#f3f7fc}
+  .mrow.unread .who,.mrow.unread .subj{font-weight:700}
+  .mrow .who{width:120px;flex:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .mrow .subj{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .mrow .when{flex:none;color:#667}
+  .mrow .flag{color:#d97706;width:14px;flex:none}
+  .reader{flex:1;min-width:0}
+  .reader h3{margin:4px 0 6px;font-size:16px}
+  .att{border:1px solid #dde3ea;border-radius:6px;padding:6px 10px;margin:6px 0;font-size:13px;background:#fafbfc}
+  .vip{font-size:13px;margin-top:14px}
+  .vip .addr{overflow-wrap:anywhere;font-size:12px;margin:0 0 4px 14px}
+  #search{width:100%;box-sizing:border-box}
+  textarea#reply-body{width:100%;box-sizing:border-box;min-height:80px}
+</style>
+</head>
+<body data-page="v6_mail">
+<h1>Harbor Mail</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+<p class="intro">Five independent tasks in one mailbox. Today is <strong data-public="today"></strong>.</p>
+
+<div class="tasks">
+  <section class="ch">
+    <h2>1. File the invoices <span class="mark" data-step-mark="move_invoices"></span></h2>
+    <p>Move every email in the Inbox sent from a <code>billing@</code> or <code>invoices@</code> address into the
+       <strong>Finance</strong> folder. Leave everything else where it is.</p>
+    <p class="msg" data-msg="move"></p>
+  </section>
+  <section class="ch">
+    <h2>2. Flag VIP mail <span class="mark" data-step-mark="vip_flags"></span></h2>
+    <p>Flag every <strong>unread</strong> email from a VIP contact (listed under the folders). Flag nothing else.
+       Opening an email does not mark it read.</p>
+    <p class="msg" data-msg="vip"></p>
+  </section>
+  <section class="ch">
+    <h2>3. Answer a question <span class="mark" data-step-mark="crossref_reply"></span></h2>
+    <p>A colleague asked which PO number we used for the Kestrel container order. Find it in the mailbox and reply to
+       their email with it.</p>
+    <p class="msg" data-msg="reply"></p>
+  </section>
+  <section class="ch">
+    <h2>4. Report phishing <span class="mark" data-step-mark="report_phish"></span></h2>
+    <p>One email in the Inbox is a phishing attempt. Report it with <em>Report phishing</em>. Never open its link.</p>
+    <p class="msg" data-msg="phish"></p><p class="msg" data-msg="link"></p>
+  </section>
+  <section class="ch">
+    <h2>5. Count with search <span class="mark" data-step-mark="search_count"></span></h2>
+    <p>How many emails from <code>@northwind.example</code> addresses that have an attachment are in the Inbox and the
+       Archive combined? (Other folders don't count.) Search supports <code>from:</code> and <code>has:attachment</code>.</p>
+    <div class="row"><input id="count" size="5" autocomplete="off" data-enter="count-go" aria-label="Count"> <button id="count-go">Submit count</button></div>
+    <p class="msg" data-msg="count"></p>
+  </section>
+</div>
+
+<section class="app" aria-label="Mail client">
+  <div class="app-head"><h2>Harbor Mail</h2><span class="muted" id="who-am-i">you@harborco.example</span></div>
+  <div class="panes">
+    <div class="pane folders">
+      <div id="folders"></div>
+      <div class="vip"><strong>VIP contacts</strong><div id="vips"></div></div>
+    </div>
+    <div class="pane list">
+      <input id="search" placeholder="Search this folder (from:, has:attachment)" aria-label="Search mail" autocomplete="off">
+      <div class="toolbar" role="toolbar" aria-label="Message actions">
+        <button id="t-archive">Archive</button>
+        <button id="t-move" aria-haspopup="listbox">Move to ▾</button>
+        <button id="t-flag">Flag</button>
+        <button id="t-unflag">Unflag</button>
+        <button id="t-read">Mark read</button>
+        <button id="t-unread">Mark unread</button>
+        <button id="t-report">Report phishing</button>
+      </div>
+      <div class="muted" id="sel-info"></div>
+      <div id="rows"></div>
+      <div class="pager" id="pager"></div>
+    </div>
+    <div class="pane reader" id="reader"><p class="muted">Select an email to read it.</p></div>
+  </div>
+</section>
+
+<script src="v3_common.js"></script>
+<script src="v6_kit.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+const { h } = K;
+let emails = [], vips = [], folder = "Inbox", page = 1, openId = null, query = "";
+const selected = new Set();
+const PAGE = 10;
+const FOLDERS = ["Inbox", "Finance", "Archive", "Spam"];
+
+function matches(e) {
+  if (e.folder !== folder) return false;
+  for (const term of query.toLowerCase().split(/\s+/).filter(Boolean)) {
+    if (term.startsWith("from:")) { if (!e.from_addr.toLowerCase().includes(term.slice(5)) && !e.from_name.toLowerCase().includes(term.slice(5))) return false; }
+    else if (term === "has:attachment") { if (!e.attachments.length) return false; }
+    else if (!(e.subject + " " + e.body + " " + e.from_name).toLowerCase().includes(term)) return false;
+  }
+  return true;
+}
+function visible() { return emails.filter(matches); }
+
+function drawFolders() {
+  const box = $("#folders");
+  box.innerHTML = "";
+  for (const f of FOLDERS) {
+    const unread = emails.filter((e) => e.folder === f && e.unread).length;
+    box.append(h("div", { class: "folder" + (f === folder ? " on" : ""), role: "button", tabindex: "0",
+      onclick: () => { folder = f; page = 1; selected.clear(); openId = null; drawAll(); } },
+      h("span", { text: f }), unread ? h("span", { class: "badge", text: String(unread) }) : ""));
+  }
+  $("#vips").innerHTML = "";
+  for (const v of vips) $("#vips").append(h("div", { text: "★ " + v.name }), h("div", { class: "muted addr", text: v.addr }));
+}
+
+function drawList() {
+  const list = visible();
+  const pages = Math.max(1, Math.ceil(list.length / PAGE));
+  page = Math.min(page, pages);
+  const box = $("#rows");
+  box.innerHTML = "";
+  for (const e of list.slice((page - 1) * PAGE, page * PAGE)) {
+    const box_ = h("input", { type: "checkbox", "aria-label": "Select " + e.subject });
+    box_.checked = selected.has(e.id);
+    box_.addEventListener("click", (ev) => { ev.stopPropagation(); box_.checked ? selected.add(e.id) : selected.delete(e.id); drawSel(); });
+    box.append(h("div", { class: "mrow" + (e.unread ? " unread" : "") + (e.id === openId ? " open" : ""), dataset: { id: e.id },
+      onclick: () => { openId = e.id; drawList(); drawReader(); } },
+      box_, h("span", { class: "flag", text: e.flagged ? "⚑" : "" }), h("span", { class: "who", text: e.from_name }),
+      h("span", { class: "subj", text: e.subject + (e.attachments.length ? " 📎" : "") }), h("span", { class: "when", text: K.shortDate(e.date) })));
+  }
+  if (!list.length) box.append(h("p", { class: "muted", text: "No emails." }));
+  K.pager($("#pager"), list.length, PAGE, page, (p) => { page = p; drawList(); });
+  drawSel();
+}
+
+function drawSel() {
+  $("#sel-info").textContent = selected.size ? `${selected.size} selected` : (openId ? "Actions apply to the open email" : "");
+}
+
+function drawReader() {
+  const box = $("#reader");
+  const e = emails.find((x) => x.id === openId);
+  box.innerHTML = "";
+  if (!e) { box.append(h("p", { class: "muted", text: "Select an email to read it." })); return; }
+  box.append(h("h3", { text: e.subject }),
+    h("div", { class: "muted", text: `From ${e.from_name} <${e.from_addr}> · ${e.date}` }),
+    h("p", { text: e.body }));
+  for (const link of e.links) {
+    box.append(h("p", {}, h("a", { href: "#", text: link.text, title: link.href, onclick: (ev) => { ev.preventDefault(); V3.act("open_link", { id: e.id, href: link.href }); } })));
+  }
+  for (const a of e.attachments) {
+    const preview = h("div", { class: "muted", hidden: true, text: a.preview });
+    box.append(h("div", { class: "att" }, "📎 ", a.name, " ",
+      h("button", { type: "button", text: "Preview", onclick: () => { preview.hidden = !preview.hidden; } }), preview));
+  }
+  const reply = h("textarea", { id: "reply-body", "aria-label": "Reply" });
+  box.append(h("div", { class: "field" }, h("label", { text: "Reply to " + e.from_name }), reply),
+    h("button", { type: "button", text: "Send reply", onclick: () => V3.act("reply", { id: e.id, body: reply.value }).then(() => { reply.value = ""; }) }));
+}
+
+function targets() { return selected.size ? [...selected] : (openId ? [openId] : []); }
+async function bulk(kind, extra) {
+  const ids = targets();
+  if (!ids.length) return K.toast("Select an email first.");
+  await V3.act(kind, Object.assign({ ids }, extra || {}));
+  selected.clear();
+}
+$("#t-archive").addEventListener("click", () => bulk("move", { folder: "Archive" }));
+$("#t-move").addEventListener("click", () => K.menu($("#t-move"), FOLDERS.map((f) => ({ label: f, value: f })), (f) => bulk("move", { folder: f })));
+$("#t-flag").addEventListener("click", () => bulk("flag"));
+$("#t-unflag").addEventListener("click", () => bulk("unflag"));
+$("#t-read").addEventListener("click", () => bulk("mark_read"));
+$("#t-unread").addEventListener("click", () => bulk("mark_unread"));
+$("#t-report").addEventListener("click", () => { const ids = targets(); if (ids.length !== 1) return K.toast("Report one email at a time."); V3.act("report", { id: ids[0] }); });
+$("#search").addEventListener("input", () => { query = $("#search").value; page = 1; drawList(); });
+$("#count-go").addEventListener("click", () => V3.act("answer_count", { value: $("#count").value }));
+
+function drawAll() { drawFolders(); drawList(); drawReader(); }
+V3.onState((st) => {
+  emails = st.public.emails;
+  vips = st.public.vips;
+  if (openId && !emails.some((e) => e.id === openId && e.folder === folder)) openId = null;
+  drawAll();
+});
+</script>
+</body>
+</html>

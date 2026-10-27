@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dispatch shift — briefing</title>
+<link rel="stylesheet" href="v4_style.css">
+<style>
+  #briefing{background:#fff8e6;border:1px solid #e5cf8f}
+  #briefing dl{display:grid;grid-template-columns:260px 1fr;gap:6px 12px;margin:8px 0}
+  #briefing dt{color:#665}
+  #briefing dd{margin:0;font-weight:600}
+  .grid2{display:grid;grid-template-columns:300px 220px;gap:8px 12px;align-items:center}
+</style>
+</head>
+<body data-page="v5_memory">
+<h1>Dispatch shift</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+<p class="intro">Read the briefing, then work the shift in the <strong>Field Terminal</strong> desktop app. The briefing
+  is shown <strong>once</strong>: when you press <em>Begin field work</em> it is gone for good and nothing shows it
+  again. Everything the shift needs is in it. <span class="msg" data-msg="desktop"></span></p>
+
+<section class="ch" id="briefing">
+  <h2>Briefing</h2>
+  <div id="brief-body"></div>
+  <p><button id="begin">Begin field work</button></p>
+  <p class="msg" data-msg="briefing"></p>
+</section>
+
+<section class="ch">
+  <h2>Field work <span class="mark" data-step-mark="unlock_terminal"></span><span class="mark" data-step-mark="requests_1_3"></span><span class="mark" data-step-mark="requests_4_7"></span><span class="mark" data-step-mark="requests_8_10"></span></h2>
+  <p>Unlock the Field Terminal with today's depot code, then decide each request it shows, one at a time.
+     <strong>Every submission is final</strong>: dispatch takes each request once, and a rejected one is not offered again.</p>
+  <p><button id="terminal">Open Field Terminal</button> <span class="hint">Requests processed: <span id="processed">0</span> / <span id="total"></span></span></p>
+  <p class="msg" data-msg="terminal"></p>
+</section>
+
+<section class="ch locked" id="debrief-box">
+  <h2>Debrief <span class="mark" data-step-mark="debrief"></span></h2>
+  <div class="grid2">
+    <label for="harbor">Who was the courier on the Harbor route?</label><input id="harbor" autocomplete="off">
+    <label for="callsign">What was your call sign?</label><input id="callsign" autocomplete="off">
+    <label for="denied">How many requests did you deny in total?</label><input id="denied" autocomplete="off" size="4">
+  </div>
+  <p><button id="debrief">Submit debrief</button> <span class="hint">The debrief can be submitted once.</span></p>
+  <p class="msg" data-msg="debrief"></p>
+</section>
+
+<script src="v3_common.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+$("#begin").addEventListener("click", () => V3.act("begin"));
+$("#terminal").addEventListener("click", () => V3.act("open_terminal"));
+$("#debrief").addEventListener("click", () => V3.act("debrief", { harbor: $("#harbor").value, call_sign: $("#callsign").value, denied: $("#denied").value }));
+function renderBriefing(b) {
+  const body = $("#brief-body");
+  body.innerHTML = "";
+  if (!b) {
+    body.textContent = "The briefing is closed.";
+    $("#begin").style.display = "none";
+    return;
+  }
+  const rows = [
+    ["Today's depot code (unlocks the terminal)", b.depot],
+    ["Courier on the North route", b.couriers.North],
+    ["Courier on the South route", b.couriers.South],
+    ["Courier on the Harbor route", b.couriers.Harbor],
+    ["Routing", "Route each request by its destination's sector: N- addresses go North, S- go South, H- go Harbor."],
+    ["Priority rule", "Requests flagged PRIORITY always go on the Harbor route, whatever their destination."],
+    ["Supervisor override code", b.override + " — required on every request over " + b.threshold.toLocaleString("en-US") + " credits"],
+    ["Standing order", "Deny every request from region " + b.forbidden + ", no matter how urgent or large."],
+    ["Your call sign for this shift", b.call_sign],
+  ];
+  const dl = document.createElement("dl");
+  for (const [k, v] of rows) {
+    dl.appendChild(Object.assign(document.createElement("dt"), { textContent: k }));
+    dl.appendChild(Object.assign(document.createElement("dd"), { textContent: v }));
+  }
+  body.appendChild(dl);
+}
+let lastBriefing;
+V3.onState((st) => {
+  const b = st.public.briefing;
+  const key = JSON.stringify(b);
+  if (key !== lastBriefing) {
+    lastBriefing = key;
+    renderBriefing(b);
+  }
+  $("#processed").textContent = st.public.processed;
+  $("#total").textContent = st.public.total;
+  $("#debrief-box").classList.toggle("locked", !st.public.debrief_open);
+});
+</script>
+</body>
+</html>

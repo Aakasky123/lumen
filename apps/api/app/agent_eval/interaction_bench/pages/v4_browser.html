@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Browser UI bench</title>
+<link rel="stylesheet" href="v4_style.css">
+<style>
+  #dest{font-family:ui-monospace,Consolas,monospace;font-size:15px;background:#f1f3f5;padding:6px 10px;border-radius:6px;display:inline-block;word-break:break-all}
+</style>
+</head>
+<body data-page="v4_browser">
+<h1>Browser UI bench</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+<p class="intro">Five independent challenges, in any order. They use the browser itself — its address bar, tabs,
+  history, and reload — rather than anything inside the page.</p>
+
+<section class="ch">
+  <h2>1. Type an address <span class="mark" data-step-mark="typed_url"></span></h2>
+  <p>Open this address in a <strong>new tab</strong> (open a new tab, then type or paste the address into its address
+     bar). Keep this tab open — the address is not a link.</p>
+  <p><span id="dest"></span></p>
+  <p class="msg" data-msg="typed"></p>
+</section>
+
+<section class="ch">
+  <h2>2. Relay a code between tabs <span class="mark" data-step-mark="tab_relay"></span></h2>
+  <p>Open the vault in a new tab, read its code there, come back to this tab, and enter it.</p>
+  <div class="row"><button id="vault">Open the vault in a new tab</button></div>
+  <div class="row"><input id="vcode" autocomplete="off" size="12" data-enter="vcode-go"> <button id="vcode-go">Submit vault code</button></div>
+  <p class="msg" data-msg="vault"></p>
+</section>
+
+<section class="ch">
+  <h2>3. Back and Forward <span class="mark" data-step-mark="back_forward"></span></h2>
+  <p>Follow the link to Step A, then the link on Step A to Step B. From Step B, go back to Step A with the browser's
+     <strong>Back</strong> button (or Alt+Left), then forward to Step B again with <strong>Forward</strong> (or
+     Alt+Right). Pages A and B have no links back. Step B links back here at the end.</p>
+  <p><a id="hop-a" href="#">Go to Step A</a> <span class="hint">Progress: <span id="hop-phase">not started</span></span></p>
+  <p class="msg" data-msg="history"></p>
+</section>
+
+<section class="ch">
+  <h2>4. Reload <span class="mark" data-step-mark="reload"></span></h2>
+  <p>Reload this page (F5, Ctrl+R, or the browser's reload button). Your progress is kept.</p>
+  <p class="msg" data-msg="reload"></p>
+</section>
+
+<section class="ch">
+  <h2>5. Close the right tab <span class="mark" data-step-mark="close_tab"></span></h2>
+  <p>Open both tabs below. Then close the <strong>promo</strong> tab and keep the <strong>draft report</strong> tab open.</p>
+  <div class="row"><button id="open-promo">Open promo tab</button> <button id="open-draft">Open draft report tab</button>
+    <span class="hint">Promo: <span id="t-promo">not open</span> · Draft: <span id="t-draft">not open</span></span></div>
+  <p class="msg" data-msg="tabs"></p>
+</section>
+
+<script src="v3_common.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+const PHASES = { "": "not started", a: "on Step A", b: "reached Step B — now go Back", back: "back on Step A — now go Forward", done: "done" };
+function aux(name, extra) {
+  return name + "?sid=" + encodeURIComponent(V3.sid()) + (extra || "");
+}
+function navType() {
+  const nav = performance.getEntriesByType("navigation")[0];
+  return nav ? nav.type : "navigate";
+}
+V3.ready.then(() => V3.act("page_loaded", { navtype: navType() }));
+addEventListener("pageshow", (e) => { if (e.persisted) V3.act("page_loaded", { navtype: "back_forward" }); });
+$("#vault").addEventListener("click", () => window.open(aux("v4_browser_vault"), "_blank"));
+$("#vcode-go").addEventListener("click", () => V3.act("vault_code", { value: $("#vcode").value }));
+$("#open-promo").addEventListener("click", () => window.open(aux("v4_browser_tab", "&which=promo"), "_blank"));
+$("#open-draft").addEventListener("click", () => window.open(aux("v4_browser_tab", "&which=draft"), "_blank"));
+V3.onState((st) => {
+  $("#dest").textContent = location.origin + st.public.dest_path;
+  $("#hop-a").setAttribute("href", aux("v4_browser_hop", "&step=a"));
+  $("#hop-phase").textContent = PHASES[st.public.hop] || st.public.hop;
+  $("#t-promo").textContent = st.public.tabs.promo || "not open";
+  $("#t-draft").textContent = st.public.tabs.draft || "not open";
+});
+</script>
+</body>
+</html>

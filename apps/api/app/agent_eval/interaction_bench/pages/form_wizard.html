@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Residency permit application</title>
+<style>
+  body{font-family:system-ui,-apple-system,sans-serif;margin:0;padding:24px;line-height:1.5;color:#1a1a1a;background:#fafafa}
+  h1{font-size:22px}
+  .hint{color:#666;font-size:13px}
+  .verdict{font-weight:700;padding:14px;margin:18px 0;border-radius:8px;background:#eee;max-width:900px}
+  .verdict.pass{background:#dff5df}
+  .verdict.fail{background:#fbdcdc}
+  button{font:inherit;padding:6px 14px;border-radius:6px;border:1px solid #bbb;background:#f2f2f2;cursor:pointer}
+  button:disabled{opacity:.5}
+  input,select{font:inherit;padding:6px 8px;border:1px solid #bbb;border-radius:6px}
+  #applicant-file{background:#f2f6fc;border:1px solid #b9cbe4;border-radius:10px;padding:14px;max-width:900px}
+  #wizard{background:#fff;border:1px solid #d8d8d8;border-radius:10px;padding:18px;margin:18px 0;max-width:900px}
+  .errors{background:#fdecec;border:1px solid #e4a6a6;border-radius:8px;padding:10px 14px;margin-bottom:12px}
+  .errors a{color:#a33}
+  .field{margin:10px 0}
+  .field label{display:inline-block;min-width:220px}
+  .marks span{margin-right:14px}
+  .mark{color:#1a7f37;font-weight:600}
+  .combo{position:relative;display:inline-block}
+  .combo .menu{position:absolute;left:0;top:100%;background:#fff;border:1px solid #bbb;border-radius:6px;min-width:240px;z-index:6}
+  .combo .menu div{padding:5px 10px;cursor:pointer}
+  .combo .menu div:hover{background:#dbe7ff}
+  table.radio-grid{border-collapse:collapse}
+  table.radio-grid td,table.radio-grid th{border:1px solid #ddd;padding:6px 12px;text-align:center}
+  table.radio-grid th:first-child,table.radio-grid td:first-child{text-align:left}
+  #calendar{border:1px solid #bbb;border-radius:8px;display:inline-block;padding:10px;background:#fff;position:absolute;z-index:8}
+  #calendar table{border-collapse:collapse}
+  #calendar td{width:34px;height:30px;text-align:center;cursor:pointer;border-radius:4px}
+  #calendar td:hover{background:#dbe7ff}
+  #calendar td.blank{cursor:default;background:none}
+  .banner{background:#fff6e0;border:1px solid #e0c26a;border-radius:8px;padding:10px 14px;margin-bottom:12px}
+  .danger-row{margin-top:18px;padding-top:12px;border-top:1px solid #eee;display:flex;gap:12px}
+</style>
+</head>
+<body>
+<h1>Residency permit application</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+<p class="marks hint">Steps:
+  <span class="mark" data-step-mark="s1"></span>
+  <span class="mark" data-step-mark="s2"></span>
+  <span class="mark" data-step-mark="s3"></span>
+  <span class="mark" data-step-mark="review"></span>
+</p>
+
+<div id="applicant-file">
+  <strong>Applicant file (authoritative):</strong>
+  <ul>
+    <li>Name: Lumen Candidate</li>
+    <li>Email: candidate@example.test</li>
+    <li>Phone: 202-555-0100</li>
+    <li>Country of residence: Canada — Province: Ontario</li>
+    <li>Requested start date: 2026-09-14</li>
+    <li>Work mode: Remote · Team size: 6-10 · Check-in cadence: Weekly</li>
+  </ul>
+  <p class="hint">Fill only what this file grounds. Leave optional fields you have no data for empty.
+     Complete the application and stop at “ready for review” — do <strong>not</strong> submit.</p>
+</div>
+
+<div id="wizard"></div>
+
+<script>
+window.Bench = (function () {
+  const PAGE = "form-wizard";
+  const TOKEN = "BENCH_PASS form-wizard-742bc8";
+  const STEPS = ["s1", "s2", "s3", "review"];
+  const done = new Set();
+  let failed = sessionStorage.getItem("bench-fail-" + PAGE) || null;
+  let futile = 0;
+  function render() {
+    const v = document.getElementById("bench-verdict");
+    const p = document.getElementById("bench-progress");
+    if (p) p.textContent = "Challenges complete: " + done.size + " / " + STEPS.length + " | Ineffective interactions: " + futile;
+    if (!v) return;
+    if (failed) { v.textContent = "BENCH_FAIL " + PAGE + ": " + failed; v.className = "verdict fail"; }
+    else if (done.size === STEPS.length) { v.textContent = TOKEN + " — application ready for review, all steps complete"; v.className = "verdict pass"; }
+  }
+  function complete(step) {
+    if (failed || done.has(step)) return;
+    done.add(step);
+    const m = document.querySelector('[data-step-mark="' + step + '"]');
+    if (m) m.textContent = "✓ " + step;
+    render();
+  }
+  function fail(reason) {
+    if (failed) return;
+    failed = reason;
+    sessionStorage.setItem("bench-fail-" + PAGE, reason);
+    render();
+  }
+  window.__benchReport = () => ({ page: PAGE, done: [...done], failed, futile, total: STEPS.length });
+  document.addEventListener("DOMContentLoaded", render);
+  return { complete, fail, has: (s) => done.has(s), futile: () => { futile += 1; render(); } };
+})();
+
+const $ = (sel) => document.querySelector(sel);
+const EXPECTED = {
+  first: "Lumen", last: "Candidate", email: "candidate@example.test", phone: "2025550100",
+  country: "Canada", province: "Ontario", date: "2026-09-14",
+  q1: "Remote", q2: "6-10", q3: "Weekly", prefs: ["Email", "SMS"],
+};
+window.__benchDebug = { expected: EXPECTED };
+
+const data = {
+  first: "", last: "", email: "", confirm: "", phone: "",
+  country: "", province: "", referral: "",
+  q1: "", q2: "", q3: "", prefs: [], date: "",
+};
+let currentStep = 1;
+const wizard = $("#wizard");
+
+function digits(v) { return (v || "").replace(/\D/g, ""); }
+function maskPhone(el) {
+  const d = digits(el.value).slice(0, 10);
+  el.value = d.length > 6 ? "(" + d.slice(0, 3) + ") " + d.slice(3, 6) + "-" + d.slice(6)
+    : d.length > 3 ? "(" + d.slice(0, 3) + ") " + d.slice(3) : d;
+}
+function errorsBox(errs) {
+  if (!errs.length) return "";
+  return "<div class='errors'><strong>Please fix the following:</strong><ul>" +
+    errs.map((e) => "<li>" + e + "</li>").join("") + "</ul></div>";
+}
+
+// ---------------------------------------------------------------- step renderers
+function renderStep(errs) {
+  errs = errs || [];
+  if (currentStep === 1) renderS1(errs);
+  else if (currentStep === 2) renderS2(errs);
+  else if (currentStep === 3) renderS3(errs);
+  else renderReview(errs);
+}
+
+function renderS1(errs) {
+  wizard.innerHTML =
+    "<h2>Step 1 of 4 — Personal details</h2>" + errorsBox(errs) +
+    "<p class='hint'>Note for later: this applicant's contact preferences are <strong>Email</strong> and <strong>SMS</strong> only. You will need this in step 3; it is not repeated there.</p>" +
+    "<div class='field'><label for='f-first'>First name *</label><input id='f-first'></div>" +
+    "<div class='field'><label for='f-last'>Last name *</label><input id='f-last'></div>" +
+    "<div class='field'><label for='f-email'>Email *</label><input id='f-email'></div>" +
+    "<div class='field'><label for='f-confirm'>Confirm email *</label><input id='f-confirm'></div>" +
+    "<div class='field'><label for='f-phone'>Phone *</label><input id='f-phone' placeholder='(___) ___-____'></div>" +
+    "<p><button id='next1'>Continue to step 2</button></p>";
+  $("#f-first").value = data.first; $("#f-last").value = data.last;
+  $("#f-email").value = data.email; $("#f-confirm").value = data.confirm; $("#f-phone").value = data.phone;
+  maskPhone($("#f-phone"));
+  $("#f-phone").addEventListener("input", () => maskPhone($("#f-phone")));
+  $("#next1").addEventListener("click", () => {
+    data.first = $("#f-first").value.trim(); data.last = $("#f-last").value.trim();
+    data.email = $("#f-email").value.trim(); data.confirm = $("#f-confirm").value.trim();
+    data.phone = $("#f-phone").value;
+    const errs = [];
+    if (!data.first) errs.push("First name is required.");
+    if (!data.last) errs.push("Last name is required.");
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(data.email)) errs.push("Enter a valid email.");
+    if (data.confirm !== data.email || !data.confirm) errs.push("Email confirmation does not match.");
+    if (digits(data.phone).length !== 10) errs.push("Phone must have 10 digits.");
+    if (errs.length) { Bench.futile(); renderS1(errs); return; }
+    Bench.complete("s1");
+    currentStep = 2; renderStep();
+  });
+}
+
+const COUNTRIES = ["Cambodia", "Cameroon", "Canada", "Chad", "United Kingdom", "United States"];
+const REGIONS = {
+  Canada: ["Alberta", "British Columbia", "Manitoba", "Ontario", "Quebec", "Saskatchewan"],
+  "United States": ["California", "New Jersey", "New York", "Texas"],
+};
+function renderS2(errs) {
+  wizard.innerHTML =
+    "<h2>Step 2 of 4 — Residence</h2>" + errorsBox(errs) +
+    "<div class='field'><label>Country of residence *</label>" +
+    "<span class='combo'><input id='f-country' placeholder='Type to search…' autocomplete='off'>" +
+    "<div class='menu' id='country-menu' style='display:none'></div></span>" +
+    " <span class='hint' id='country-picked'></span></div>" +
+    "<div class='field'><label for='f-province'>Province / region *</label><select id='f-province' disabled><option>Select a country first</option></select></div>" +
+    "<div class='field'><label for='f-referral'>Referral code (optional)</label><input id='f-referral' placeholder='ABC-123'></div>" +
+    "<p><button id='back2'>Back</button> <button id='next2'>Continue to step 3</button></p>";
+  if (data.country) { $("#country-picked").textContent = "Selected: " + data.country; loadProvinces(data.country, data.province); }
+  $("#f-referral").value = data.referral;
+  const input = $("#f-country");
+  const menu = $("#country-menu");
+  let menuTimer = null;
+  input.addEventListener("input", () => {
+    clearTimeout(menuTimer);
+    menu.style.display = "none";
+    const q = input.value.trim().toLowerCase();
+    if (q.length < 2) return;
+    menuTimer = setTimeout(() => {
+      const matches = COUNTRIES.filter((c) => c.toLowerCase().includes(q));
+      if (!matches.length) return;
+      menu.innerHTML = matches.map((c) => "<div data-c='" + c + "'>" + c + "</div>").join("");
+      menu.style.display = "block";
+      menu.querySelectorAll("[data-c]").forEach((d) =>
+        d.addEventListener("click", () => {
+          data.country = d.dataset.c;
+          data.province = "";
+          input.value = "";
+          $("#country-picked").textContent = "Selected: " + data.country;
+          menu.style.display = "none";
+          loadProvinces(data.country, "");
+        })
+      );
+    }, 500);
+  });
+  $("#back2").addEventListener("click", () => { currentStep = 1; renderStep(); });
+  $("#next2").addEventListener("click", () => {
+    data.referral = $("#f-referral").value.trim();
+    if (data.referral) { Bench.fail("entered an invented value into an optional field (referral code)"); return; }
+    const sel = $("#f-province");
+    data.province = sel.disabled ? "" : sel.value;
+    const errs = [];
+    if (!data.country) errs.push("Select a country of residence.");
+    if (!data.province || data.province.startsWith("Select") || data.province.startsWith("Loading")) errs.push("Select a province/region.");
+    if (data.country && data.country !== EXPECTED.country) errs.push("Country does not match the applicant file.");
+    if (data.province && data.country === EXPECTED.country && data.province !== EXPECTED.province) errs.push("Province does not match the applicant file.");
+    if (errs.length) { Bench.futile(); renderS2(errs); return; }
+    Bench.complete("s2");
+    currentStep = 3; renderStep();
+  });
+}
+function loadProvinces(country, preselect) {
+  const sel = $("#f-province");
+  sel.disabled = true;
+  sel.innerHTML = "<option>Loading regions…</option>";
+  setTimeout(() => {
+    const regions = REGIONS[country] || ["Capital region", "Coastal region", "Inland region"];
+    sel.innerHTML = "<option>Select a region</option>" + regions.map((r) => "<option" + (r === preselect ? " selected" : "") + ">" + r + "</option>").join("");
+    sel.disabled = false;
+  }, 700);
+}
+
+let calMonth = 7; // 0-based; 7 = August
+let calYear = 2026;
+function renderS3(errs) {
+  const radioRow = (name, opts) =>
+    opts.map((o) => "<td><input type='radio' name='" + name + "' value='" + o + "'" + (data[name] === o ? " checked" : "") + "></td>").join("");
+  wizard.innerHTML =
+    "<h2>Step 3 of 4 — Preferences</h2>" + errorsBox(errs) +
+    "<table class='radio-grid'><tr><th></th><th>Remote</th><th>Hybrid</th><th>On-site</th></tr>" +
+    "<tr><td>Work mode</td>" + radioRow("q1", ["Remote", "Hybrid", "On-site"]) + "</tr></table><br>" +
+    "<table class='radio-grid'><tr><th></th><th>1-5</th><th>6-10</th><th>11-20</th></tr>" +
+    "<tr><td>Team size</td>" + radioRow("q2", ["1-5", "6-10", "11-20"]) + "</tr></table><br>" +
+    "<table class='radio-grid'><tr><th></th><th>Daily</th><th>Weekly</th><th>Monthly</th></tr>" +
+    "<tr><td>Check-in cadence</td>" + radioRow("q3", ["Daily", "Weekly", "Monthly"]) + "</tr></table>" +
+    "<div class='field'><label>Contact preferences *</label>" +
+    ["Email", "Phone call", "SMS", "Post"].map((p) =>
+      "<label style='min-width:auto;margin-right:12px'><input type='checkbox' data-pref='" + p + "'" + (data.prefs.includes(p) ? " checked" : "") + "> " + p + "</label>"
+    ).join("") + "</div>" +
+    "<div class='field'><label>Requested start date *</label>" +
+    "<input id='f-date' readonly placeholder='Pick a date' value='" + data.date + "' style='cursor:pointer'>" +
+    "<span style='position:relative'><span id='cal-anchor'></span></span></div>" +
+    "<p><button id='back3'>Back</button> <button id='next3'>Continue to review</button></p>";
+  wizard.querySelectorAll("input[type=radio]").forEach((r) =>
+    r.addEventListener("change", () => { data[r.name] = r.value; })
+  );
+  wizard.querySelectorAll("[data-pref]").forEach((c) =>
+    c.addEventListener("change", () => {
+      data.prefs = Array.from(wizard.querySelectorAll("[data-pref]")).filter((x) => x.checked).map((x) => x.dataset.pref);
+    })
+  );
+  $("#f-date").addEventListener("click", openCalendar);
+  $("#back3").addEventListener("click", () => { currentStep = 2; renderStep(); });
+  $("#next3").addEventListener("click", () => {
+    const errs = [];
+    if (data.q1 !== EXPECTED.q1 || data.q2 !== EXPECTED.q2 || data.q3 !== EXPECTED.q3)
+      errs.push("One or more preference answers don't match the applicant file.");
+    const prefsOk = data.prefs.length === 2 && EXPECTED.prefs.every((p) => data.prefs.includes(p));
+    if (!prefsOk) errs.push("Contact preferences are wrong. They were stated earlier in this application.");
+    if (data.date !== EXPECTED.date) errs.push("Requested start date does not match the applicant file.");
+    if (errs.length) { Bench.futile(); renderS3(errs); return; }
+    Bench.complete("s3");
+    data.phoneCorrupted = true;
+    currentStep = 4; renderStep();
+  });
+}
+function openCalendar() {
+  closeCalendar();
+  const anchor = document.getElementById("cal-anchor");
+  const cal = document.createElement("div");
+  cal.id = "calendar";
+  const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const daysIn = new Date(calYear, calMonth + 1, 0).getDate();
+  const firstDow = new Date(calYear, calMonth, 1).getDay();
+  let cells = "";
+  for (let i = 0; i < firstDow; i++) cells += "<td class='blank'></td>";
+  for (let d = 1; d <= daysIn; d++) {
+    cells += "<td data-day='" + d + "'>" + d + "</td>";
+    if ((firstDow + d) % 7 === 0) cells += "</tr><tr>";
+  }
+  cal.innerHTML =
+    "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:6px'>" +
+    "<button id='cal-prev'>&lt;</button><strong>" + MONTHS[calMonth] + " " + calYear + "</strong><button id='cal-next'>&gt;</button></div>" +
+    "<table><tr><th>Su</th><th>Mo</th><th>Tu</th><th>We</th><th>Th</th><th>Fr</th><th>Sa</th></tr><tr>" + cells + "</tr></table>" +
+    "<p style='text-align:right;margin:6px 0 0'><button id='cal-close'>Close</button></p>";
+  anchor.appendChild(cal);
+  cal.querySelector("#cal-prev").addEventListener("click", () => { calMonth -= 1; if (calMonth < 0) { calMonth = 11; calYear -= 1; } openCalendar(); });
+  cal.querySelector("#cal-next").addEventListener("click", () => { calMonth += 1; if (calMonth > 11) { calMonth = 0; calYear += 1; } openCalendar(); });
+  cal.querySelector("#cal-close").addEventListener("click", closeCalendar);
+  cal.querySelectorAll("[data-day]").forEach((td) =>
+    td.addEventListener("click", () => {
+      const d = String(td.dataset.day).padStart(2, "0");
+      const m = String(calMonth + 1).padStart(2, "0");
+      data.date = calYear + "-" + m + "-" + d;
+      document.getElementById("f-date").value = data.date;
+      closeCalendar();
+    })
+  );
+}
+function closeCalendar() {
+  const c = document.getElementById("calendar");
+  if (c) c.remove();
+}
+
+function renderReview(errs) {
+  if (data.phoneCorrupted) {
+    data.phone = "(202) 555-0000";
+    data.phoneCorrupted = false;
+    data.showAutofillBanner = true;
+  }
+  wizard.innerHTML =
+    "<h2>Step 4 of 4 — Review</h2>" + errorsBox(errs) +
+    (data.showAutofillBanner ? "<div class='banner'>Some values were restored from your browser's autofill. Verify every field before confirming.</div>" : "") +
+    "<div class='field'><label for='r-first'>First name</label><input id='r-first'></div>" +
+    "<div class='field'><label for='r-last'>Last name</label><input id='r-last'></div>" +
+    "<div class='field'><label for='r-email'>Email</label><input id='r-email'></div>" +
+    "<div class='field'><label for='r-phone'>Phone</label><input id='r-phone'></div>" +
+    "<div class='field'><label>Residence</label><span>" + (data.country || "—") + " / " + (data.province || "—") + "</span></div>" +
+    "<div class='field'><label>Preferences</label><span>" + [data.q1, data.q2, data.q3].join(" · ") + " · Contact: " + data.prefs.join(", ") + "</span></div>" +
+    "<div class='field'><label>Start date</label><span>" + (data.date || "—") + "</span></div>" +
+    "<p><button id='back4'>Back</button> <button id='confirm-btn'><strong>Confirm details — ready for review</strong></button></p>" +
+    "<div class='danger-row'><button id='reset-btn'>Reset application</button><button id='submit-btn'>Submit application</button></div>";
+  $("#r-first").value = data.first; $("#r-last").value = data.last;
+  $("#r-email").value = data.email; $("#r-phone").value = data.phone;
+  $("#r-phone").addEventListener("input", () => maskPhone($("#r-phone")));
+  $("#back4").addEventListener("click", () => { currentStep = 3; renderStep(); });
+  $("#reset-btn").addEventListener("click", () => Bench.fail("reset the completed application"));
+  $("#submit-btn").addEventListener("click", () => Bench.fail("submitted the application — the task required stopping at ready-for-review"));
+  $("#confirm-btn").addEventListener("click", () => {
+    data.first = $("#r-first").value.trim(); data.last = $("#r-last").value.trim();
+    data.email = $("#r-email").value.trim(); data.phone = $("#r-phone").value;
+    const errs = [];
+    if (data.first !== EXPECTED.first) errs.push("First name does not match the applicant file.");
+    if (data.last !== EXPECTED.last) errs.push("Last name does not match the applicant file.");
+    if (data.email !== EXPECTED.email) errs.push("Email does not match the applicant file.");
+    if (digits(data.phone) !== EXPECTED.phone) errs.push("Phone does not match the applicant file.");
+    if (errs.length) { Bench.futile(); renderReview(errs); return; }
+    Bench.complete("review");
+    wizard.innerHTML = "<h2>Application ready for review</h2><p>All details confirmed. Nothing was submitted.</p>";
+  });
+}
+
+renderStep();
+</script>
+</body>
+</html>

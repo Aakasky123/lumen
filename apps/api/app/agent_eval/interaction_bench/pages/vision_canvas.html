@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Observation deck</title>
+<style>
+  body{font-family:system-ui,-apple-system,sans-serif;margin:0;padding:24px;line-height:1.5;color:#1a1a1a;background:#fafafa}
+  h1{font-size:22px}
+  section.ch{background:#fff;border:1px solid #d8d8d8;border-radius:10px;padding:18px;margin:18px 0;max-width:860px}
+  section.ch.locked{opacity:.4;pointer-events:none}
+  section.ch h2{font-size:16px;margin:0 0 10px}
+  .mark{color:#1a7f37;font-weight:600;margin-left:10px}
+  .hint{color:#666;font-size:13px}
+  .verdict{font-weight:700;padding:14px;margin:18px 0;border-radius:8px;background:#eee;max-width:860px}
+  .verdict.pass{background:#dff5df}
+  .verdict.fail{background:#fbdcdc}
+  button{font:inherit;padding:6px 14px;border-radius:6px;border:1px solid #bbb;background:#f2f2f2;cursor:pointer}
+  input{font:inherit;padding:6px 8px;border:1px solid #bbb;border-radius:6px}
+  canvas{border:1px solid #999;border-radius:8px;background:#fff}
+  #occluded-wrap{position:relative;display:inline-block}
+  #occluded-veil{position:absolute;inset:-8px;background:linear-gradient(120deg,rgba(120,140,200,.35),rgba(200,120,160,.35));border-radius:10px;pointer-events:none}
+</style>
+</head>
+<body>
+<h1>Observation deck</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+
+<section class="ch" id="s-canvasui">
+  <h2>1. Painted console <span class="mark" data-step-mark="canvasui"></span></h2>
+  <p>The console below is rendered as pixels — none of its controls exist in the page structure.
+     Press the painted <strong>Bravo</strong> button.</p>
+  <canvas id="ui-canvas" width="480" height="200"></canvas>
+  <p class="hint" id="ui-msg"></p>
+</section>
+
+<section class="ch locked" id="s-zoomread">
+  <h2>2. Microfiche <span class="mark" data-step-mark="zoomread"></span></h2>
+  <p>A tiny, faint access code is printed below. Read it (zoom in if you need to) and enter it.</p>
+  <canvas id="micro-canvas" width="260" height="70"></canvas>
+  <p><label>Access code <input id="micro-input" autocomplete="off"></label>
+     <button id="micro-check">Verify code</button> <span class="hint" id="micro-msg"></span></p>
+</section>
+
+<section class="ch locked" id="s-colordot">
+  <h2>3. Beacon field <span class="mark" data-step-mark="colordot"></span></h2>
+  <p>One beacon below glows <strong>bright crimson</strong> — noticeably brighter than every other
+     dot. Click it.</p>
+  <canvas id="dot-canvas" width="480" height="220"></canvas>
+  <p class="hint" id="dot-msg"></p>
+</section>
+
+<section class="ch locked" id="s-occluded">
+  <h2>4. Veiled control <span class="mark" data-step-mark="occluded"></span></h2>
+  <p>The control below sits under a decorative veil. It still works — activate it.</p>
+  <div id="occluded-wrap">
+    <button id="occluded-btn">Engage stabilizer</button>
+    <div id="occluded-veil"></div>
+  </div>
+</section>
+
+<script>
+window.Bench = (function () {
+  const PAGE = "vision-canvas";
+  const TOKEN = "BENCH_PASS vision-canvas-d34a72";
+  const STEPS = ["canvasui", "zoomread", "colordot", "occluded"];
+  const done = new Set();
+  let failed = sessionStorage.getItem("bench-fail-" + PAGE) || null;
+  let futile = 0;
+  function render() {
+    const v = document.getElementById("bench-verdict");
+    const p = document.getElementById("bench-progress");
+    if (p) p.textContent = "Challenges complete: " + done.size + " / " + STEPS.length + " | Ineffective interactions: " + futile;
+    if (!v) return;
+    if (failed) { v.textContent = "BENCH_FAIL " + PAGE + ": " + failed; v.className = "verdict fail"; }
+    else if (done.size === STEPS.length) { v.textContent = TOKEN + " — all challenges complete"; v.className = "verdict pass"; }
+  }
+  function complete(step) {
+    if (failed || done.has(step)) return;
+    done.add(step);
+    const m = document.querySelector('[data-step-mark="' + step + '"]');
+    if (m) m.textContent = "✓ complete";
+    render();
+    if (window.benchOnComplete) window.benchOnComplete(step);
+  }
+  function fail(reason) {
+    if (failed) return;
+    failed = reason;
+    sessionStorage.setItem("bench-fail-" + PAGE, reason);
+    render();
+  }
+  window.__benchReport = () => ({ page: PAGE, done: [...done], failed, futile, total: STEPS.length });
+  document.addEventListener("DOMContentLoaded", render);
+  return { complete, fail, has: (s) => done.has(s), futile: () => { futile += 1; render(); } };
+})();
+
+const $ = (sel) => document.querySelector(sel);
+const debug = {};
+window.__benchDebug = debug;
+
+// 1. canvas-painted buttons
+(function () {
+  const canvas = $("#ui-canvas");
+  const ctx = canvas.getContext("2d");
+  const labels = ["Alpha", "Bravo", "Charlie"];
+  for (let i = labels.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [labels[i], labels[j]] = [labels[j], labels[i]];
+  }
+  const buttons = labels.map((label, i) => ({
+    label,
+    x: 30 + i * 150 + Math.floor(Math.random() * 20),
+    y: 60 + Math.floor(Math.random() * 60),
+    w: 110, h: 40,
+  }));
+  debug.canvasButtons = buttons;
+  ctx.fillStyle = "#eef1f6";
+  ctx.fillRect(0, 0, 480, 200);
+  ctx.fillStyle = "#333";
+  ctx.font = "14px system-ui";
+  ctx.fillText("Console v2 — painted controls", 16, 26);
+  buttons.forEach((b) => {
+    ctx.fillStyle = "#2b6cb0";
+    ctx.beginPath();
+    ctx.roundRect(b.x, b.y, b.w, b.h, 8);
+    ctx.fill();
+    ctx.fillStyle = "#fff";
+    ctx.font = "600 15px system-ui";
+    ctx.fillText(b.label, b.x + b.w / 2 - ctx.measureText(b.label).width / 2, b.y + 25);
+  });
+  canvas.addEventListener("click", (e) => {
+    const r = canvas.getBoundingClientRect();
+    const x = e.clientX - r.left, y = e.clientY - r.top;
+    const hit = buttons.find((b) => x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h);
+    if (!hit) { $("#ui-msg").textContent = "Nothing there."; Bench.futile(); return; }
+    if (hit.label === "Bravo") { $("#ui-msg").textContent = "Bravo pressed."; Bench.complete("canvasui"); }
+    else { $("#ui-msg").textContent = hit.label + " pressed — wrong control."; Bench.futile(); }
+  });
+})();
+
+// 2. tiny faint code
+(function () {
+  const CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+  const code = Array.from({ length: 6 }, () => CHARS[Math.floor(Math.random() * CHARS.length)]).join("");
+  debug.microCode = code;
+  const canvas = $("#micro-canvas");
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, 260, 70);
+  ctx.save();
+  ctx.translate(130, 40);
+  ctx.rotate(-0.12);
+  ctx.fillStyle = "#c9c9c9";
+  ctx.font = "9px system-ui";
+  ctx.fillText(code, -ctx.measureText(code).width / 2, 0);
+  ctx.restore();
+  $("#micro-check").addEventListener("click", () => {
+    if (($("#micro-input").value || "").trim().toUpperCase() === code) {
+      $("#micro-msg").textContent = "Code verified.";
+      Bench.complete("zoomread");
+    } else { $("#micro-msg").textContent = "Wrong code."; Bench.futile(); }
+  });
+})();
+
+// 3. brightest crimson dot
+(function () {
+  const canvas = $("#dot-canvas");
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#101724";
+  ctx.fillRect(0, 0, 480, 220);
+  const dots = [];
+  for (let i = 0; i < 30; i++) {
+    let x, y, tries = 0;
+    do {
+      x = 20 + Math.random() * 440;
+      y = 20 + Math.random() * 180;
+      tries++;
+    } while (tries < 50 && dots.some((d) => Math.hypot(d.x - x, d.y - y) < 26));
+    dots.push({ x, y, target: false });
+  }
+  const t = dots[Math.floor(Math.random() * dots.length)];
+  t.target = true;
+  debug.targetDot = { x: t.x, y: t.y };
+  const DECOYS = ["#6e2424", "#7a2020", "#8a2b2b", "#5f1d1d", "#93312e"];
+  dots.forEach((d) => {
+    ctx.beginPath();
+    ctx.arc(d.x, d.y, 7, 0, Math.PI * 2);
+    ctx.fillStyle = d.target ? "#ff2d4d" : DECOYS[Math.floor(Math.random() * DECOYS.length)];
+    ctx.fill();
+  });
+  canvas.addEventListener("click", (e) => {
+    const r = canvas.getBoundingClientRect();
+    const x = e.clientX - r.left, y = e.clientY - r.top;
+    const hit = dots.find((d) => Math.hypot(d.x - x, d.y - y) <= 10);
+    if (hit && hit.target) { $("#dot-msg").textContent = "Beacon acquired."; Bench.complete("colordot"); }
+    else { $("#dot-msg").textContent = hit ? "That beacon is dim." : "Empty space."; Bench.futile(); }
+  });
+})();
+
+// 4. click-through veil
+$("#occluded-btn").addEventListener("click", () => Bench.complete("occluded"));
+
+// sequential unlock
+window.benchOnComplete = function (step) {
+  const order = { canvasui: "#s-zoomread", zoomread: "#s-colordot", colordot: "#s-occluded" };
+  if (order[step]) document.querySelector(order[step]).classList.remove("locked");
+};
+</script>
+</body>
+</html>

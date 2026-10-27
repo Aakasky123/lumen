@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Typed address — arrived</title>
+<link rel="stylesheet" href="v4_style.css">
+</head>
+<body data-page="v4_browser" data-aux="dest">
+<h1>Arrived</h1>
+<p id="aux-status" class="hint">Connecting…</p>
+<p>You reached this page from the address bar. The browser UI bench is in the other tab.</p>
+<script src="v3_common.js"></script>
+<script>
+V3.ready.then(async () => {
+  const nav = performance.getEntriesByType("navigation")[0];
+  const key = new URLSearchParams(location.search).get("key") || "";
+  // The mission tab keeps its session id in sessionStorage; a fresh tab (Ctrl+T) starts with an empty one.
+  let sameTab = false;
+  try {  // the mission tab's key is v3-sid-v4_browser, plus #focus / @tag in a focus or tagged run
+    for (let i = 0; i < sessionStorage.length; i++) if ((sessionStorage.key(i) || "").startsWith("v3-sid-v4_browser")) sameTab = true;
+  } catch (e) { /* storage unavailable */ }
+  const res = await V3.act("dest_arrived", { key, same_tab: sameTab, referrer: document.referrer, navtype: nav ? nav.type : "" });
+  document.getElementById("aux-status").textContent = res.msg || "Recorded.";
+});
+</script>
+</body>
+</html>

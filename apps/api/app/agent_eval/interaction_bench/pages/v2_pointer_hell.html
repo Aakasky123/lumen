@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Manipulator proving ground</title>
+<style>
+  body{font-family:system-ui,-apple-system,sans-serif;margin:0;padding:24px;line-height:1.5;color:#1a1a1a;background:#fafafa}
+  h1{font-size:22px}
+  section.ch{background:#fff;border:1px solid #d8d8d8;border-radius:10px;padding:18px;margin:18px 0;max-width:900px}
+  section.ch.locked{opacity:.4;pointer-events:none}
+  section.ch h2{font-size:16px;margin:0 0 10px}
+  .mark{color:#1a7f37;font-weight:600;margin-left:10px}
+  .hint{color:#666;font-size:13px}
+  .verdict{font-weight:700;padding:14px;margin:18px 0;border-radius:8px;background:#eee;max-width:900px}
+  .verdict.pass{background:#dff5df}
+  .verdict.fail{background:#fbdcdc}
+  button{font:inherit;padding:6px 14px;border-radius:6px;border:1px solid #bbb;background:#f2f2f2;cursor:pointer}
+  input{font:inherit;padding:6px 8px;border:1px solid #bbb;border-radius:6px}
+  #arena{position:relative;width:660px;height:170px;border:1px solid #aaa;border-radius:10px;background:#fdfdfd}
+  .pad{position:absolute;width:90px;height:90px;border:2px dashed #888;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#888;font-size:12px;text-align:center}
+  #wp-start{left:16px;top:40px}
+  #wp-end{right:16px;top:40px}
+  #wp-check{position:absolute;left:295px;top:8px;width:70px;height:70px;border:2px solid #2b6cb0;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#2b6cb0;font-size:11px;text-align:center}
+  #wp-chip{position:absolute;left:38px;top:68px;width:46px;height:34px;background:#e3ecf9;border:1px solid #7a9cc9;border-radius:8px;cursor:grab;display:flex;align-items:center;justify-content:center;font-size:12px;user-select:none}
+  #knob{width:130px;height:130px;border-radius:50%;background:#e8ecf2;border:2px solid #99a3b3;position:relative;cursor:grab;user-select:none}
+  #knob .needle{position:absolute;left:50%;top:50%;width:4px;height:55px;background:#2b6cb0;transform-origin:top center;border-radius:2px}
+  canvas{border:1px solid #999;border-radius:8px;background:#fff}
+  ul#msel{list-style:none;padding:0;max-width:280px}
+  ul#msel li{border:1px solid #bbb;border-radius:6px;padding:7px 12px;margin:5px 0;background:#fdfdfd;cursor:pointer;user-select:none}
+  ul#msel li.sel{background:#c9e7c9;font-weight:600}
+</style>
+</head>
+<body>
+<h1>Manipulator proving ground</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+
+<section class="ch" id="s-waypoint">
+  <h2>1. Checkpoint haul <span class="mark" data-step-mark="waypoint"></span></h2>
+  <p>Drag the crate from the loading pad to the delivery pad, making the drag path pass
+     <em>through the blue checkpoint ring</em>. A straight haul that skips the ring is rejected.</p>
+  <div id="arena">
+    <div class="pad" id="wp-start">loading pad</div>
+    <div class="pad" id="wp-end">delivery pad</div>
+    <div id="wp-check">checkpoint</div>
+    <div id="wp-chip">crate</div>
+  </div>
+  <p class="hint" id="wp-msg"></p>
+</section>
+
+<section class="ch locked" id="s-knob">
+  <h2>2. Rotary regulator <span class="mark" data-step-mark="knob"></span></h2>
+  <p>Drag the needle around the dial to <strong>240° ± 8°</strong> (0° is straight up, clockwise),
+     then release.</p>
+  <div id="knob"><div class="needle"></div></div>
+  <p class="hint">Angle: <span id="knob-read">0</span>° <span id="knob-msg"></span></p>
+</section>
+
+<section class="ch locked" id="s-crosshair">
+  <h2>3. Survey strike <span class="mark" data-step-mark="crosshair"></span></h2>
+  <p>Strike the plot at exactly <strong id="ch-target"></strong> (±4). The readout below tracks
+     your pointer.</p>
+  <canvas id="ch-canvas" width="440" height="220"></canvas>
+  <p class="hint">Pointer at: <span id="ch-read">—</span> · <span id="ch-msg"></span></p>
+</section>
+
+<section class="ch locked" id="s-multiselect">
+  <h2>4. Manifest picking <span class="mark" data-step-mark="multiselect"></span></h2>
+  <p>Select <strong>exactly</strong> crates 2, 5, and 7 — hold <strong>Ctrl</strong> to add to a
+     selection; a plain click selects only that crate. Then confirm.</p>
+  <ul id="msel"></ul>
+  <button id="msel-confirm">Confirm selection</button> <span class="hint" id="msel-msg"></span>
+</section>
+
+<section class="ch locked" id="s-corridor">
+  <h2>5. Conduit trace <span class="mark" data-step-mark="corridor"></span></h2>
+  <p>Trace the conduit in one continuous stroke from the green port to the red port
+     <em>without leaving the corridor</em>. Straying resets the trace.</p>
+  <canvas id="cor-canvas" width="480" height="210"></canvas>
+  <p class="hint" id="cor-msg"></p>
+</section>
+
+<script>
+window.Bench = (function () {
+  const PAGE = "pointer-hell";
+  const TOKEN = "BENCH_PASS pointer-hell-c44a78";
+  const STEPS = ["waypoint", "knob", "crosshair", "multiselect", "corridor"];
+  const done = new Set();
+  let failed = sessionStorage.getItem("bench-fail-" + PAGE) || null;
+  let futile = 0;
+  function render() {
+    const v = document.getElementById("bench-verdict");
+    const p = document.getElementById("bench-progress");
+    if (p) p.textContent = "Challenges complete: " + done.size + " / " + STEPS.length + " | Ineffective interactions: " + futile;
+    if (!v) return;
+    if (failed) { v.textContent = "BENCH_FAIL " + PAGE + ": " + failed; v.className = "verdict fail"; }
+    else if (done.size === STEPS.length) { v.textContent = TOKEN + " — all challenges complete"; v.className = "verdict pass"; }
+  }
+  function complete(step) {
+    if (failed || done.has(step)) return;
+    done.add(step);
+    const m = document.querySelector('[data-step-mark="' + step + '"]');
+    if (m) m.textContent = "✓ complete";
+    render();
+    if (window.benchOnComplete) window.benchOnComplete(step);
+  }
+  function fail(reason) {
+    if (failed) return;
+    failed = reason;
+    sessionStorage.setItem("bench-fail-" + PAGE, reason);
+    render();
+  }
+  window.__benchReport = () => ({ page: PAGE, done: [...done], failed, futile, total: STEPS.length });
+  document.addEventListener("DOMContentLoaded", render);
+  return { complete, fail, has: (s) => done.has(s), futile: () => { futile += 1; render(); } };
+})();
+
+const $ = (sel) => document.querySelector(sel);
+const debug = {};
+window.__benchDebug = debug;
+
+// --- 1. waypoint drag ---------------------------------------------------------------------------
+(function () {
+  const arena = $("#arena"), chip = $("#wp-chip");
+  const HOME = { left: 38, top: 68 };
+  let dragging = false, passed = false, grabDX = 0, grabDY = 0;
+  function arenaPoint(e) {
+    const r = arena.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  }
+  function rectCenter(el) {
+    const r = el.getBoundingClientRect(), a = arena.getBoundingClientRect();
+    return { x: r.left - a.left + r.width / 2, y: r.top - a.top + r.height / 2 };
+  }
+  chip.addEventListener("mousedown", (e) => {
+    dragging = true; passed = false;
+    const p = arenaPoint(e);
+    grabDX = p.x - chip.offsetLeft; grabDY = p.y - chip.offsetTop;
+    e.preventDefault();
+  });
+  document.addEventListener("mousemove", (e) => {
+    if (!dragging) return;
+    const p = arenaPoint(e);
+    chip.style.left = p.x - grabDX + "px";
+    chip.style.top = p.y - grabDY + "px";
+    const c = rectCenter($("#wp-check"));
+    if (Math.hypot(p.x - c.x, p.y - c.y) <= 38) passed = true;
+  });
+  document.addEventListener("mouseup", (e) => {
+    if (!dragging) return;
+    dragging = false;
+    const p = arenaPoint(e);
+    const end = $("#wp-end").getBoundingClientRect(), a = arena.getBoundingClientRect();
+    const overEnd = e.clientX >= end.left && e.clientX <= end.right && e.clientY >= end.top && e.clientY <= end.bottom;
+    if (overEnd && passed) { $("#wp-msg").textContent = "Crate delivered via checkpoint."; Bench.complete("waypoint"); return; }
+    chip.style.left = HOME.left + "px"; chip.style.top = HOME.top + "px";
+    if (overEnd && !passed) { $("#wp-msg").textContent = "Haul rejected — the path skipped the checkpoint."; Bench.futile(); }
+    else if (p.x || p.y) { $("#wp-msg").textContent = "Crate returned to the loading pad."; }
+  });
+  debug.waypoint = { note: "drag chip through checkpoint ring center to end pad" };
+})();
+
+// --- 2. rotary knob -----------------------------------------------------------------------------
+(function () {
+  const knob = $("#knob"), needle = knob.querySelector(".needle");
+  let dragging = false, angle = 0;
+  function setAngle(deg) {
+    angle = ((deg % 360) + 360) % 360;
+    needle.style.transform = "translate(-50%, 0) rotate(" + (angle + 180) + "deg)";
+    $("#knob-read").textContent = String(Math.round(angle));
+  }
+  function angleFrom(e) {
+    const r = knob.getBoundingClientRect();
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    const rad = Math.atan2(e.clientX - cx, -(e.clientY - cy)); // 0 = up, clockwise
+    return (rad * 180) / Math.PI;
+  }
+  knob.addEventListener("mousedown", (e) => { dragging = true; setAngle(angleFrom(e)); e.preventDefault(); });
+  document.addEventListener("mousemove", (e) => { if (dragging) setAngle(angleFrom(e)); });
+  document.addEventListener("mouseup", () => {
+    if (!dragging) return;
+    dragging = false;
+    if (Math.abs(angle - 240) <= 8) { $("#knob-msg").textContent = "Regulator locked."; Bench.complete("knob"); }
+    else { $("#knob-msg").textContent = "Released at " + Math.round(angle) + "° — outside tolerance."; Bench.futile(); }
+  });
+  setAngle(0);
+})();
+
+// --- 3. exact-coordinate strike -----------------------------------------------------------------
+(function () {
+  const canvas = $("#ch-canvas"), ctx = canvas.getContext("2d");
+  const tx = 40 + Math.floor(Math.random() * 360), ty = 40 + Math.floor(Math.random() * 140);
+  debug.crosshair = { x: tx, y: ty };
+  $("#ch-target").textContent = "(" + tx + ", " + ty + ")";
+  function draw() {
+    ctx.fillStyle = "#fbfdff";
+    ctx.fillRect(0, 0, 440, 220);
+    ctx.strokeStyle = "#dbe4f0";
+    for (let x = 0; x <= 440; x += 20) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 220); ctx.stroke(); }
+    for (let y = 0; y <= 220; y += 20) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(440, y); ctx.stroke(); }
+  }
+  draw();
+  canvas.addEventListener("mousemove", (e) => {
+    const r = canvas.getBoundingClientRect();
+    $("#ch-read").textContent = "(" + Math.round(e.clientX - r.left) + ", " + Math.round(e.clientY - r.top) + ")";
+  });
+  canvas.addEventListener("click", (e) => {
+    const r = canvas.getBoundingClientRect();
+    const x = Math.round(e.clientX - r.left), y = Math.round(e.clientY - r.top);
+    if (Math.abs(x - tx) <= 4 && Math.abs(y - ty) <= 4) { $("#ch-msg").textContent = "Strike confirmed at (" + x + ", " + y + ")."; Bench.complete("crosshair"); }
+    else { $("#ch-msg").textContent = "Struck (" + x + ", " + y + ") — off target."; Bench.futile(); }
+  });
+})();
+
+// --- 4. ctrl multi-select -----------------------------------------------------------------------
+(function () {
+  const ul = $("#msel");
+  const selected = new Set();
+  for (let i = 1; i <= 8; i++) {
+    const li = document.createElement("li");
+    li.textContent = "Crate " + i;
+    li.dataset.n = String(i);
+    ul.appendChild(li);
+  }
+  ul.addEventListener("click", (e) => {
+    const li = e.target.closest("li");
+    if (!li) return;
+    const n = li.dataset.n;
+    if (e.ctrlKey || e.metaKey) {
+      if (selected.has(n)) selected.delete(n); else selected.add(n);
+    } else {
+      selected.clear();
+      selected.add(n);
+    }
+    ul.querySelectorAll("li").forEach((x) => x.classList.toggle("sel", selected.has(x.dataset.n)));
+  });
+  $("#msel-confirm").addEventListener("click", () => {
+    const want = ["2", "5", "7"];
+    const ok = selected.size === 3 && want.every((n) => selected.has(n));
+    if (ok) { $("#msel-msg").textContent = "Manifest confirmed."; Bench.complete("multiselect"); }
+    else { $("#msel-msg").textContent = "Selected {" + [...selected].join(", ") + "} — need exactly {2, 5, 7}."; Bench.futile(); }
+  });
+})();
+
+// --- 5. corridor trace --------------------------------------------------------------------------
+(function () {
+  const canvas = $("#cor-canvas"), ctx = canvas.getContext("2d");
+  const PTS = [
+    { x: 35, y: 170 }, { x: 110, y: 150 }, { x: 170, y: 95 }, { x: 240, y: 55 },
+    { x: 310, y: 75 }, { x: 370, y: 130 }, { x: 445, y: 105 },
+  ];
+  const HALF = 13;
+  debug.corridor = { points: PTS, half: HALF };
+  function distToPath(x, y) {
+    let best = Infinity;
+    for (let i = 0; i < PTS.length - 1; i++) {
+      const a = PTS[i], b = PTS[i + 1];
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const t = Math.max(0, Math.min(1, ((x - a.x) * dx + (y - a.y) * dy) / (dx * dx + dy * dy)));
+      best = Math.min(best, Math.hypot(x - (a.x + t * dx), y - (a.y + t * dy)));
+    }
+    return best;
+  }
+  function draw(stroke) {
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, 480, 210);
+    ctx.lineCap = "round"; ctx.lineJoin = "round";
+    ctx.strokeStyle = "#e3ecf9"; ctx.lineWidth = HALF * 2;
+    ctx.beginPath();
+    PTS.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
+    ctx.stroke();
+    ctx.fillStyle = "#1a7f37";
+    ctx.beginPath(); ctx.arc(PTS[0].x, PTS[0].y, 9, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#b13030";
+    ctx.beginPath(); ctx.arc(PTS[PTS.length - 1].x, PTS[PTS.length - 1].y, 9, 0, Math.PI * 2); ctx.fill();
+    if (stroke && stroke.length > 1) {
+      ctx.strokeStyle = "#2b6cb0"; ctx.lineWidth = 3;
+      ctx.beginPath();
+      stroke.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
+      ctx.stroke();
+    }
+  }
+  draw();
+  let tracing = false, stroke = [];
+  function pos(e) {
+    const r = canvas.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  }
+  canvas.addEventListener("mousedown", (e) => {
+    const p = pos(e);
+    if (Math.hypot(p.x - PTS[0].x, p.y - PTS[0].y) <= 14) {
+      tracing = true; stroke = [p];
+      $("#cor-msg").textContent = "Tracing…";
+    } else {
+      $("#cor-msg").textContent = "Start the trace on the green port.";
+    }
+    e.preventDefault();
+  });
+  canvas.addEventListener("mousemove", (e) => {
+    if (!tracing) return;
+    const p = pos(e);
+    if (distToPath(p.x, p.y) > HALF) {
+      tracing = false; stroke = [];
+      draw();
+      $("#cor-msg").textContent = "Strayed out of the corridor — trace reset.";
+      Bench.futile();
+      return;
+    }
+    stroke.push(p);
+    draw(stroke);
+    const end = PTS[PTS.length - 1];
+    if (Math.hypot(p.x - end.x, p.y - end.y) <= 12) {
+      tracing = false;
+      $("#cor-msg").textContent = "Conduit traced.";
+      Bench.complete("corridor");
+    }
+  });
+  document.addEventListener("mouseup", () => {
+    if (tracing) {
+      tracing = false; stroke = [];
+      draw();
+      $("#cor-msg").textContent = "Released before the red port — trace reset.";
+      Bench.futile();
+    }
+  });
+})();
+
+// sequential unlock
+window.benchOnComplete = function (step) {
+  const order = { waypoint: "#s-knob", knob: "#s-crosshair", crosshair: "#s-multiselect", multiselect: "#s-corridor" };
+  if (order[step]) document.querySelector(order[step]).classList.remove("locked");
+};
+</script>
+</body>
+</html>

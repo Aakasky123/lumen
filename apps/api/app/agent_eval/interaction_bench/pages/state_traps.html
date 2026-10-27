@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Deployment settings</title>
+<style>
+  body{font-family:system-ui,-apple-system,sans-serif;margin:0;padding:24px;line-height:1.5;color:#1a1a1a;background:#fafafa}
+  h1{font-size:22px}
+  .hint{color:#666;font-size:13px}
+  .fineprint{color:#999;font-size:11px}
+  .verdict{font-weight:700;padding:14px;margin:18px 0;border-radius:8px;background:#eee;max-width:900px}
+  .verdict.pass{background:#dff5df}
+  .verdict.fail{background:#fbdcdc}
+  button{font:inherit;padding:6px 14px;border-radius:6px;border:1px solid #bbb;background:#f2f2f2;cursor:pointer}
+  input,select{font:inherit;padding:6px 8px;border:1px solid #bbb;border-radius:6px}
+  .card{background:#fff;border:1px solid #d8d8d8;border-radius:10px;padding:18px;margin:14px 0;max-width:900px}
+  .mark{color:#1a7f37;font-weight:600;margin-left:10px}
+  .toast{position:fixed;right:16px;bottom:16px;background:#123a26;color:#fff;padding:10px 16px;border-radius:8px;display:none;z-index:20}
+  #persist-view{background:#0e1726;color:#cfe3ff;border-radius:8px;padding:12px;font-family:ui-monospace,monospace;font-size:13px;white-space:pre}
+  .note{color:#b13030;font-size:13px}
+</style>
+</head>
+<body>
+<h1>Deployment settings</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+
+<p>Bring the deployment to this exact persisted state, then run the audit:</p>
+<ul>
+  <li>Workspace name: <code>atlas-prod</code></li>
+  <li>Region: <code>eu-central</code></li>
+  <li>Advanced mode: <strong>enabled</strong></li>
+  <li>Access: <strong>granted</strong></li>
+</ul>
+<p class="hint">Trust only what the persistence panel shows — the interface is not always honest.
+  Markers: <span class="mark" data-step-mark="deceptive"></span>
+  <span class="mark" data-step-mark="silent"></span>
+  <span class="mark" data-step-mark="optimistic"></span>
+  <span class="mark" data-step-mark="audit"></span></p>
+
+<div class="card">
+  <h2>Workspace</h2>
+  <div><label>Workspace name <input id="ws-name"></label> <button id="ws-save">Save workspace</button></div>
+  <div style="margin-top:10px"><label>Region
+    <select id="region"><option value="">— none —</option><option>us-east</option><option>eu-central</option><option>ap-south</option></select>
+  </label></div>
+  <div style="margin-top:10px"><label><input type="checkbox" id="advanced"> Advanced mode</label></div>
+  <p class="fineprint">Workspace changes are persisted only while a region is active. Changing the
+     operating mode re-provisions the region.</p>
+</div>
+
+<div class="card">
+  <h2>Access control</h2>
+  <p>Status: <strong id="access-status">Not granted</strong> <span class="note" id="access-note"></span></p>
+  <button id="request-token">Request token</button>
+  <button id="grant-access">Grant access</button>
+</div>
+
+<div class="card">
+  <h2>Persistence panel</h2>
+  <button id="verify-btn">Verify persisted state</button>
+  <button id="audit-btn"><strong>Run audit</strong></button>
+  <span class="hint" id="audit-msg"></span>
+  <div id="persist-view" style="margin-top:10px">persisted state not read yet</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+window.Bench = (function () {
+  const PAGE = "state-traps";
+  const TOKEN = "BENCH_PASS state-traps-c67a04";
+  const STEPS = ["deceptive", "silent", "optimistic", "audit"];
+  const done = new Set();
+  let failed = sessionStorage.getItem("bench-fail-" + PAGE) || null;
+  let futile = 0;
+  function render() {
+    const v = document.getElementById("bench-verdict");
+    const p = document.getElementById("bench-progress");
+    if (p) p.textContent = "Challenges complete: " + done.size + " / " + STEPS.length + " | Ineffective interactions: " + futile;
+    if (!v) return;
+    if (failed) { v.textContent = "BENCH_FAIL " + PAGE + ": " + failed; v.className = "verdict fail"; }
+    else if (done.size === STEPS.length) { v.textContent = TOKEN + " — all challenges complete"; v.className = "verdict pass"; }
+  }
+  function complete(step) {
+    if (failed || done.has(step)) return;
+    done.add(step);
+    const m = document.querySelector('[data-step-mark="' + step + '"]');
+    if (m) m.textContent = "✓ " + step;
+    render();
+  }
+  function fail(reason) {
+    if (failed) return;
+    failed = reason;
+    sessionStorage.setItem("bench-fail-" + PAGE, reason);
+    render();
+  }
+  window.__benchReport = () => ({ page: PAGE, done: [...done], failed, futile, total: STEPS.length });
+  document.addEventListener("DOMContentLoaded", render);
+  return { complete, fail, has: (s) => done.has(s), futile: () => { futile += 1; render(); } };
+})();
+
+const $ = (sel) => document.querySelector(sel);
+const saved = { workspace: null, region: null, advanced: false, access: false, token: false };
+window.__benchDebug = { saved };
+
+function toast(msg) {
+  const t = $("#toast");
+  t.textContent = msg;
+  t.style.display = "block";
+  setTimeout(() => { t.style.display = "none"; }, 1500);
+}
+
+// deceptive save: toast always says saved; persists only if a region is active in the UI
+$("#ws-save").addEventListener("click", () => {
+  toast("Saved ✓");
+  if ($("#region").value) {
+    saved.workspace = $("#ws-name").value.trim();
+    saved.region = $("#region").value;
+  }
+});
+// silent reset: toggling advanced clears the persisted region (re-provisioning)
+$("#advanced").addEventListener("change", () => {
+  saved.advanced = $("#advanced").checked;
+  saved.region = null; // silent — the UI select keeps its old value
+});
+
+// optimistic UI: grant flips immediately, then reverts unless a token was requested first
+$("#request-token").addEventListener("click", () => {
+  saved.token = true;
+  toast("Token issued");
+});
+$("#grant-access").addEventListener("click", () => {
+  $("#access-status").textContent = "Granted";
+  $("#access-note").textContent = "";
+  if (saved.token) {
+    saved.access = true;
+  } else {
+    setTimeout(() => {
+      $("#access-status").textContent = "Not granted";
+      $("#access-note").textContent = "Grant rejected upstream: no token.";
+      Bench.futile();
+    }, 1200);
+  }
+});
+
+function snapshot() {
+  return JSON.stringify(
+    { workspace: saved.workspace, region: saved.region, advanced: saved.advanced, access: saved.access },
+    null, 2
+  );
+}
+function evaluateState() {
+  if (saved.workspace === "atlas-prod") Bench.complete("deceptive");
+  if (saved.advanced && saved.region === "eu-central" && saved.workspace === "atlas-prod") Bench.complete("silent");
+  if (saved.access) Bench.complete("optimistic");
+}
+$("#verify-btn").addEventListener("click", () => {
+  $("#persist-view").textContent = snapshot();
+  evaluateState();
+});
+$("#audit-btn").addEventListener("click", () => {
+  $("#persist-view").textContent = snapshot();
+  evaluateState();
+  const ok = saved.workspace === "atlas-prod" && saved.region === "eu-central" && saved.advanced && saved.access;
+  if (ok) {
+    $("#audit-msg").textContent = "Audit passed.";
+    Bench.complete("audit");
+  } else {
+    $("#audit-msg").textContent = "Audit failed — persisted state does not match the target.";
+    Bench.futile();
+  }
+});
+</script>
+</body>
+</html>

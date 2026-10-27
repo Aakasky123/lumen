@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Vault</title>
+<link rel="stylesheet" href="v4_style.css">
+<style>#code{font-size:28px;font-weight:700;font-family:ui-monospace,Consolas,monospace}</style>
+</head>
+<body data-page="v4_browser" data-aux="vault">
+<h1>Vault</h1>
+<p id="aux-status" class="hint">Connecting…</p>
+<p>Vault code: <span id="code">…</span></p>
+<p class="hint">Enter this code on the browser UI bench, in the tab that opened this one.</p>
+<script src="v3_common.js"></script>
+<script>
+V3.ready.then(async () => {
+  const res = await V3.act("vault_open");
+  document.getElementById("code").textContent = res.code || "?";
+  document.getElementById("aux-status").textContent = "";
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,544 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Skyway Travel — flight booking</title>
+<link rel="stylesheet" href="v4_style.css">
+<link rel="stylesheet" href="v6_style.css">
+<style>
+  [hidden]{display:none!important}
+  .side{width:290px;flex:none;font-size:13px}
+  .side label{display:block;margin:2px 0}
+  .side strong{display:block;margin-top:8px}
+  #filters .k-select{min-width:96px}
+  .main{flex:1;min-width:0;font-size:13px}
+  .modes{display:flex;gap:4px;margin-bottom:4px}
+  .modes button{flex:1;padding:4px 8px;font-size:13px}
+  .modes button[aria-pressed=true],.strip button.on,.tabs button.on{background:#d7e6f7;border-color:#7aa7d9}
+  .legtitle{font-weight:600;margin-top:6px}
+  .ac{position:relative}
+  .ac input{width:100%;box-sizing:border-box}
+  .ac-list{position:absolute;left:0;right:0;top:100%;z-index:50;background:#fff;border:1px solid #b9c2cc;border-radius:6px;box-shadow:0 8px 22px rgba(0,0,0,.16);padding:3px 0}
+  .ac-opt{padding:4px 10px;cursor:pointer;white-space:nowrap}
+  .ac-opt.active{background:#e8f0fa}
+  .ac-none{padding:4px 10px;color:#667}
+  .err{color:#b42318;font-size:12px}
+  .cal{position:absolute;z-index:60;background:#fff;border:1px solid #b9c2cc;border-radius:8px;box-shadow:0 8px 22px rgba(0,0,0,.16);padding:8px}
+  .cal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+  .cal-head button{padding:2px 10px}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,34px);gap:2px;text-align:center;font-size:12px}
+  .cal-grid button{padding:4px 0;font-size:13px}
+  .cal-grid button.sel{background:#2b6cb0;color:#fff;border-color:#2b6cb0}
+  .cal-wd{color:#667}
+  .strip,.tabs{display:flex;gap:4px;margin:4px 0 8px}
+  .strip button{flex:1;padding:3px 2px;font-size:12px;display:flex;flex-direction:column;align-items:center}
+  .tabs button{font-size:12px;padding:3px 10px}
+  .summary{background:#f6f8fa;border:1px solid #e3e6ea;border-radius:6px;padding:6px 10px;margin-bottom:8px}
+  .seatmap{display:inline-block;max-height:560px;overflow-y:auto;border:1px solid #e3e6ea;border-radius:8px;padding:0 8px 8px}
+  .srow{display:grid;grid-template-columns:34px repeat(3,26px) 30px repeat(3,26px) 34px;gap:3px;align-items:center;margin-top:3px}
+  .shead{position:sticky;top:0;background:#fff;padding-top:6px;font-weight:600;text-align:center;z-index:1}
+  .seat{width:26px;height:22px;padding:0;border-radius:6px 6px 3px 3px;background:#fff;border:1px solid #7aa7d9}
+  .seat:disabled{background:#d5dae0;border-color:#c3c9d0;opacity:1;cursor:not-allowed}
+  .seat.on{background:#2b6cb0;border-color:#2b6cb0}
+  .srow.exit .seat:not(:disabled){border-color:#d97706;border-width:2px}
+  .rownum{text-align:center;color:#556;font-size:12px}
+  .exit-label{font-size:10px;color:#b45309;text-align:center;font-weight:600}
+  .legend{display:flex;gap:12px;align-items:center;margin:4px 0 6px;color:#556}
+  .legend .seat{display:inline-block;vertical-align:middle;margin-right:4px}
+  .fare div{margin:3px 0}
+  .note{background:#fff8e6;border:1px solid #e5cf8f;border-radius:6px;padding:6px 8px}
+  #stepper b{color:#fff}
+</style>
+</head>
+<body data-page="v6_travel">
+<h1>Skyway Travel</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+<p class="intro">Five independent trips. <em>Start this trip</em> resets the booking; book it and press <em>Hold
+  booking</em> — never continue to payment. Trips 1–4 are for you. Today is <strong data-public="today_text"></strong>.</p>
+
+<div class="tasks">
+  <section class="ch" data-task="constrained_cheapest">
+    <h2>1. Cheapest that fits <span class="mark" data-step-mark="constrained_cheapest"></span></h2>
+    <p>One way <span class="val" id="t1-route"></span> on <span id="t1-date"></span>: the cheapest flight that arrives
+       before <strong id="t1-cut"></strong>, has at most one stop, is not on <strong id="t1-air"></strong>, and
+       includes a checked bag.</p>
+    <button class="start">Start this trip</button>
+    <p class="msg" data-msg="constrained_cheapest"></p>
+  </section>
+  <section class="ch" data-task="seat_choice">
+    <h2>2. Aisle seat <span class="mark" data-step-mark="seat_choice"></span></h2>
+    <p>Flight <span class="val" id="t2-flight"></span> (<span id="t2-route"></span>, <span id="t2-date"></span>) is
+       already chosen. Pick an aisle seat in rows 10–20 that is not in an exit row, then hold it.</p>
+    <button class="start">Start this trip</button>
+    <p class="msg" data-msg="seat_choice"></p>
+  </section>
+  <section class="ch" data-task="flex_dates">
+    <h2>3. Flexible dates <span class="mark" data-step-mark="flex_dates"></span></h2>
+    <p>One way <span class="val" id="t3-route"></span>. Search <span id="t3-center"></span> with <em>Flexible ±3
+       days</em>; of those seven days, find the one whose cheapest <strong>nonstop</strong> fare is lowest and hold that
+       nonstop flight.</p>
+    <button class="start">Start this trip</button>
+    <p class="msg" data-msg="flex_dates"></p>
+  </section>
+  <section class="ch" data-task="airport_lookalikes">
+    <h2>4. Multi-city <span class="mark" data-step-mark="airport_lookalikes"></span></h2>
+    <p><span id="t4-legs"></span> Any flight on each leg.</p>
+    <button class="start">Start this trip</button>
+    <p class="msg" data-msg="airport_lookalikes"></p>
+  </section>
+  <section class="ch" data-task="passenger_details">
+    <h2>5. Book for a colleague <span class="mark" data-step-mark="passenger_details"></span></h2>
+    <p class="note" id="t5-profile"></p>
+    <p>Flight <span class="val" id="t5-flight"></span> (<span id="t5-route"></span>, <span id="t5-date"></span>) is
+       already chosen. Enter the traveler as their documents read, then hold it.</p>
+    <button class="start">Start this trip</button>
+    <p class="msg" data-msg="passenger_details"></p>
+  </section>
+</div>
+
+<section class="app" aria-label="Flight booking">
+  <div class="app-head"><h2>Skyway Travel</h2><span class="muted" id="stepper"></span>
+    <span class="muted">Trip: <span id="current">none — start a trip</span></span><span class="muted" id="account"></span></div>
+  <div class="panes">
+    <div class="pane side">
+      <div class="modes" role="group" aria-label="Trip type">
+        <button type="button" id="m-oneway" aria-pressed="true">One way</button>
+        <button type="button" id="m-multi" aria-pressed="false">Multi-city</button>
+      </div>
+      <div id="legs-form"></div>
+      <div class="muted">Passengers: 1 adult</div>
+      <label id="flex-row"><input type="checkbox" id="flex"> Flexible ±3 days</label>
+      <p><button type="button" id="search" class="primary">Search</button></p>
+      <div id="filters" aria-label="Filters">
+        <strong>Stops</strong>
+        <label><input type="checkbox" data-stops="0" checked> Nonstop</label>
+        <label><input type="checkbox" data-stops="1" checked> 1 stop</label>
+        <label><input type="checkbox" data-stops="2" checked> 2+ stops</label>
+        <strong>Airlines</strong><div id="airlines"></div>
+        <strong>Departure time</strong>
+        <div class="row" style="margin:2px 0;gap:6px;flex-wrap:nowrap"><button id="dep-after" aria-label="Earliest departure"></button> to
+          <button id="dep-before" aria-label="Latest departure"></button></div>
+        <label><input type="checkbox" id="bag"> Checked bag included</label>
+      </div>
+    </div>
+    <div class="pane main">
+      <div class="toolbar" id="res-tools"><span>Sort by</span><button id="sort" aria-label="Sort by"></button></div>
+      <div id="stage"></div>
+    </div>
+  </div>
+</section>
+
+<script src="v3_common.js"></script>
+<script src="v6_kit.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+const { h } = K;
+const PAGE = 10, EXIT_ROWS = [12, 13];
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+let pub = null, trip = null, mode = "oneway", stage = "search";
+let fields = [];        // the search form: per leg {from, to, date}
+let searched = null;    // the last search: {mode, flex, legs: [{from, to, date}]}
+let view = { leg: 0, date: "" };  // the results on screen: which leg, and which day (a flexible search can show any day of the strip)
+let booking = [];       // the chosen flights: [{flight, seat}]
+let traveler = {}, genderSel = null, page = 1;
+const filt = { stops: new Set([0, 1, 2]), airlines: new Set(), after: "", before: "", bag: false, sort: "dep" };
+let afterSel, beforeSel, sortSel;
+
+// --- dates and labels ---------------------------------------------------------------------------
+const parse = (iso) => { const [y, m, d] = iso.split("-").map(Number); return new Date(y, m - 1, d); };
+const isoOf = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const addDays = (iso, n) => { const d = parse(iso); d.setDate(d.getDate() + n); return isoOf(d); };
+const shortDay = (iso) => { const d = parse(iso); return `${WEEKDAYS[d.getDay()].slice(0, 3)}, ${MONTHS[d.getMonth()].slice(0, 3)} ${d.getDate()}`; };
+const longDay = (iso) => { const d = parse(iso); return `${WEEKDAYS[d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`; };
+const airportLabel = (a) => `${a.code} — ${a.city}, ${a.state}`;
+const flight = (id) => pub.flights.find((f) => f.id === id);
+const duration = (m) => `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, "0")}m`;
+const stopsText = (f) => f.stops ? `${f.stops} stop${f.stops > 1 ? "s" : ""} · ${f.via.join(", ")}` : "Nonstop";
+const seatKind = (c) => "AF".includes(c) ? "window" : "CD".includes(c) ? "aisle" : "middle";
+
+// --- airport autocomplete: type 2+ letters, pick a suggestion ---------------------------------------
+function airportField(id, labelText) {
+  let code = "", items = [], active = 0;
+  const input = h("input", { id, autocomplete: "off", role: "combobox", "aria-autocomplete": "list", "aria-expanded": "false",
+    "aria-controls": id + "-list", placeholder: "City or airport code" });
+  const list = h("div", { class: "ac-list", id: id + "-list", role: "listbox", hidden: true });
+  const err = h("span", { class: "err" });
+  const wrap = h("div", { class: "field ac" }, h("label", { for: id, text: labelText }), input, list, err);
+  const close = () => { list.hidden = true; input.setAttribute("aria-expanded", "false"); };
+  function pick(a) { code = a.code; input.value = airportLabel(a); err.textContent = ""; close(); }
+  function paint() { [...list.querySelectorAll(".ac-opt")].forEach((el, i) => el.classList.toggle("active", i === active)); }
+  function suggest() {
+    const q = input.value.trim().toLowerCase();
+    code = "";
+    const exact = pub.airports.find((a) => airportLabel(a).toLowerCase() === q);
+    if (exact) return pick(exact);
+    const rank = (a) => a.code.toLowerCase() === q ? 0 : a.code.toLowerCase().startsWith(q) ? 1 : a.city.toLowerCase().startsWith(q) ? 2 : 3;
+    items = q.length < 2 ? [] : pub.airports.filter((a) => airportLabel(a).toLowerCase().includes(q))
+      .sort((x, y) => rank(x) - rank(y) || airportLabel(x).localeCompare(airportLabel(y))).slice(0, 6);
+    active = 0;
+    list.innerHTML = "";
+    items.forEach((a) => list.append(h("div", { class: "ac-opt", role: "option", text: airportLabel(a),
+      onmousedown: (e) => e.preventDefault(), onclick: () => pick(a) })));
+    if (q.length >= 2 && !items.length) list.append(h("div", { class: "ac-none", text: "No airports match." }));
+    list.hidden = q.length < 2;
+    input.setAttribute("aria-expanded", list.hidden ? "false" : "true");
+    paint();
+  }
+  input.addEventListener("input", suggest);
+  input.addEventListener("blur", close);
+  input.addEventListener("keydown", (e) => {
+    if (list.hidden || !items.length) return;
+    if (e.key === "ArrowDown") { active = Math.min(items.length - 1, active + 1); paint(); e.preventDefault(); }
+    else if (e.key === "ArrowUp") { active = Math.max(0, active - 1); paint(); e.preventDefault(); }
+    else if (e.key === "Enter") { pick(items[active]); e.preventDefault(); }
+    else if (e.key === "Escape") close();
+  });
+  return {
+    el: wrap, err, close,
+    get code() { return code; },
+    set code(c) { const a = pub.airports.find((x) => x.code === c); code = a ? a.code : ""; input.value = a ? airportLabel(a) : ""; },
+  };
+}
+
+document.addEventListener("mousedown", (e) => {  // a click anywhere else closes the open suggestions
+  for (const leg of fields) for (const f of [leg.from, leg.to]) if (!f.el.contains(e.target)) f.close();
+}, true);
+
+// --- calendar date picker ---------------------------------------------------------------------------
+let cal = null;
+function closeCal() { if (cal) { cal.el.remove(); cal.anchor.setAttribute("aria-expanded", "false"); cal = null; } }
+document.addEventListener("mousedown", (e) => { if (cal && !cal.el.contains(e.target) && !cal.anchor.contains(e.target)) closeCal(); }, true);
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeCal(); });
+
+function datePicker(id) {
+  let value = "";
+  const btn = h("button", { id, type: "button", class: "k-select", "aria-haspopup": "dialog", "aria-expanded": "false" });
+  const err = h("span", { class: "err" });
+  const paint = () => { btn.textContent = value ? `${shortDay(value)}, ${value.slice(0, 4)}` : "Choose a date"; btn.dataset.value = value; };
+  function open() {
+    if (cal && cal.anchor === btn) return closeCal();
+    closeCal();
+    let month = parse(value || pub.today);
+    month.setDate(1);
+    const el = h("div", { class: "cal", role: "dialog", "aria-label": "Choose a date" });
+    function draw(focusIso) {
+      const y = month.getFullYear(), m = month.getMonth();
+      const grid = h("div", { class: "cal-grid", role: "grid" });
+      for (const w of WEEKDAYS) grid.append(h("span", { class: "cal-wd", text: w.slice(0, 2) }));
+      for (let i = 0; i < month.getDay(); i++) grid.append(h("span"));
+      for (let d = 1; d <= new Date(y, m + 1, 0).getDate(); d++) {
+        const iso = isoOf(new Date(y, m, d));
+        grid.append(h("button", { type: "button", text: String(d), class: iso === value ? "sel" : "", disabled: iso < pub.today,
+          "aria-label": longDay(iso), "aria-pressed": iso === value ? "true" : "false", dataset: { date: iso },
+          onclick: () => { value = iso; err.textContent = ""; paint(); closeCal(); btn.focus(); } }));
+      }
+      grid.addEventListener("keydown", (e) => {  // arrows move between days, across months too
+        const step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[e.key];
+        if (!step || !e.target.dataset.date) return;
+        e.preventDefault();
+        const next = addDays(e.target.dataset.date, step);
+        if (next < pub.today) return;
+        if (next.slice(0, 7) !== isoOf(month).slice(0, 7)) { month = parse(next.slice(0, 7) + "-01"); draw(next); } else el.querySelector(`[data-date="${next}"]`).focus();
+      });
+      const shift = (n) => { month = new Date(y, m + n, 1); draw(); };
+      el.innerHTML = "";
+      el.append(h("div", { class: "cal-head" },
+        h("button", { type: "button", text: "‹", "aria-label": "Previous month", disabled: isoOf(month) <= pub.today, onclick: () => shift(-1) }),
+        h("strong", { text: `${MONTHS[m]} ${y}` }),
+        h("button", { type: "button", text: "›", "aria-label": "Next month", onclick: () => shift(1) })), grid);
+      const target = (focusIso && el.querySelector(`[data-date="${focusIso}"]`)) || grid.querySelector("button:not(:disabled)");
+      if (target) target.focus();
+    }
+    const r = btn.getBoundingClientRect();
+    el.style.left = Math.round(r.left + scrollX) + "px";
+    el.style.top = Math.round(r.bottom + scrollY + 2) + "px";
+    document.body.append(el);
+    cal = { el, anchor: btn };
+    btn.setAttribute("aria-expanded", "true");
+    draw(value || undefined);
+  }
+  btn.addEventListener("click", open);
+  paint();
+  return { btn, err, get value() { return value; }, set value(v) { value = v; paint(); } };
+}
+
+// --- search form -----------------------------------------------------------------------------------
+function drawForm() {
+  const old = fields;
+  const box = $("#legs-form");
+  box.innerHTML = "";
+  fields = [];
+  for (let i = 0; i < (mode === "multi" ? 2 : 1); i++) {
+    const leg = { from: airportField(`from-${i}`, "From"), to: airportField(`to-${i}`, "To"), date: datePicker(`date-${i}`) };
+    if (old[i]) { leg.from.code = old[i].from.code; leg.to.code = old[i].to.code; leg.date.value = old[i].date.value; }
+    fields.push(leg);
+    if (mode === "multi") box.append(h("div", { class: "legtitle", text: `Leg ${i + 1}` }));
+    box.append(leg.from.el, leg.to.el, h("div", { class: "field" }, h("label", { for: `date-${i}`, text: "Date" }), leg.date.btn, leg.date.err));
+  }
+  $("#m-oneway").setAttribute("aria-pressed", String(mode === "oneway"));
+  $("#m-multi").setAttribute("aria-pressed", String(mode === "multi"));
+  $("#flex-row").hidden = mode === "multi";
+}
+function setMode(m) { if (m !== mode) { mode = m; closeCal(); drawForm(); } }
+
+function search() {
+  closeCal();
+  let ok = true;
+  const fail = (err, text) => { err.textContent = text; ok = false; };
+  for (const leg of fields) {
+    for (const f of [leg.from, leg.to]) f.err.textContent = f.code ? "" : "Choose an airport from the suggestions.";
+    if (!leg.from.code || !leg.to.code) ok = false;
+    else if (leg.from.code === leg.to.code) fail(leg.to.err, "Choose a different destination.");
+    if (!leg.date.value) fail(leg.date.err, "Choose a date.");
+  }
+  if (!ok) return;
+  searched = { mode, flex: mode === "oneway" && $("#flex").checked, legs: fields.map((l) => ({ from: l.from.code, to: l.to.code, date: l.date.value })) };
+  view = { leg: 0, date: searched.legs[0].date };
+  booking = [];
+  stage = "search";
+  page = 1;
+  draw();
+}
+
+// --- results -----------------------------------------------------------------------------------------
+function query() {
+  const q = searched.legs[view.leg];
+  return { from: q.from, to: q.to, date: searched.mode === "oneway" ? view.date : q.date };
+}
+const onDay = (q, day) => pub.flights.filter((f) => f.from === q.from && f.to === q.to && f.date === day);
+function shown(all) {
+  const by = { dep: (a, b) => a.dep.localeCompare(b.dep), price: (a, b) => a.price - b.price,
+               minutes: (a, b) => a.minutes - b.minutes || a.dep.localeCompare(b.dep) };
+  return all.filter((f) => filt.stops.has(Math.min(f.stops, 2)) && filt.airlines.has(f.airline) && (!filt.after || f.dep >= filt.after)
+    && (!filt.before || f.dep <= filt.before) && (!filt.bag || f.bag)).sort(by[filt.sort]);
+}
+function drawResults(box) {
+  if (!searched) return box.append(h("p", { class: "muted", text: "Search for flights to see results." }));
+  const q = query();
+  if (searched.flex) {
+    const strip = h("div", { class: "strip", role: "group", "aria-label": "Lowest fare by day" });
+    for (let d = -3; d <= 3; d++) {
+      const day = addDays(searched.legs[0].date, d), fares = onDay(q, day).map((f) => f.price);
+      strip.append(h("button", { type: "button", class: day === view.date ? "on" : "", "aria-pressed": String(day === view.date),
+        dataset: { date: day }, disabled: day < pub.today, onclick: () => { view.date = day; page = 1; draw(); } },
+        h("span", { text: shortDay(day) }), h("b", { text: fares.length ? "$" + Math.min(...fares) : "—" })));
+    }
+    box.append(strip);
+  }
+  if (searched.mode === "multi") {
+    box.append(h("div", { class: "tabs", role: "tablist" }, searched.legs.map((leg, i) => {
+      const chosen = booking[i] && flight(booking[i].flight);
+      return h("button", { type: "button", role: "tab", class: i === view.leg ? "on" : "", "aria-selected": String(i === view.leg),
+        text: `Leg ${i + 1}: ${leg.from} → ${leg.to}` + (chosen ? ` ✓ ${chosen.number}` : ""), onclick: () => { view.leg = i; page = 1; draw(); } });
+    })));
+  }
+  const all = onDay(q, q.date), list = shown(all);
+  box.append(h("div", { class: "muted", text: `${q.from} → ${q.to} · ${shortDay(q.date)} · ${list.length} of ${all.length} flights` }));
+  if (!list.length) return box.append(h("p", { text: all.length ? "No flights match the filters." : "No flights on this route and date." }));
+  const body = h("tbody");
+  for (const f of list.slice((page - 1) * PAGE, page * PAGE)) {
+    body.append(h("tr", { dataset: { id: f.id } },
+      h("td", { text: f.airline }), h("td", { text: `${f.dep} → ${f.arr}` }),
+      h("td", { text: duration(f.minutes) }), h("td", { text: f.stops ? `${f.stops} stop${f.stops > 1 ? "s" : ""}` : "Nonstop" }), h("td", { class: "num", text: "$" + f.price }),
+      h("td", {}, h("button", { type: "button", text: "Details", onclick: () => details(f) }), " ",
+        h("button", { type: "button", class: "primary", text: "Select", onclick: () => choose(f) }))));
+  }
+  box.append(h("table", { class: "grid", id: "results" },
+    h("thead", {}, h("tr", {}, ["Flight", "Depart → Arrive", "Time", "Stops", "Fare", ""].map((t) => h("th", { text: t })))), body));
+  const pager = h("div", { class: "pager" });
+  K.pager(pager, list.length, PAGE, page, (n) => { page = n; draw(); });
+  box.append(pager);
+}
+function details(f) {
+  const line = (text) => h("div", { text });
+  K.modal({
+    title: `${f.airline} ${f.number} — fare details`,
+    body: h("div", { class: "fare" }, line(`${f.dep} → ${f.arr} · ${duration(f.minutes)} · ${stopsText(f)}`), line("Fare: " + f.fare),
+      line("Carry-on bag: " + (f.carry_on ? "included" : "not included")), line("Checked bag: " + (f.bag ? "included" : "not included")),
+      line("Change fee: " + (f.change_fee ? "$" + f.change_fee : "none"))),
+    actions: [{ label: "Close" }, { label: "Select this flight", primary: true, onClick: () => choose(f) }],
+  });
+}
+function choose(f) {
+  if (searched.mode === "multi") {
+    booking[view.leg] = { flight: f.id, seat: "" };
+    if (booking[0] && booking[1]) stage = "traveler";
+    else { view.leg = booking[0] ? 1 : 0; page = 1; }
+  } else {
+    booking = [{ flight: f.id, seat: "" }];
+    stage = "seat";
+  }
+  draw();
+}
+
+// --- seat map ----------------------------------------------------------------------------------------
+function takenSeats(f) {
+  if (f.taken) return new Set(f.taken);
+  let x = [...f.id].reduce((a, c) => (Math.imul(a, 31) + c.charCodeAt(0)) >>> 0, 7);  // a steady pattern per flight
+  const out = new Set();
+  for (let r = 1; r <= 30; r++) for (const c of "ABCDEF") { x = (Math.imul(x, 1103515245) + 12345) >>> 0; if ((x >>> 16) % 100 < 55) out.add(r + c); }
+  return out;
+}
+const legText = (f, leg) => `${f.airline} ${f.number} · ${f.from} → ${f.to} · ${shortDay(f.date)} · ${f.dep} → ${f.arr}` +
+  (leg.seat ? ` · Seat ${leg.seat}` : "");
+function drawSeat(box) {
+  const leg = booking[0], f = flight(leg.flight), taken = takenSeats(f);
+  const chosen = h("strong", { text: leg.seat || "none" });
+  const map = h("div", { class: "seatmap", role: "group", "aria-label": "Seat map, rows 1 to 30" });
+  map.append(h("div", { class: "srow shead" }, h("span"), [..."ABC"].map((c) => h("span", { text: c })), h("span"), [..."DEF"].map((c) => h("span", { text: c })), h("span")));
+  for (let r = 1; r <= 30; r++) {
+    const exit = EXIT_ROWS.includes(r);
+    const seat = (c) => {
+      const id = r + c, busy = taken.has(id);
+      const label = `Seat ${id}, ` + (busy ? "taken" : `${seatKind(c)}${exit ? ", exit row" : ""}, available`);
+      return h("button", { type: "button", class: "seat" + (leg.seat === id ? " on" : ""), disabled: busy, "aria-label": label, title: label,
+        "aria-pressed": String(leg.seat === id), dataset: { seat: id },
+        onclick: (e) => {
+          leg.seat = id;
+          map.querySelectorAll(".seat.on").forEach((b) => { b.classList.remove("on"); b.setAttribute("aria-pressed", "false"); });
+          e.currentTarget.classList.add("on"); e.currentTarget.setAttribute("aria-pressed", "true");
+          chosen.textContent = id;
+        } });
+    };
+    const tag = () => h("span", { class: "exit-label", text: exit ? "EXIT" : "" });
+    map.append(h("div", { class: "srow" + (exit ? " exit" : "") }, tag(), [..."ABC"].map(seat), h("span", { class: "rownum", text: String(r) }), [..."DEF"].map(seat), tag()));
+  }
+  box.append(h("div", { class: "summary", text: legText(f, { seat: "" }) }),
+    h("div", { class: "legend" }, h("span", {}, h("span", { class: "seat" }), "Available"), h("span", {}, h("span", { class: "seat", style: { background: "#d5dae0", borderColor: "#c3c9d0" } }), "Taken"),
+      h("span", {}, h("span", { class: "seat on" }), "Selected"), h("span", { text: "Seats A and F are windows; C and D are aisles." })),
+    map, h("p", {}, "Selected seat: ", chosen, " (optional — without one, a seat is assigned at check-in)"),
+    h("div", { class: "row" }, searched ? h("button", { type: "button", text: "Back to results", onclick: () => { stage = "search"; draw(); } }) : "",
+      h("button", { type: "button", class: "primary", text: "Continue to traveler details", onclick: () => { stage = "traveler"; draw(); } })));
+}
+
+// --- traveler form and hold ----------------------------------------------------------------------------
+const PERSON = [["first", "First name"], ["middle", "Middle name"], ["last", "Last name"], ["dob", "Date of birth (MM/DD/YYYY)"]];
+function drawTraveler(box) {
+  booking.forEach((leg, i) => box.append(h("div", { class: "summary", text: (booking.length > 1 ? `Leg ${i + 1}: ` : "") + legText(flight(leg.flight), leg) })));
+  if (booking.length > 1) box.append(h("p", { class: "muted", text: "Seats for multi-city trips are chosen after the booking is held." }));
+  const grid = h("div", { class: "formgrid" });
+  for (const [key, label] of PERSON) {
+    const input = h("input", { id: "t-" + key, autocomplete: "off", value: traveler[key] || "", placeholder: key === "dob" ? "MM/DD/YYYY" : "" });
+    input.addEventListener("input", () => { traveler[key] = input.value; });
+    grid.append(h("div", { class: "field" }, h("label", { for: "t-" + key, text: label }), input, h("span", { class: "err", id: "e-" + key })));
+  }
+  const gbtn = h("button", { id: "t-gender", "aria-label": "Gender" });
+  const ktn = h("input", { id: "t-ktn", autocomplete: "off", value: traveler.ktn || "" });
+  ktn.addEventListener("input", () => { traveler.ktn = ktn.value; });
+  grid.append(h("div", { class: "field" }, h("span", { text: "Gender" }), gbtn, h("span", { class: "err", id: "e-gender" })),
+    h("div", { class: "field" }, h("label", { for: "t-ktn", text: "Known traveler number (optional)" }), ktn));
+  box.append(h("strong", { text: trip === "passenger_details" ? "Traveler" : "Traveler (your saved details)" }), grid,
+    h("div", { class: "row" }, h("button", { type: "button", text: "Back", onclick: back }),
+      h("button", { type: "button", id: "hold", class: "primary", text: "Hold booking", onclick: hold }),
+      h("button", { type: "button", id: "pay", text: "Continue to payment", onclick: () => V3.act("pay", { task: trip }) })),
+    h("p", { class: "msg", id: "hold-msg" }));
+  genderSel = K.select(gbtn, { options: [{ value: "female", label: "Female" }, { value: "male", label: "Male" }, { value: "x", label: "Unspecified (X)" }],
+    value: traveler.gender || "", placeholder: "Choose…", onChange: (v) => { traveler.gender = v; } });
+}
+function back() {
+  if (booking.length > 1) { stage = "search"; view.leg = 1; } else stage = "seat";
+  draw();
+}
+function travelerOk() {
+  for (const [key] of PERSON) traveler[key] = $("#t-" + key).value.trim();
+  traveler.ktn = $("#t-ktn").value.trim();
+  traveler.gender = genderSel.value || "";
+  let ok = true;
+  const set = (key, text) => { $("#e-" + key).textContent = text; if (text) ok = false; };
+  set("first", traveler.first ? "" : "Required.");
+  set("middle", "");
+  set("last", traveler.last ? "" : "Required.");
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(traveler.dob);
+  const real = m && new Date(+m[3], +m[1] - 1, +m[2]).getDate() === +m[2] && +m[1] >= 1 && +m[1] <= 12 && `${m[3]}-${m[1]}-${m[2]}` < pub.today;
+  set("dob", real ? "" : "Enter a real date as MM/DD/YYYY.");
+  set("gender", traveler.gender ? "" : "Required.");
+  return ok;
+}
+async function hold() {
+  if (!trip) return K.toast("Start a trip first.");
+  if (!travelerOk()) return K.toast("Fix the highlighted fields.");
+  $("#hold-msg").textContent = "Holding…";
+  const res = await V3.act("hold", { task: trip, mode: searched ? searched.mode : "oneway", legs: booking, passenger: traveler });
+  $("#hold-msg").textContent = res.msg || "";
+}
+
+// --- stages and trips ----------------------------------------------------------------------------------
+function draw() {
+  const box = $("#stage");
+  box.innerHTML = "";
+  $("#res-tools").hidden = stage !== "search" || !searched;
+  $("#stepper").innerHTML = "";
+  [["search", "1 Search"], ["seat", "2 Seat"], ["traveler", "3 Traveler"]].forEach(([key, label], i) =>
+    $("#stepper").append(i ? " › " : "", key === stage ? h("b", { text: label }) : label));
+  if (stage === "seat") drawSeat(box);
+  else if (stage === "traveler") drawTraveler(box);
+  else drawResults(box);
+}
+function resetFilters() {
+  filt.stops = new Set([0, 1, 2]);
+  filt.airlines = new Set(pub.airlines);
+  Object.assign(filt, { after: "", before: "", bag: false, sort: "dep" });
+  document.querySelectorAll("#filters [data-stops]").forEach((cb) => { cb.checked = true; });
+  document.querySelectorAll("#airlines input").forEach((cb) => { cb.checked = true; });
+  $("#bag").checked = false;
+  afterSel.value = ""; beforeSel.value = ""; sortSel.value = "dep";
+}
+function start(name) {
+  closeCal(); K.closeMenu();
+  trip = name;
+  const t = pub.trips[name];
+  mode = "oneway"; fields = []; drawForm();
+  $("#flex").checked = false;
+  resetFilters();
+  searched = null; page = 1; view = { leg: 0, date: "" };
+  traveler = name === "passenger_details" ? { first: "", middle: "", last: "", dob: "", gender: "", ktn: "" } : Object.assign({}, pub.account);
+  booking = t.flight ? [{ flight: t.flight, seat: "" }] : [];
+  stage = name === "seat_choice" ? "seat" : name === "passenger_details" ? "traveler" : "search";
+  $("#current").textContent = document.querySelector(`section[data-task="${name}"] h2`).firstChild.textContent.trim();
+  draw();
+}
+
+function init() {
+  const t = pub.trips;
+  const c = t.constrained_cheapest, s = t.seat_choice, x = t.flex_dates, p = t.passenger_details;
+  $("#t1-route").textContent = `${c.from} → ${c.to}`; $("#t1-date").textContent = c.date_text; $("#t1-cut").textContent = c.cutoff; $("#t1-air").textContent = c.airline;
+  $("#t2-flight").textContent = s.number; $("#t2-route").textContent = `${s.from} → ${s.to}`; $("#t2-date").textContent = s.date_text;
+  $("#t3-route").textContent = `${x.from} → ${x.to}`; $("#t3-center").textContent = x.center_text;
+  const [l1, l2] = t.airport_lookalikes.legs;
+  $("#t4-legs").textContent = `Fly from ${l1.from} to ${l1.to} on ${l1.date_text}, then from ${l2.from} to ${l2.to} on ${l2.date_text}.`;
+  $("#t5-profile").textContent = p.profile; $("#t5-flight").textContent = p.number; $("#t5-route").textContent = `${p.from} → ${p.to}`; $("#t5-date").textContent = p.date_text;
+  $("#account").textContent = `Signed in as ${pub.account.first} ${pub.account.last}`;
+  for (const name of pub.airlines) {
+    const cb = h("input", { type: "checkbox", checked: true });
+    cb.addEventListener("change", () => { cb.checked ? filt.airlines.add(name) : filt.airlines.delete(name); page = 1; draw(); });
+    $("#airlines").append(h("label", {}, cb, " " + name));
+  }
+  document.querySelectorAll("#filters [data-stops]").forEach((cb) => cb.addEventListener("change", () => {
+    cb.checked ? filt.stops.add(+cb.dataset.stops) : filt.stops.delete(+cb.dataset.stops); page = 1; draw();
+  }));
+  $("#bag").addEventListener("change", () => { filt.bag = $("#bag").checked; page = 1; draw(); });
+  const hours = [{ value: "", label: "Any time" }];
+  for (let hr = 5; hr <= 22; hr++) hours.push({ value: String(hr).padStart(2, "0") + ":00", label: String(hr).padStart(2, "0") + ":00" });
+  afterSel = K.select($("#dep-after"), { options: hours, value: "", onChange: (v) => { filt.after = v; page = 1; draw(); } });
+  beforeSel = K.select($("#dep-before"), { options: hours, value: "", onChange: (v) => { filt.before = v; page = 1; draw(); } });
+  sortSel = K.select($("#sort"), { options: [{ value: "dep", label: "Departure (earliest)" }, { value: "price", label: "Price (lowest)" }, { value: "minutes", label: "Duration (shortest)" }],
+    value: "dep", onChange: (v) => { filt.sort = v; page = 1; draw(); } });
+  filt.airlines = new Set(pub.airlines);
+  $("#m-oneway").addEventListener("click", () => setMode("oneway"));
+  $("#m-multi").addEventListener("click", () => setMode("multi"));
+  $("#search").addEventListener("click", search);
+  document.querySelectorAll("section[data-task] .start").forEach((b) => b.addEventListener("click", () => start(b.closest("section").dataset.task)));
+  drawForm();
+  draw();
+}
+
+V3.onState((st) => {
+  if (pub) return;
+  pub = st.public;
+  init();
+});
+</script>
+</body>
+</html>

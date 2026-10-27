@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Alderbank Admin</title>
+<link rel="stylesheet" href="v4_style.css">
+<link rel="stylesheet" href="v6_style.css">
+<style>
+  .nav{width:175px;flex:none}
+  .nav button{display:block;width:100%;text-align:left;margin:2px 0;border:0;background:none;padding:6px 8px;border-radius:6px;font-size:14px}
+  .nav button.on{background:#e8f1fb;font-weight:600}
+  .main{flex:1;min-width:0;overflow-x:auto}
+  .drawer{width:300px;flex:none;font-size:13px}
+  .lbl{font-size:13px;color:#556}
+  #u-search,#f-target{font-size:13px;padding:4px 8px;width:220px}
+  table.grid tr.click{cursor:pointer}
+  table.grid tr.open td{background:#f3f7fc}
+  table.grid td.roles{white-space:normal}
+  button.link{border:0;background:none;padding:0;color:#2b6cb0;font:inherit;text-align:left}
+  .dhead{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+  .dhead button{padding:0 8px}
+  .tabs{display:flex;gap:2px;border-bottom:1px solid #e3e6ea;margin:8px 0}
+  .tabs button{border:0;border-bottom:2px solid transparent;border-radius:0;background:none;padding:4px 8px;font-size:13px}
+  .tabs button.on{border-bottom-color:#2b6cb0;font-weight:600}
+  dl.props{display:grid;grid-template-columns:80px 1fr;gap:3px 8px;margin:6px 0}
+  dl.props dt{color:#667}
+  dl.props dd{margin:0;overflow-wrap:anywhere}
+  .chip button{border:0;background:none;padding:0 0 0 4px;font-size:12px;line-height:1}
+  .prj{display:flex;justify-content:space-between;align-items:center;gap:6px;border-bottom:1px solid #f0f2f5;padding:4px 0}
+  .prj button{font-size:12px;padding:2px 8px}
+  .transfer{background:#f6f8fa;border:1px solid #e3e6ea;border-radius:6px;padding:6px 8px;margin:4px 0}
+  .transfer input{width:100%;box-sizing:border-box;font-size:13px}
+  .sugg button{display:block;width:100%;text-align:left;margin:2px 0;padding:3px 8px;font-size:13px}
+  .sugg button.on{background:#d7e6f7;border-color:#7aa7d9}
+  table.matrix th,table.matrix td{text-align:center;padding:4px 6px}
+  table.matrix tbody th{text-align:left}
+  table.matrix td.dirty{background:#fff4d6}
+  .k-modal label{display:block;margin:8px 0 4px;font-size:13px}
+  .k-modal input{width:100%;box-sizing:border-box}
+  .answer{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+  .answer input{width:100%;box-sizing:border-box}
+</style>
+</head>
+<body data-page="v6_admin">
+<h1>Alderbank Admin</h1>
+<div id="bench-progress" class="hint"></div>
+<div id="bench-verdict" class="verdict">Benchmark in progress.</div>
+<p class="intro">Five independent tasks in one identity console. Today is <strong data-public="today_text"></strong>.</p>
+
+<div class="tasks">
+  <section class="ch">
+    <h2>1. Grant a role <span class="mark" data-step-mark="bulk_role"></span></h2>
+    <p>Give the role <strong>Reviewer</strong> to every <strong>Active</strong> user in the <strong>Finance</strong>
+       department who was hired <strong>before 2024-01-01</strong>. Change no one else.</p>
+    <p class="msg" data-msg="bulk"></p>
+  </section>
+  <section class="ch">
+    <h2>2. Offboard a leaver <span class="mark" data-step-mark="offboard"></span></h2>
+    <p><strong id="t2-name"></strong> from <span id="t2-dept"></span> left today. Suspend the account, remove all of
+       their roles, and transfer each of their projects to their manager. Never delete accounts.</p>
+    <p class="msg" data-msg="offboard"></p>
+  </section>
+  <section class="ch">
+    <h2>3. Edit permissions <span class="mark" data-step-mark="matrix_edit"></span></h2>
+    <p>In Roles &amp; permissions, give <strong id="t3-role"></strong> the permissions <span id="t3-add"></span>, and
+       remove <strong id="t3-remove"></strong> from <strong id="t3-from"></strong>. Change nothing else, then save.</p>
+    <p class="msg" data-msg="matrix"></p>
+  </section>
+  <section class="ch">
+    <h2>4. Audit question <span class="mark" data-step-mark="audit_lookup"></span></h2>
+    <p>Who last <strong>changed</strong> the <strong>Password policy</strong> setting, and on what date?</p>
+    <div class="answer">
+      <div class="field"><label for="a-who">Changed by</label><input id="a-who" autocomplete="off" data-enter="a-go"></div>
+      <div class="field"><label for="a-date">Date</label><input id="a-date" autocomplete="off" data-enter="a-go"></div>
+    </div>
+    <button id="a-go">Submit answer</button>
+    <p class="msg" data-msg="audit"></p>
+  </section>
+  <section class="ch">
+    <h2>5. Reset MFA <span class="mark" data-step-mark="mfa_reset"></span></h2>
+    <p>Reset multi-factor authentication for the account with username <code id="t5-user"></code> — that account only.</p>
+    <p class="msg" data-msg="mfa"></p>
+  </section>
+</div>
+
+<section class="app" aria-label="Admin console">
+  <div class="app-head"><h2>Alderbank Admin</h2><span class="muted">it-admin@alderbank.example</span></div>
+  <div class="panes">
+    <nav class="pane nav" id="nav" aria-label="Sections">
+      <button data-view="users" class="on">Users</button>
+      <button data-view="roles">Roles &amp; permissions</button>
+      <button data-view="audit">Audit log</button>
+    </nav>
+    <div class="pane main">
+      <div id="v-users">
+        <div class="toolbar">
+          <input id="u-search" placeholder="Search name, username or email" aria-label="Search users" autocomplete="off">
+          <span class="lbl">Department</span><button id="f-dept" aria-label="Department"></button>
+          <span class="lbl">Status</span><button id="f-status" aria-label="Status"></button>
+        </div>
+        <div class="toolbar" role="toolbar" aria-label="Bulk actions">
+          <button id="b-assign" aria-haspopup="listbox">Assign role ▾</button>
+          <button id="b-remove" aria-haspopup="listbox">Remove role ▾</button>
+          <span class="muted" id="sel-info"></span>
+        </div>
+        <table class="grid">
+          <thead><tr><th><input type="checkbox" id="sel-all" aria-label="Select all users on this page"></th>
+            <th>Name</th><th>Username</th><th>Department</th><th>Status</th><th>Hired</th><th>Roles</th></tr></thead>
+          <tbody id="u-rows"></tbody>
+        </table>
+        <div class="pager" id="u-pager"></div>
+      </div>
+      <div id="v-roles" hidden>
+        <table class="grid matrix">
+          <thead id="m-head"></thead>
+          <tbody id="m-rows"></tbody>
+        </table>
+        <div class="row"><button id="m-save" class="primary">Save changes</button><button id="m-discard">Discard</button>
+          <span class="muted" id="m-info"></span></div>
+      </div>
+      <div id="v-audit" hidden>
+        <div class="toolbar">
+          <span class="lbl">Actor</span><button id="f-actor" aria-label="Actor"></button>
+          <span class="lbl">Action</span><button id="f-action" aria-label="Action"></button>
+          <input id="f-target" placeholder="Filter by target" aria-label="Filter by target" autocomplete="off">
+        </div>
+        <table class="grid">
+          <thead><tr><th>When</th><th>Actor</th><th>Action</th><th>Target</th><th>Details</th></tr></thead>
+          <tbody id="a-rows"></tbody>
+        </table>
+        <div class="pager" id="a-pager"></div>
+      </div>
+    </div>
+    <aside class="pane drawer" id="drawer" aria-label="User details" hidden></aside>
+  </div>
+</section>
+
+<script src="v3_common.js"></script>
+<script src="v6_kit.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+const { h } = K;
+const PAGE = 10;
+const TABS = ["Profile", "Roles", "Projects", "Security"];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+let pub = null, users = [], projects = [], view = "users";
+let uq = "", udept = "", ustatus = "", upage = 1, openId = null, tab = "Profile", transfer = null;
+const selected = new Set();
+let aactor = "", aaction = "", atarget = "", apage = 1, actorSel = null, actionSel = null;
+let saved = "", draft = null;
+
+const byName = (a, b) => a.name.localeCompare(b.name);
+const userById = (id) => users.find((u) => u.id === id);
+
+function stamp(at) {  // "2027-03-04 14:22" -> "Mar 4, 2027 · 2:22 PM"
+  const [d, t] = at.split(" ");
+  const [y, m, day] = d.split("-").map(Number);
+  const [hh, mm] = t.split(":").map(Number);
+  return `${MONTHS[m - 1]} ${day}, ${y} · ${hh % 12 || 12}:${String(mm).padStart(2, "0")} ${hh >= 12 ? "PM" : "AM"}`;
+}
+
+function showView(v) {
+  view = v;
+  K.closeMenu();
+  document.querySelectorAll("#nav button").forEach((b) => b.classList.toggle("on", b.dataset.view === v));
+  for (const id of ["users", "roles", "audit"]) $("#v-" + id).hidden = id !== v;
+  drawDrawer();
+}
+
+// --- users ----------------------------------------------------------------------------------------
+function shownUsers() {
+  const q = uq.trim().toLowerCase();
+  return users.filter((u) => (!q || u.name.toLowerCase().includes(q) || u.username.includes(q) || u.email.includes(q))
+    && (!udept || u.department === udept) && (!ustatus || u.status === ustatus)).sort(byName);
+}
+function pageRows() { return shownUsers().slice((upage - 1) * PAGE, upage * PAGE); }
+
+function drawUsers() {
+  const list = shownUsers();
+  upage = Math.min(upage, Math.max(1, Math.ceil(list.length / PAGE)));
+  const rows = pageRows();
+  const body = $("#u-rows");
+  body.innerHTML = "";
+  for (const u of rows) {
+    const cb = h("input", { type: "checkbox", "aria-label": "Select " + u.name });
+    cb.checked = selected.has(u.id);
+    cb.addEventListener("click", (e) => { e.stopPropagation(); cb.checked ? selected.add(u.id) : selected.delete(u.id); drawUsers(); });
+    body.append(h("tr", { class: "click" + (selected.has(u.id) ? " sel" : "") + (u.id === openId ? " open" : ""), dataset: { id: u.id }, onclick: () => openUser(u.id) },
+      h("td", {}, cb), h("td", {}, h("button", { type: "button", class: "link", text: u.name })), h("td", { text: u.username }),
+      h("td", { text: u.department }), h("td", { text: u.status }), h("td", { text: u.hired }), h("td", { class: "roles", text: u.roles.join(", ") || "—" })));
+  }
+  if (!rows.length) body.append(h("tr", {}, h("td", { colspan: "7", class: "muted", text: "No users match." })));
+  $("#sel-all").checked = rows.length > 0 && rows.every((u) => selected.has(u.id));
+  $("#sel-info").textContent = selected.size ? `${selected.size} selected` : "";
+  K.pager($("#u-pager"), list.length, PAGE, upage, (p) => { upage = p; drawUsers(); });
+}
+
+function refilter() { upage = 1; selected.clear(); drawUsers(); }
+
+async function bulk(kind, role) {
+  if (!selected.size) return K.toast("Select one or more users first.");
+  const ids = [...selected];
+  selected.clear();
+  await V3.act(kind, { ids, role });
+}
+
+// --- user drawer ----------------------------------------------------------------------------------
+function openUser(id) { openId = id; tab = "Profile"; transfer = null; drawUsers(); drawDrawer(); }
+
+function drawDrawer() {
+  const box = $("#drawer");
+  const u = userById(openId);
+  box.innerHTML = "";
+  box.hidden = view !== "users" || !u;
+  if (box.hidden) return;
+  box.append(
+    h("div", { class: "dhead" },
+      h("div", {}, h("strong", { text: u.name }), h("div", { class: "muted", text: u.title + " · " + u.department })),
+      h("button", { type: "button", "aria-label": "Close details", text: "×", onclick: () => { openId = null; drawUsers(); drawDrawer(); } })),
+    h("div", { class: "tabs", role: "tablist" }, TABS.map((t) => h("button", {
+      type: "button", role: "tab", class: t === tab ? "on" : "", "aria-selected": t === tab ? "true" : "false", text: t,
+      onclick: () => { tab = t; transfer = null; drawDrawer(); } }))),
+    { Profile: profileTab, Roles: rolesTab, Projects: projectsTab, Security: securityTab }[tab](u));
+  const owner = $("#t-owner");
+  if (owner) owner.focus();
+}
+
+function profileTab(u) {
+  const mgr = users.find((x) => x.name === u.manager);
+  const field = (label, value) => [h("dt", { text: label }), h("dd", { dataset: { field: label } }, value)];
+  return h("div", { role: "tabpanel" },
+    h("dl", { class: "props" },
+      field("Email", u.email), field("Username", u.username),
+      field("Manager", mgr ? h("button", { type: "button", class: "link", text: mgr.name, onclick: () => openUser(mgr.id) }) : "—"),
+      field("Hire date", u.hired), field("Status", u.status)),
+    h("div", { class: "row" },
+      u.status === "Active"
+        ? h("button", { type: "button", text: "Suspend", onclick: () => V3.act("set_status", { id: u.id, status: "Suspended" }) })
+        : h("button", { type: "button", text: "Reactivate", onclick: () => V3.act("set_status", { id: u.id, status: "Active" }) }),
+      h("button", { type: "button", class: "danger", text: "Delete user", onclick: () => confirmDelete(u) })));
+}
+
+function rolesTab(u) {
+  const add = h("button", { type: "button", text: "Add role ▾", "aria-haspopup": "listbox" });
+  add.addEventListener("click", () => {
+    const left = pub.roles.filter((r) => !u.roles.includes(r));
+    if (!left.length) return K.toast("This user already has every role.");
+    K.menu(add, left.map((r) => ({ label: r, value: r })), (r) => V3.act("assign_role", { ids: [u.id], role: r }));
+  });
+  const chips = u.roles.map((r) => h("span", { class: "chip" }, r,
+    h("button", { type: "button", "aria-label": "Remove role " + r, text: "×", onclick: () => V3.act("remove_role", { ids: [u.id], role: r }) })));
+  return h("div", { role: "tabpanel" }, h("div", {}, chips.length ? chips : h("span", { class: "muted", text: "No roles." })), h("div", { class: "row" }, add));
+}
+
+function projectsTab(u) {
+  const panel = h("div", { role: "tabpanel" });
+  const mine = projects.filter((p) => p.owner === u.id).sort(byName);
+  if (!mine.length) panel.append(h("p", { class: "muted", text: "No projects." }));
+  for (const p of mine) {
+    panel.append(h("div", { class: "prj", dataset: { id: p.id } }, h("span", { text: p.name }),
+      h("button", { type: "button", text: "Transfer…", "aria-label": "Transfer " + p.name,
+        onclick: () => { transfer = { project: p.id, text: "", picked: null }; drawDrawer(); } })));
+    if (transfer && transfer.project === p.id) panel.append(transferForm(p, u));
+  }
+  return panel;
+}
+
+/** New-owner picker: type part of a name or username, then pick one of the active people that match. */
+function transferForm(p, owner) {
+  const input = h("input", { id: "t-owner", placeholder: "Type a name or username", autocomplete: "off" });
+  input.value = transfer.text;
+  const sugg = h("div", { class: "sugg", role: "listbox", "aria-label": "Matching people" });
+  const matches = () => {
+    const q = transfer.text.trim().toLowerCase();
+    return q ? users.filter((x) => x.status === "Active" && x.id !== owner.id && (x.name.toLowerCase().includes(q) || x.username.includes(q))).sort(byName) : [];
+  };
+  function paint() {
+    sugg.innerHTML = "";
+    if (!transfer.text.trim()) return;
+    const list = matches();
+    for (const x of list.slice(0, 6)) {
+      sugg.append(h("button", { type: "button", role: "option", class: x.id === transfer.picked ? "on" : "", "aria-selected": x.id === transfer.picked ? "true" : "false",
+        text: `${x.name} · ${x.department}`, onclick: () => { transfer.picked = x.id; transfer.text = x.name; input.value = x.name; paint(); } }));
+    }
+    if (list.length > 6) sugg.append(h("div", { class: "muted", text: `${list.length - 6} more — keep typing` }));
+    if (!list.length) sugg.append(h("div", { class: "muted", text: "No active person matches." }));
+  }
+  async function go() {
+    const list = matches();
+    const exact = list.filter((x) => x.name.toLowerCase() === transfer.text.trim().toLowerCase() || x.username === transfer.text.trim().toLowerCase());
+    const to = transfer.picked || (exact.length === 1 ? exact[0].id : list.length === 1 ? list[0].id : null);
+    if (!to) return K.toast("Choose the new owner from the matching people.");
+    transfer = null;
+    await V3.act("transfer_project", { project: p.id, to });
+  }
+  input.addEventListener("input", () => { transfer.text = input.value; transfer.picked = null; paint(); });
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); go(); } });
+  paint();
+  return h("div", { class: "transfer" }, h("label", { for: "t-owner", text: `New owner of “${p.name}”` }), input, sugg,
+    h("div", { class: "row" }, h("button", { type: "button", class: "primary", text: "Transfer", onclick: go }),
+      h("button", { type: "button", text: "Cancel", onclick: () => { transfer = null; drawDrawer(); } })));
+}
+
+function securityTab(u) {
+  const enrolled = u.mfa === "Enrolled";
+  return h("div", { role: "tabpanel" },
+    h("dl", { class: "props" }, h("dt", { text: "MFA" }),
+      h("dd", { dataset: { field: "MFA" }, text: enrolled ? "Enrolled (authenticator app)" : "Not enrolled" + (u.mfa_reset ? ` — reset ${u.mfa_reset}` : "") })),
+    h("p", { class: "muted", text: "A reset removes the enrolled authenticator; the person enrolls again at next sign-in." }),
+    h("button", { type: "button", class: "danger", text: "Reset MFA", disabled: !enrolled, onclick: () => confirmMfa(u) }));
+}
+
+function confirmMfa(u) {
+  const input = h("input", { id: "mfa-confirm", autocomplete: "off" });
+  K.modal({
+    title: `Reset MFA for ${u.name}?`,
+    body: h("div", {}, h("p", { text: `${u.username} is signed out everywhere and must enroll an authenticator again.` }),
+      h("label", { for: "mfa-confirm", text: `Type the username ${u.username} to confirm` }), input),
+    actions: [{ label: "Cancel" }, { label: "Reset MFA", primary: true, onClick: async () => {
+      if (input.value.trim() !== u.username) return true;
+      await V3.act("reset_mfa", { id: u.id, confirm: input.value.trim() });
+    } }],
+  });
+  const confirm = [...document.querySelectorAll(".k-modal .k-actions button")].pop();
+  confirm.disabled = true;
+  input.addEventListener("input", () => { confirm.disabled = input.value.trim() !== u.username; });
+}
+
+function confirmDelete(u) {
+  K.modal({
+    title: `Delete ${u.name}?`,
+    body: h("p", { text: "This permanently deletes the account, its role assignments and its project ownership. It cannot be undone." }),
+    actions: [{ label: "Cancel" }, { label: "Delete user", danger: true, onClick: async () => { await V3.act("delete_user", { id: u.id }); } }],
+  });
+}
+
+// --- roles & permissions --------------------------------------------------------------------------
+function canon(m) { return Object.fromEntries(pub.roles.map((r) => [r, pub.permissions.map((p) => p.key).filter((k) => (m[r] || []).includes(k))])); }
+
+function drawMatrix() {
+  const base = JSON.parse(saved);
+  const body = $("#m-rows");
+  body.innerHTML = "";
+  for (const role of pub.roles) {
+    const tr = h("tr", {}, h("th", { scope: "row", text: role + (role === "Admin" ? " (built-in)" : "") }));
+    for (const p of pub.permissions) {
+      const cb = h("input", { type: "checkbox", "aria-label": `${role} — ${p.group}: ${p.name}`, disabled: role === "Admin" });
+      cb.checked = draft[role].includes(p.key);
+      const td = h("td", { class: cb.checked !== base[role].includes(p.key) ? "dirty" : "" }, cb);
+      cb.addEventListener("change", () => {
+        draft[role] = cb.checked ? [...draft[role], p.key] : draft[role].filter((k) => k !== p.key);
+        td.classList.toggle("dirty", cb.checked !== base[role].includes(p.key));
+        matrixInfo();
+      });
+      tr.append(td);
+    }
+    body.append(tr);
+  }
+  matrixInfo();
+}
+function matrixInfo() {
+  const n = document.querySelectorAll("#m-rows td.dirty").length;
+  $("#m-info").textContent = n ? `${n} unsaved change${n === 1 ? "" : "s"}` : "No unsaved changes.";
+}
+
+// --- audit log ------------------------------------------------------------------------------------
+function shownAudit() {
+  const q = atarget.trim().toLowerCase();
+  return pub.audit.filter((e) => (!aactor || e.actor === aactor) && (!aaction || e.action === aaction) && (!q || e.target.toLowerCase().includes(q)));
+}
+function drawAudit() {
+  const options = (all, key) => [{ value: "", label: all }, ...[...new Set(pub.audit.map((e) => e[key]))].sort().map((x) => ({ value: x, label: x }))];
+  actorSel.setOptions(options("All actors", "actor"));
+  actionSel.setOptions(options("All actions", "action"));
+  const list = shownAudit();
+  apage = Math.min(apage, Math.max(1, Math.ceil(list.length / PAGE)));
+  const body = $("#a-rows");
+  body.innerHTML = "";
+  for (const e of list.slice((apage - 1) * PAGE, apage * PAGE)) {
+    body.append(h("tr", { dataset: { id: e.id } }, h("td", { text: stamp(e.at) }), h("td", { text: e.actor }), h("td", { text: e.action }),
+      h("td", { text: e.target }), h("td", { class: "muted", text: e.detail })));
+  }
+  if (!list.length) body.append(h("tr", {}, h("td", { colspan: "5", class: "muted", text: "No events match." })));
+  K.pager($("#a-pager"), list.length, PAGE, apage, (p) => { apage = p; drawAudit(); });
+}
+
+// --- wiring ---------------------------------------------------------------------------------------
+function init() {
+  const t = pub.tasks;
+  $("#t2-name").textContent = t.offboard.name;
+  $("#t2-dept").textContent = t.offboard.department;
+  $("#t3-role").textContent = t.matrix_edit.role;
+  $("#t3-add").append(h("strong", { text: t.matrix_edit.add[0] }), " and ", h("strong", { text: t.matrix_edit.add[1] }));
+  $("#t3-remove").textContent = t.matrix_edit.remove;
+  $("#t3-from").textContent = t.matrix_edit.from_role;
+  $("#t5-user").textContent = t.mfa_reset.username;
+  K.select($("#f-dept"), { options: [{ value: "", label: "All departments" }, ...pub.departments.map((d) => ({ value: d, label: d }))], value: "",
+    onChange: (v) => { udept = v; refilter(); } });
+  K.select($("#f-status"), { options: [{ value: "", label: "All statuses" }, { value: "Active", label: "Active" }, { value: "Suspended", label: "Suspended" }], value: "",
+    onChange: (v) => { ustatus = v; refilter(); } });
+  actorSel = K.select($("#f-actor"), { options: [], value: "", onChange: (v) => { aactor = v; apage = 1; drawAudit(); } });
+  actionSel = K.select($("#f-action"), { options: [], value: "", onChange: (v) => { aaction = v; apage = 1; drawAudit(); } });
+  const groups = [...new Set(pub.permissions.map((p) => p.group))];
+  $("#m-head").append(
+    h("tr", {}, h("th", { rowspan: "2", text: "Role" }), groups.map((g) => h("th", { colspan: String(pub.permissions.filter((p) => p.group === g).length), text: g }))),
+    h("tr", {}, pub.permissions.map((p) => h("th", { text: p.name }))));
+}
+
+document.querySelectorAll("#nav button").forEach((b) => b.addEventListener("click", () => showView(b.dataset.view)));
+$("#u-search").addEventListener("input", () => { uq = $("#u-search").value; refilter(); });
+$("#sel-all").addEventListener("click", () => {
+  const rows = pageRows();
+  rows.forEach((u) => ($("#sel-all").checked ? selected.add(u.id) : selected.delete(u.id)));
+  drawUsers();
+});
+$("#b-assign").addEventListener("click", () => K.menu($("#b-assign"), pub.roles.map((r) => ({ label: r, value: r })), (r) => bulk("assign_role", r)));
+$("#b-remove").addEventListener("click", () => K.menu($("#b-remove"), pub.roles.map((r) => ({ label: r, value: r })), (r) => bulk("remove_role", r)));
+$("#m-save").addEventListener("click", () => {
+  if (JSON.stringify(canon(draft)) === saved) return K.toast("No changes to save.");
+  V3.act("save_matrix", { matrix: draft });
+});
+$("#m-discard").addEventListener("click", () => { draft = JSON.parse(saved); drawMatrix(); });
+$("#f-target").addEventListener("input", () => { atarget = $("#f-target").value; apage = 1; drawAudit(); });
+$("#a-go").addEventListener("click", () => V3.act("answer_audit", { who: $("#a-who").value, date: $("#a-date").value }));
+
+V3.onState((st) => {
+  const first = !pub;
+  pub = st.public;
+  users = pub.users;
+  projects = pub.projects;
+  if (first) init();
+  const m = JSON.stringify(canon(pub.matrix));
+  if (m !== saved) { saved = m; draft = JSON.parse(m); }
+  if (openId && !userById(openId)) openId = null;
+  drawUsers(); drawDrawer(); drawMatrix(); drawAudit();
+});
+</script>
+</body>
+</html>
