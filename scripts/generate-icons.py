@@ -1,6 +1,6 @@
 """Generate the Lumen brand icons for the desktop app, the Chrome extension, and the Android app.
 
-The mark is four upright slabs, after the segmented monolith robot the agent is named for. It is
+The mark is four upright slabs of light, the inner pair set slightly lower. It is
 drawn once at high resolution and downsampled, since PIL's primitives are not antialiased.
 """
 
@@ -30,7 +30,7 @@ def draw_slabs(draw: ImageDraw.ImageDraw, scale: float = 1.0, center: float = MA
     width = (right - left - gap * 3) / 4
     for index in range(4):
         x0 = left + index * (width + gap)
-        # The inner pair sits slightly lower, like the robot's articulated middle segments.
+        # The inner pair sits slightly lower.
         offset = 36 if index in (1, 2) else 0
         box = (at(x0), at(top + offset), at(x0 + width), at(bottom - (36 - offset)))
         fill = mono or (SLAB if index in (0, 3) else SLAB_SHADE)

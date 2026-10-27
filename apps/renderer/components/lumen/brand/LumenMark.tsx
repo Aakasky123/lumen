@@ -1,9 +1,9 @@
 import { cn } from "@/lib/utils";
 
 /**
- * The Lumen mark: four upright slabs after the segmented robot the agent is named for, the inner
- * pair set slightly lower (see scripts/generate-icons.py). `working` sets the slabs shifting in
- * sequence — the one motion that means "Lumen is doing something" everywhere in the product.
+ * The Lumen mark: four upright slabs of light, the inner pair set slightly lower (see
+ * scripts/generate-icons.py). `working` sets the slabs shifting in sequence — the one motion that
+ * means "Lumen is doing something" everywhere in the product.
  */
 
 const SLABS = [

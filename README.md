@@ -28,33 +28,52 @@ profile, résumé, and saved answers.
 
 ## Run it
 
-```powershell
-python -m pip install -r apps/api/requirements.txt
-npm install
-npm run extension:install
+You need Python 3.12, Node.js (tested on 24), and Google Chrome.
+
+**macOS**
+
+```bash
+git clone https://github.com/Aakasky123/lumen.git && cd lumen
+python3.12 -m venv .venv && .venv/bin/pip install -r apps/api/requirements.txt
+npm install && npm run extension:install
+cp .env.example .env
 npm run dev
 ```
 
-`npm run dev` starts the backend on `http://127.0.0.1:8001` and opens the desktop window. Load `apps/extension`
-unpacked in Chrome (`chrome://extensions`, Developer mode); it connects to `ws://127.0.0.1:8001/extension/ws`.
-To let Lumen use desktop apps in development, set `LUMEN_DESKTOP_CONTROL=true` in `.env`.
+**Windows** (PowerShell)
 
-Add a model provider in Settings before giving Lumen a task; with no model, chat says so and nothing runs.
-Storing provider keys and credentials needs `LUMEN_TOKEN_ENCRYPTION_KEY`.
+```powershell
+git clone https://github.com/Aakasky123/lumen.git; cd lumen
+py -3.12 -m venv .venv; .venv\Scripts\pip install -r apps/api/requirements.txt
+npm install; npm run extension:install
+copy .env.example .env
+npm run dev
+```
+
+`npm run dev` starts the backend on `http://127.0.0.1:8001` and opens the desktop window. Then:
+
+1. **Set an encryption key.** Put any long random string in `LUMEN_TOKEN_ENCRYPTION_KEY` in `.env`; Lumen
+   encrypts stored provider keys and credentials with it.
+2. **Add a model provider** in Settings. With no model, chat says so and nothing runs.
+3. **Load the browser body.** In Chrome, open `chrome://extensions`, turn on Developer mode, and load
+   `apps/extension` unpacked. It connects to `ws://127.0.0.1:8001/extension/ws`.
+4. **Optional: let Lumen use desktop apps.** Set `LUMEN_DESKTOP_CONTROL=true` in `.env`. On macOS, also turn
+   on the dev host (it shows as **Electron**) under System Settings > Privacy & Security > Accessibility and
+   Screen Recording, then restart it with `npm run restart`.
 
 Data lives in `storage/` (SQLite by default; `infra/docker-compose.yml` starts an optional Postgres).
 `scripts/lumen.py` drives the backend from a terminal (`status`, `chat`, `runs`, `watch`, `answer`, and more).
 
 ## Check it
 
-```powershell
-cd apps/api; python -m pytest tests -q
-cd apps/renderer; npx tsc --noEmit
+```bash
+npm run api:test
+npm --workspace apps/renderer exec tsc -- --noEmit
 npm run capability-regressions
 npm run desktop:test
 ```
 
-Benchmarks (the Interaction Gauntlet and OSWorld) are described in
+Benchmarks (the Interaction Gauntlet, OSWorld, and the Mac bench) are described in
 [`docs/architecture.md`](docs/architecture.md#13-evaluation-and-tests).
 
 ## Safety
